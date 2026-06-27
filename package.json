@@ -6,7 +6,7 @@
     "dev": "concurrently --kill-others \"npm run ws-server\" \"next dev\"",
     "ws-server": "node ws-server.js",
     "build": "next build",
-    "start": "concurrently --kill-others \"node ws-server.js\" \"next start\"",
+    "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
