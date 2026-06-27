@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  staffs    Staff[]
+}
+
+model Designation {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  staffs    Staff[]
+}
+
+model Shift {
+  id        String   @id @default(cuid())
+  name      String
+  startTime String   // e.g. "10:00"
+  endTime   String   // e.g. "16:00"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  staffs    Staff[]
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  name      String
+  ipAddress String?
+  port      String?
+  status    String   @default("OFFLINE")
+  lastPing  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Policy {
+  id                           String   @id @default(cuid())
+  name                         String   @default("GENERAL")
+  earlyArrivalAllow            String   @default("02:00")
+  maxOtAllow                   String   @default("08:00")
+  otHalfCOffFrom               String   @default("00:00")
+  otHalfCOffTo                 String   @default("00:00")
+  otFullCOffFrom               String   @default("00:00")
+  otFullCOffTo                 String   @default("00:00")
+  lateArrivalAllow             String   @default("00:15")
+  earlyDepartureAllow          String   @default("00:00")
+  earlyArrivalIgnore           String   @default("00:00")
+  lateDepartureIgnore          String   @default("00:00")
+  overTimeIgnore               String   @default("00:00")
+  noOfLate                     Int      @default(0)
+  halfDayIfLateHrsGreaterThan  String   @default("03:00")
+  halfDayIfWorkHrsLessThan     String   @default("06:00")
+  absentIfLateHrsGreaterThan   String   @default("00:00")
+  absentIfWorkHrsLessThan      String   @default("00:00")
+  shiftHrsForOtCalculation     String   @default("08:00")
+  overtimePaymentMultiplier    Float    @default(0)
+  allInOut                     String   @default("First IN Last OUT")
+  weekOffDays                  String   @default("0") // e.g. "0" for Sunday
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+}
+
+model Staff {
+  id            String       @id @default(cuid())
+  machineId     String       @unique // ID as known to the attendance machine
+  name          String
+  departmentId  String?
+  designationId String?
+  shiftId       String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  department    Department?  @relation(fields: [departmentId], references: [id])
+  designation   Designation? @relation(fields: [designationId], references: [id])
+  shift         Shift?       @relation(fields: [shiftId], references: [id])
+  
+  attendanceLogs AttendanceLog[]
+  dailyRecords   DailyRecord[]
+}
+
+model AttendanceLog {
+  id        String   @id @default(cuid())
+  staffId   String
+  timestamp DateTime
+  type      String   // "IN" or "OUT"
+  
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@index([staffId])
+  @@index([timestamp])
+}
+
+model DailyRecord {
+  id              String   @id @default(cuid())
+  staffId         String
+  date            DateTime
+  status          String   // "PRESENT", "ABSENT", "HALF_DAY"
+  checkIn         DateTime?
+  checkOut        DateTime?
+  lateMinutes     Int      @default(0)
+  workMinutes     Int      @default(0)
+  overtimeMinutes Int      @default(0)
+  
+  staff           Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@unique([staffId, date])
+  @@index([date])
+}
+
+model Holiday {
+  id        String   @id @default(cuid())
+  name      String
+  date      DateTime @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
