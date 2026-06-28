@@ -36,7 +36,7 @@ export default function LoginPage() {
             Welcome Back
           </h1>
           <p className="text-slate-400 mt-2 text-sm">
-            Sign in to access the Biopark D01 Dashboard
+            Sign in to access your Attendance Dashboard
           </p>
         </div>
 

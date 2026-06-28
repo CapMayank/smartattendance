@@ -38,13 +38,13 @@ export async function GET(request: Request) {
               shift: true
             }
           }
-        },
-        orderBy: {
-          staff: {
-            machineId: 'asc'
-          }
         }
       })
+
+      // Sort by machineId numerically since it is a String in DB
+      records.sort((a, b) => 
+        a.staff.machineId.localeCompare(b.staff.machineId, undefined, { numeric: true })
+      )
 
       return NextResponse.json(records)
     } 
