@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InTime Smart Attendance
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-16.2.9-black?logo=next.js)
+![Prisma](https://img.shields.io/badge/Prisma-6.19.3-blue?logo=prisma)
+![Node.js](https://img.shields.io/badge/Node.js-WebSockets-green?logo=node.js)
+![Database](https://img.shields.io/badge/Database-PostgreSQL%20%7C%20SQLite-lightgrey)
 
-First, run the development server:
+InTime is a full-stack, real-time web application designed to manage employee attendance, integrate directly with biometric attendance machines (AiFace/ZKTeco), and process complex HR attendance policies.
 
+## 🚀 Features
+*   **Real-time Biometric Integration:** Machines connect securely via WebSockets to automatically log punches.
+*   **Comprehensive Dashboard:** A powerful Next.js admin panel to monitor attendance, staff, and devices.
+*   **Advanced Policy Engine:** Handles rules for early arrivals, late allowances, overtime calculations, and automatic half-day logic.
+*   **Automated Deployment:** CI/CD enabled via GitHub actions for zero-downtime updates.
+
+---
+
+## 🛠️ Tech Stack
+
+*   **Frontend & API:** [Next.js](https://nextjs.org/) (React)
+*   **Database ORM:** [Prisma](https://www.prisma.io/)
+*   **Authentication:** [NextAuth.js](https://next-auth.js.org/) with Prisma Adapter
+*   **Real-time Server:** Node.js WebSockets (`ws` library)
+
+---
+
+## 💻 Local Development Setup
+
+To run this project on your local machine for development:
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Variables
+Create a `.env` file in the root directory (or use the existing one):
+```env
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="super-secret-key-for-development"
+NEXTAUTH_URL="http://localhost:3000"
+TZ="Asia/Kolkata"
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Setup the Database
+Apply the Prisma schema to create your local SQLite database:
+```bash
+npx prisma db push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Run the Servers
+Start both the Next.js frontend and the WebSocket server simultaneously:
+```bash
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) with your browser to view the application.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🌐 Production Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The production environment is hosted on an Oracle Cloud Ubuntu instance using **PostgreSQL**, **PM2** (process manager), and **Nginx** (reverse proxy). 
 
-## Deploy on Vercel
+The system operates two main services:
+1.  **Next.js App:** Runs on port `3000` (proxied to port 80/443 via Nginx).
+2.  **WebSocket Server:** Runs on port `7788` specifically to receive real-time ping/punch data from biometric hardware.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> For complete details on setting up the production environment from scratch, refer to the `system_documentation.md` (Artifact).
