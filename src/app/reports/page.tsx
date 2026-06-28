@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Calendar as CalendarIcon, Filter, Clock, Users, BarChart3 } from 'lucide-react'
+import { FileText, Download, Calendar as CalendarIcon, Filter, Clock, Users, BarChart3, Plus, Trash2, X, Settings2 } from 'lucide-react'
 import Papa from 'papaparse'
 
 type DailyRecord = {
   id: string
+  staffId: string
   date: string
   status: string
   checkIn: string | null
@@ -51,6 +52,69 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [month, setMonth] = useState(new Date().toISOString().substring(0, 7)) // YYYY-MM
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
+  const [selectedStaffName, setSelectedStaffName] = useState<string>('')
+  const [rawPunches, setRawPunches] = useState<any[]>([])
+  const [newPunchTime, setNewPunchTime] = useState('')
+  const [newPunchType, setNewPunchType] = useState('IN')
+  const [isPunchLoading, setIsPunchLoading] = useState(false)
+
+  const openPunchModal = async (staffId: string, name: string) => {
+    setSelectedStaffId(staffId)
+    setSelectedStaffName(name)
+    setIsModalOpen(true)
+    fetchRawPunches(staffId)
+  }
+
+  const fetchRawPunches = async (staffId: string) => {
+    try {
+      const res = await fetch(`/api/punches?staffId=${staffId}&date=${date}`)
+      if (res.ok) setRawPunches(await res.json())
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleAddPunch = async () => {
+    if (!selectedStaffId || !newPunchTime) return
+    setIsPunchLoading(true)
+    try {
+      const timestamp = new Date(`${date}T${newPunchTime}`).toISOString()
+      const res = await fetch('/api/punches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId: selectedStaffId, timestamp, type: newPunchType })
+      })
+      if (res.ok) {
+        await fetchRawPunches(selectedStaffId)
+        setNewPunchTime('')
+        fetchRecords() // refresh main table
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsPunchLoading(false)
+    }
+  }
+
+  const handleDeletePunch = async (id: string) => {
+    if (!selectedStaffId || !confirm('Are you sure you want to delete this punch?')) return
+    setIsPunchLoading(true)
+    try {
+      const res = await fetch(`/api/punches?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await fetchRawPunches(selectedStaffId)
+        fetchRecords() // refresh main table
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsPunchLoading(false)
+    }
+  }
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -223,6 +287,7 @@ export default function ReportsPage() {
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
                   <th className="px-6 py-4 text-right">Late By / Work Hrs</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               ) : (
                 <tr>
@@ -286,6 +351,15 @@ export default function ReportsPage() {
                           )}
                           <span className="text-xs text-slate-500">{(record.workMinutes / 60).toFixed(1)} hrs worked</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => openPunchModal(record.staffId, record.staff.name)}
+                          className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                          title="Manage Punches"
+                        >
+                          <Settings2 className="w-5 h-5" />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -375,6 +449,78 @@ export default function ReportsPage() {
           </table>
         </div>
       </div>
+
+      {/* Punches Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-800/50">
+              <h3 className="text-lg font-bold text-white">Manage Punches - {selectedStaffName}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Add Manual Punch</h4>
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    value={newPunchTime}
+                    onChange={(e) => setNewPunchTime(e.target.value)}
+                    className="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <select
+                    value={newPunchType}
+                    onChange={(e) => setNewPunchType(e.target.value)}
+                    className="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="IN">IN</option>
+                    <option value="OUT">OUT</option>
+                  </select>
+                  <button
+                    onClick={handleAddPunch}
+                    disabled={!newPunchTime || isPunchLoading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-4">
+                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Raw Logs ({date})</h4>
+                {rawPunches.length === 0 ? (
+                  <p className="text-sm text-slate-500">No punches recorded for this date.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {rawPunches.map((punch: any) => (
+                      <div key={punch.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 text-xs font-bold rounded-md ${punch.type === 'IN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                            {punch.type}
+                          </span>
+                          <span className="text-slate-200 font-medium">
+                            {new Date(punch.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleDeletePunch(punch.id)}
+                          disabled={isPunchLoading}
+                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

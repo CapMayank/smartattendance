@@ -3,11 +3,12 @@
 import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon } from "lucide-react"
+import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X } from "lucide-react"
 
 export default function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const mainLinks = [
     { name: 'Dashboard', href: '/', icon: Activity },
@@ -106,10 +107,16 @@ export default function Navbar() {
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-200 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-200 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
+                </button>
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="lg:hidden p-2 text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
               </div>
             ) : (
@@ -123,6 +130,70 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {session && isMobileMenuOpen && (
+        <div className="lg:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-4 py-4 space-y-4 shadow-xl">
+          <div className="flex flex-col space-y-1">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Main</span>
+            {mainLinks.map((link) => {
+              const Icon = link.icon
+              const isActive = pathname === link.href
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-blue-600/20 text-blue-400' 
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 opacity-70" />
+                  {link.name}
+                </Link>
+              )
+            })}
+          </div>
+          
+          <div className="flex flex-col space-y-1 pt-4 border-t border-white/10">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Management</span>
+            {adminLinks.map((link) => {
+              const Icon = link.icon
+              const isActive = pathname === link.href
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-blue-600/20 text-blue-400' 
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 opacity-70" />
+                  {link.name}
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="pt-4 border-t border-white/10">
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false)
+                signOut()
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors w-full"
+            >
+              <LogOut className="w-4 h-4 opacity-70" />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
