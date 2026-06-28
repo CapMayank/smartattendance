@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function run() { const records = await prisma.dailyRecord.findMany({where:{lateMinutes: {lte: 0}, status: 'PRESENT'}, include:{staff:true}, take: 5}); console.log(JSON.stringify(records, null, 2)); } run().finally(()=>prisma.$disconnect());

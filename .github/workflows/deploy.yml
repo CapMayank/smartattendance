@@ -1,0 +1,40 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to Oracle Cloud via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/smartattendance
+            
+            echo "Pulling latest code..."
+            git pull origin main
+            
+            echo "Installing dependencies..."
+            npm install
+            
+            echo "Updating Database Schema..."
+            npx prisma generate
+            npx prisma db push --accept-data-loss
+            
+            echo "Building Next.js Application..."
+            npm run build
+            
+            echo "Restarting Services..."
+            pm2 restart nextjs
+            pm2 restart websockets
+            
+            echo "Deployment Complete!"

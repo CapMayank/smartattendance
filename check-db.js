@@ -1,15 +1,1 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
-async function checkDb() {
-  const logs = await prisma.attendanceLog.findMany({
-    orderBy: { timestamp: 'desc' },
-    take: 10,
-    include: { staff: true }
-  });
-  console.log("Latest Attendance Logs:", JSON.stringify(logs, null, 2));
-}
-
-checkDb()
-  .catch(e => console.error(e))
-  .finally(() => prisma.$disconnect());
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function run() { console.log('Logs:', JSON.stringify(await prisma.attendanceLog.findMany({take:5, orderBy:{timestamp:'desc'}}), null, 2)); console.log('DailyRecords:', JSON.stringify(await prisma.dailyRecord.findMany({take:5, orderBy:{date:'desc'}}), null, 2)); } run().finally(()=>prisma.$disconnect());
