@@ -179,6 +179,15 @@ export default function ReportsPage() {
           
           if (!dayData) {
             row[day.toString()] = '-';
+          } else if (dayData.checkIn) {
+            const inTime = new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
+            let statusSuffix = '';
+            if (dayData.status === 'HALF_DAY') statusSuffix = ' (HD)';
+            if (dayData.status === 'ABSENT') statusSuffix = ' (A)';
+            if (dayData.status === 'HOLIDAY') statusSuffix = ' (H)';
+            if (dayData.status === 'WEEKOFF') statusSuffix = ' (W)';
+            row[day.toString()] = `${inTime} - ${outTime}${statusSuffix}`;
           } else if (dayData.status === 'ABSENT') {
             row[day.toString()] = 'A';
           } else if (dayData.status === 'HALF_DAY') {
@@ -188,9 +197,7 @@ export default function ReportsPage() {
           } else if (dayData.status === 'WEEKOFF') {
             row[day.toString()] = 'W';
           } else {
-            const inTime = dayData.checkIn ? new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
-            const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
-            row[day.toString()] = `${inTime} - ${outTime}`;
+            row[day.toString()] = '-';
           }
         });
 
@@ -385,6 +392,38 @@ export default function ReportsPage() {
                         
                         if (!dayData) return <td key={day} className="px-2 py-4 text-center border-l border-white/5 text-slate-600">-</td>;
                         
+                        if (dayData.checkIn) {
+                          const inTime = new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                          const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
+                          
+                          let bgClass = "";
+                          let statusLabel = null;
+
+                          if (dayData.status === 'HALF_DAY') {
+                            bgClass = "bg-amber-500/5";
+                            statusLabel = <span className="text-amber-500 text-[10px] font-bold mt-1">HD</span>;
+                          } else if (dayData.status === 'ABSENT') {
+                            bgClass = "bg-rose-500/5";
+                            statusLabel = <span className="text-rose-500 text-[10px] font-bold mt-1">A</span>;
+                          } else if (dayData.status === 'HOLIDAY') {
+                            bgClass = "bg-blue-500/5";
+                            statusLabel = <span className="text-blue-500 text-[10px] font-bold mt-1">H</span>;
+                          } else if (dayData.status === 'WEEKOFF') {
+                            bgClass = "bg-slate-500/5";
+                            statusLabel = <span className="text-slate-400 text-[10px] font-bold mt-1">W</span>;
+                          }
+
+                          return (
+                            <td key={day} className={`px-2 py-4 text-center border-l border-white/5 whitespace-nowrap ${bgClass}`}>
+                              <div className="flex flex-col items-center">
+                                <span className="text-emerald-400 text-xs font-medium">{inTime}</span>
+                                <span className="text-rose-400 text-xs font-medium mt-0.5">{outTime}</span>
+                                {statusLabel}
+                              </div>
+                            </td>
+                          );
+                        }
+                        
                         if (dayData.status === 'ABSENT') {
                           return (
                             <td key={day} className="px-2 py-4 text-center border-l border-white/5 bg-rose-500/5">
@@ -417,17 +456,7 @@ export default function ReportsPage() {
                           );
                         }
 
-                        const inTime = dayData.checkIn ? new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
-                        const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
-                        
-                        return (
-                          <td key={day} className="px-2 py-4 text-center border-l border-white/5 whitespace-nowrap">
-                            <div className="flex flex-col items-center">
-                              <span className="text-emerald-400 text-xs font-medium">{inTime}</span>
-                              <span className="text-rose-400 text-xs font-medium mt-0.5">{outTime}</span>
-                            </div>
-                          </td>
-                        )
+                        return <td key={day} className="px-2 py-4 text-center border-l border-white/5 text-slate-600">-</td>;
                       })}
 
                       <td className="px-4 py-4 text-center border-l border-white/5 bg-slate-800/10">

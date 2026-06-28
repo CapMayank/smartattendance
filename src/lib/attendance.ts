@@ -71,57 +71,61 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
       staffLogs[log.staffId].push(log);
     }
 
-    for (const staff of staffList) {
-      const myLogs = staffLogs[staff.id] || [];
-      
-      let status = 'ABSENT';
-      let checkIn = null;
-      let checkOut = null;
-      let workMinutes = 0;
-      let lateMinutes = 0;
+      const dayOfWeek = date.getDay();
+      const dateKey = startOfDay(date).getTime();
+      const isHoliday = holidayMap.has(dateKey);
+      const isWeekOff = weekOffDays.includes(dayOfWeek);
 
-      if (myLogs.length > 0) {
-        status = 'PRESENT';
+      for (const staff of staffList) {
+        const myLogs = staffLogs[staff.id] || [];
         
-        if (policy.allInOut === 'First IN Last OUT') {
-          checkIn = myLogs[0].timestamp;
-          checkOut = myLogs[myLogs.length - 1].timestamp;
+        let status = 'ABSENT';
+        let checkIn = null;
+        let checkOut = null;
+        let workMinutes = 0;
+        let lateMinutes = 0;
+
+        if (myLogs.length > 0) {
+          status = 'PRESENT';
           
-          if (checkIn.getTime() !== checkOut.getTime()) {
-            workMinutes = differenceInMinutes(checkOut, checkIn);
+          if (policy.allInOut === 'First IN Last OUT') {
+            checkIn = myLogs[0].timestamp;
+            checkOut = myLogs[myLogs.length - 1].timestamp;
+            
+            if (checkIn.getTime() !== checkOut.getTime()) {
+              workMinutes = differenceInMinutes(checkOut, checkIn);
+            }
+          } else {
+             checkIn = myLogs[0].timestamp;
+             checkOut = myLogs[myLogs.length - 1].timestamp;
+             workMinutes = differenceInMinutes(checkOut, checkIn);
+          }
+
+          // Calculate Late Minutes based on shift
+          if (staff.shift) {
+            const shiftStart = parse(staff.shift.startTime, 'HH:mm', date);
+            const expectedArrival = new Date(shiftStart.getTime() + lateAllowMins * 60000);
+            
+            if (isAfter(checkIn, expectedArrival)) {
+              lateMinutes = differenceInMinutes(checkIn, shiftStart);
+            }
+          }
+
+          if (!isHoliday && !isWeekOff) {
+            if (workMinutes < absentWorkMins && absentWorkMins > 0) {
+               status = 'ABSENT';
+            } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
+               status = 'HALF_DAY';
+            }
           }
         } else {
-           checkIn = myLogs[0].timestamp;
-           checkOut = myLogs[myLogs.length - 1].timestamp;
-           workMinutes = differenceInMinutes(checkOut, checkIn);
-        }
-
-        // Calculate Late Minutes based on shift
-        if (staff.shift) {
-          const shiftStart = parse(staff.shift.startTime, 'HH:mm', date);
-          const expectedArrival = new Date(shiftStart.getTime() + lateAllowMins * 60000);
-          
-          if (isAfter(checkIn, expectedArrival)) {
-            lateMinutes = differenceInMinutes(checkIn, shiftStart);
+          // No logs. Check if it's a holiday or a week off
+          if (isHoliday) {
+            status = 'HOLIDAY';
+          } else if (isWeekOff) {
+            status = 'WEEKOFF';
           }
         }
-
-        if (workMinutes < absentWorkMins && absentWorkMins > 0) {
-           status = 'ABSENT';
-        } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
-           status = 'HALF_DAY';
-        }
-      } else {
-        // No logs. Check if it's a holiday or a week off
-        const dayOfWeek = date.getDay();
-        const dateKey = startOfDay(date).getTime();
-        
-        if (holidayMap.has(dateKey)) {
-          status = 'HOLIDAY';
-        } else if (weekOffDays.includes(dayOfWeek)) {
-          status = 'WEEKOFF';
-        }
-      }
 
       newRecords.push({
         staffId: staff.id,

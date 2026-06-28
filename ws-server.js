@@ -30,31 +30,55 @@ wss.on('connection', function connection(ws, req) {
     console.log(`\n📦 [Biometric WS] RECEIVED DATA:`);
     console.log(rawData);
 
+    let data;
+    try {
+      data = JSON.parse(rawData);
+    } catch (e) {
+      data = {};
+    }
+
     // Update Device lastPing or auto-register if it doesn't exist
     try {
       const ipRaw = req.socket.remoteAddress || '';
       const ipAddress = ipRaw.replace(/^.*:/, '');
+      const serialNumber = data.sn || null;
       
-      const existingDevice = await prisma.device.findFirst({
-        where: { ipAddress: { contains: ipAddress } }
-      });
+      let existingDevice = null;
+      if (serialNumber) {
+        existingDevice = await prisma.device.findFirst({
+          where: { serialNumber: serialNumber }
+        });
+      }
+      
+      if (!existingDevice && ipAddress) {
+        existingDevice = await prisma.device.findFirst({
+          where: { ipAddress: { contains: ipAddress } }
+        });
+      }
 
       if (existingDevice) {
         await prisma.device.update({
           where: { id: existingDevice.id },
-          data: { lastPing: new Date(), status: 'ONLINE' }
+          data: { 
+            lastPing: new Date(), 
+            status: 'ONLINE',
+            ...(serialNumber && { serialNumber }),
+            ...(ipAddress && { ipAddress })
+          }
         });
-      } else if (ipAddress) {
+      } else if (serialNumber || ipAddress) {
         // Auto-register the device so it shows up in the dashboard
+        const deviceName = serialNumber ? `Device ${serialNumber}` : `Auto-Registered (${ipAddress})`;
         await prisma.device.create({
           data: {
-            name: `Auto-Registered (${ipAddress})`,
+            name: deviceName,
             ipAddress: ipAddress,
+            serialNumber: serialNumber,
             status: 'ONLINE',
             lastPing: new Date()
           }
         });
-        console.log(`✅ [Biometric WS] Auto-registered new device with IP: ${ipAddress}`);
+        console.log(`✅ [Biometric WS] Auto-registered new device SN: ${serialNumber || 'N/A'}, IP: ${ipAddress}`);
       }
       broadcastToUI();
     } catch (e) {
@@ -62,8 +86,7 @@ wss.on('connection', function connection(ws, req) {
     }
 
     try {
-      // Try to parse the message as JSON
-      const data = JSON.parse(rawData);
+      if (Object.keys(data).length === 0) return;
 
       // Handle responses from the device to our commands (like settime)
       if (data.ret && !data.cmd) {

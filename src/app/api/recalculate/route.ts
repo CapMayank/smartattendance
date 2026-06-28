@@ -52,6 +52,18 @@ export async function POST(request: Request) {
     const halfDayWorkMins = parseTime(policy.halfDayIfWorkHrsLessThan as string);
     const absentWorkMins = parseTime(policy.absentIfWorkHrsLessThan as string);
 
+    const holidays = await prisma.holiday.findMany({
+      where: {
+        date: {
+          gte: startOfDay(startD),
+          lte: startOfDay(endD)
+        }
+      }
+    });
+    
+    const holidayMap = new Map(holidays.map(h => [h.date.getTime(), h.name]));
+    const weekOffDays = (policy as any).weekOffDays ? (policy as any).weekOffDays.split(',').map(Number) : [0]; // default Sunday
+
     // Delete existing records in the date range to recalculate
     await prisma.dailyRecord.deleteMany({
       where: {
@@ -65,6 +77,11 @@ export async function POST(request: Request) {
     const newRecords = [];
 
     for (const date of dateRange) {
+      const dayOfWeek = date.getDay();
+      const dateKey = startOfDay(date).getTime();
+      const isHoliday = holidayMap.has(dateKey);
+      const isWeekOff = weekOffDays.includes(dayOfWeek);
+
       // Find all logs for this date
       const logs = await prisma.attendanceLog.findMany({
         where: {
@@ -118,10 +135,19 @@ export async function POST(request: Request) {
             }
           }
 
-          if (workMinutes < absentWorkMins && absentWorkMins > 0) {
-             status = 'ABSENT';
-          } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
-             status = 'HALF_DAY';
+          if (!isHoliday && !isWeekOff) {
+            if (workMinutes < absentWorkMins && absentWorkMins > 0) {
+               status = 'ABSENT';
+            } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
+               status = 'HALF_DAY';
+            }
+          }
+        } else {
+          // No logs. Check if it's a holiday or a week off
+          if (isHoliday) {
+            status = 'HOLIDAY';
+          } else if (isWeekOff) {
+            status = 'WEEKOFF';
           }
         }
 
