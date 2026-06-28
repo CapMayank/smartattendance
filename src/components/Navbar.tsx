@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X } from "lucide-react"
+import { useState } from 'react'
 
 export default function Navbar() {
   const { data: session } = useSession()
