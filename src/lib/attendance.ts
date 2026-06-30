@@ -28,15 +28,7 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
   const halfDayWorkMins = parseTime(policy.halfDayIfWorkHrsLessThan as string);
   const absentWorkMins = parseTime(policy.absentIfWorkHrsLessThan as string);
 
-  // Delete existing records in the date range to recalculate
-  await prisma.dailyRecord.deleteMany({
-    where: {
-      date: {
-        gte: startOfDay(startDate),
-        lte: startOfDay(endDate)
-      }
-    }
-  });
+
 
   const holidays = await prisma.holiday.findMany({
     where: {
@@ -140,14 +132,27 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
     }
   }
 
-  // Batch insert
-  const chunkSize = 100;
-  for (let i = 0; i < newRecords.length; i += chunkSize) {
-    const chunk = newRecords.slice(i, i + chunkSize);
-    await prisma.dailyRecord.createMany({
-      data: chunk,
+  // Use a transaction to safely delete and replace to prevent race conditions
+  await prisma.$transaction(async (tx) => {
+    // Delete existing records in the date range to recalculate
+    await tx.dailyRecord.deleteMany({
+      where: {
+        date: {
+          gte: startOfDay(startDate),
+          lte: startOfDay(endDate)
+        }
+      }
     });
-  }
+
+    // Batch insert
+    const chunkSize = 100;
+    for (let i = 0; i < newRecords.length; i += chunkSize) {
+      const chunk = newRecords.slice(i, i + chunkSize);
+      await tx.dailyRecord.createMany({
+        data: chunk,
+      });
+    }
+  });
 
   return newRecords.length;
 }

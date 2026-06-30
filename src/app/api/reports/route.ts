@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns'
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function GET(request: Request) {
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
         const stats = aggregated.get(staffId);
         
         // Add daily details
-        const dateStr = record.date.toISOString().split('T')[0];
+        const dateStr = format(record.date, 'yyyy-MM-dd');
         stats.days[dateStr] = {
           status: record.status,
           checkIn: record.checkIn,

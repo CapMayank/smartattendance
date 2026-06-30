@@ -175,10 +175,15 @@ export default function ReportsPage() {
         
         daysArray.forEach(day => {
           const dateStr = `${month}-${day.toString().padStart(2, '0')}`;
+          
+          const dateObj = new Date(`${dateStr}T00:00:00`);
+          const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+          const colName = `${day} (${dayName})`;
+          
           const dayData = r.days[dateStr];
           
           if (!dayData) {
-            row[day.toString()] = '-';
+            row[colName] = '-';
           } else if (dayData.checkIn) {
             const inTime = new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
@@ -187,17 +192,17 @@ export default function ReportsPage() {
             if (dayData.status === 'ABSENT') statusSuffix = ' (A)';
             if (dayData.status === 'HOLIDAY') statusSuffix = ' (H)';
             if (dayData.status === 'WEEKOFF') statusSuffix = ' (W)';
-            row[day.toString()] = `${inTime} - ${outTime}${statusSuffix}`;
+            row[colName] = `${inTime} - ${outTime}${statusSuffix}`;
           } else if (dayData.status === 'ABSENT') {
-            row[day.toString()] = 'A';
+            row[colName] = 'A';
           } else if (dayData.status === 'HALF_DAY') {
-            row[day.toString()] = 'HD';
+            row[colName] = 'HD';
           } else if (dayData.status === 'HOLIDAY') {
-            row[day.toString()] = 'H';
+            row[colName] = 'H';
           } else if (dayData.status === 'WEEKOFF') {
-            row[day.toString()] = 'W';
+            row[colName] = 'W';
           } else {
-            row[day.toString()] = '-';
+            row[colName] = '-';
           }
         });
 
@@ -299,9 +304,18 @@ export default function ReportsPage() {
               ) : (
                 <tr>
                   <th className="px-6 py-4 sticky left-0 bg-slate-900 z-10 shadow-[4px_0_10px_rgba(0,0,0,0.2)] whitespace-nowrap">Staff Details</th>
-                  {daysArray.map(day => (
-                    <th key={day} className="px-2 py-4 text-center min-w-[70px] border-l border-white/5">{day}</th>
-                  ))}
+                  {daysArray.map(day => {
+                    const dateObj = new Date(`${month}-${day.toString().padStart(2, '0')}T00:00:00`);
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                    return (
+                      <th key={day} className="px-2 py-4 text-center min-w-[70px] border-l border-white/5">
+                        <div className="flex flex-col items-center gap-1">
+                          <span>{day}</span>
+                          <span className="text-[10px] text-slate-400 font-normal bg-white/5 px-1.5 py-0.5 rounded">{dayName}</span>
+                        </div>
+                      </th>
+                    );
+                  })}
                   <th className="px-4 py-4 text-center border-l border-white/5 bg-slate-800/30">P</th>
                   <th className="px-4 py-4 text-center bg-slate-800/30">A</th>
                   <th className="px-4 py-4 text-right bg-slate-800/30">Total Hrs</th>
