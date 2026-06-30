@@ -18,6 +18,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cd /home/ubuntu/smartattendance
             
             echo "Pulling latest code..."
@@ -34,7 +35,7 @@ jobs:
             npm run build
             
             echo "Restarting Services..."
-            pm2 restart nextjs
-            pm2 restart websockets
+            pm2 reload nextjs
+            pm2 reload websockets
             
             echo "Deployment Complete!"
