@@ -42,7 +42,7 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
   const holidayMap = new Map(holidays.map(h => [h.date.getTime(), h.name]));
   const weekOffDays = (policy as any).weekOffDays ? (policy as any).weekOffDays.split(',').map(Number) : [0]; // default Sunday
 
-  const newRecords = [];
+  const newRecords: any[] = [];
 
   for (const date of dateRange) {
     // Find all logs for this date
