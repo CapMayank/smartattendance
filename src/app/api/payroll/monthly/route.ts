@@ -138,6 +138,9 @@ export async function GET(request: Request) {
       });
     }
 
+    // Sort numerically by machineId
+    existingPayrolls.sort((a, b) => a.staff.machineId.localeCompare(b.staff.machineId, undefined, { numeric: true }));
+
     return NextResponse.json(existingPayrolls);
   } catch (error) {
     console.error("Error fetching/generating monthly payroll:", error);

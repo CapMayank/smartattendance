@@ -158,8 +158,8 @@ export default function ReportsPage() {
         'Shift': r.staff.shift?.name || '-',
         'Date': new Date(r.date).toLocaleDateString(),
         'Status': r.status,
-        'Check In': r.checkIn ? new Date(r.checkIn).toLocaleTimeString() : '-',
-        'Check Out': r.checkOut ? new Date(r.checkOut).toLocaleTimeString() : '-',
+        'Check In': r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
+        'Check Out': r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
         'Late By (Minutes)': r.lateMinutes,
         'Total Work Hours': (r.workMinutes / 60).toFixed(2)
       }))
@@ -185,8 +185,8 @@ export default function ReportsPage() {
           if (!dayData) {
             row[colName] = '-';
           } else if (dayData.checkIn) {
-            const inTime = new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
+            const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
             let statusSuffix = '';
             if (dayData.status === 'HALF_DAY') statusSuffix = ' (HD)';
             if (dayData.status === 'ABSENT') statusSuffix = ' (A)';
@@ -356,10 +356,10 @@ export default function ReportsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-300">
-                        {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}
+                        {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-300">
-                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}
+                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex flex-col items-end">
@@ -407,8 +407,8 @@ export default function ReportsPage() {
                         if (!dayData) return <td key={day} className="px-2 py-4 text-center border-l border-white/5 text-slate-600">-</td>;
                         
                         if (dayData.checkIn) {
-                          const inTime = new Date(dayData.checkIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                          const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-';
+                          const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                          const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
                           
                           let bgClass = "";
                           let statusLabel = null;
@@ -545,7 +545,7 @@ export default function ReportsPage() {
                             {punch.type}
                           </span>
                           <span className="text-slate-200 font-medium">
-                            {new Date(punch.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            {new Date(punch.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                           </span>
                         </div>
                         <button

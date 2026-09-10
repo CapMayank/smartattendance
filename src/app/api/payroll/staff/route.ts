@@ -9,10 +9,10 @@ export async function GET() {
         designation: true,
         payrollInfo: true,
       },
-      orderBy: {
-        name: 'asc'
-      }
     });
+
+    // Sort numerically by machineId
+    staff.sort((a, b) => a.machineId.localeCompare(b.machineId, undefined, { numeric: true }));
 
     return NextResponse.json(staff);
   } catch (error) {

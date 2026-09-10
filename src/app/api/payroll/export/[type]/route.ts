@@ -59,12 +59,10 @@ export async function GET(
           }
         }
       },
-      orderBy: {
-        staff: {
-          name: 'asc'
-        }
-      }
     });
+
+    // Sort numerically by machineId
+    payrolls.sort((a, b) => a.staff.machineId.localeCompare(b.staff.machineId, undefined, { numeric: true }));
 
     if (payrolls.length === 0) {
       return new NextResponse("No payroll records found for this month", { status: 404 });
