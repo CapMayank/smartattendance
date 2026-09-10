@@ -123,7 +123,17 @@ wss.on('connection', function connection(ws, req) {
         console.log(`✅ [Biometric WS] Handling Logs/Punches...`);
         
         // Sometimes records are in 'record', sometimes top level array
-        const records = data.record || (Array.isArray(data) ? data : [data]);
+        let records = [];
+        if (data.record) {
+          records = Array.isArray(data.record) ? data.record : [data.record];
+        } else if (Array.isArray(data)) {
+          records = data;
+        } else {
+          // If the payload itself is the record
+          if (data.enrollid || data.pin || data.userid || data.user_id) {
+            records = [data];
+          }
+        }
         
         let savedCount = 0;
 
@@ -146,7 +156,7 @@ wss.on('connection', function connection(ws, req) {
           let punchTime = new Date();
           try {
              // Replace space with T to ensure cross-platform Date parsing compatibility
-             const cleanTimeStr = timestampStr.replace(' ', 'T');
+             const cleanTimeStr = String(timestampStr).replace(' ', 'T');
              const parsedTime = new Date(cleanTimeStr);
              if (!isNaN(parsedTime.getTime())) {
                  punchTime = parsedTime;
