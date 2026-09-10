@@ -141,8 +141,19 @@ wss.on('connection', function connection(ws, req) {
              continue;
           }
 
-          // Use the server's current time because machine time can be incorrect
-          const serverTime = new Date();
+          // The timestampStr from the machine is usually "YYYY-MM-DD HH:mm:ss"
+          // We must use this instead of the server time so offline punches retain their actual time
+          let punchTime = new Date();
+          try {
+             // Replace space with T to ensure cross-platform Date parsing compatibility
+             const cleanTimeStr = timestampStr.replace(' ', 'T');
+             const parsedTime = new Date(cleanTimeStr);
+             if (!isNaN(parsedTime.getTime())) {
+                 punchTime = parsedTime;
+             }
+          } catch(e) {
+             console.log(`⚠️ [Biometric WS] Failed to parse timestamp ${timestampStr}, falling back to server time`);
+          }
 
           // Attempt to find staff member by machineId
           const staff = await prisma.staff.findUnique({
@@ -161,12 +172,12 @@ wss.on('connection', function connection(ws, req) {
           await prisma.attendanceLog.create({
             data: {
               staffId: staff.id,
-              timestamp: serverTime,
+              timestamp: punchTime,
               type: type,
             }
           });
           
-          console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${machineUserId}) at ${serverTime.toISOString()} (Machine reported: ${timestampStr}) (${type})`);
+          console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${machineUserId}) at ${punchTime.toISOString()} (${type})`);
           savedCount++;
           broadcastToUI();
         }
