@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -134,6 +134,8 @@ model Staff {
   
   attendanceLogs AttendanceLog[]
   dailyRecords   DailyRecord[]
+  payrollInfo    StaffPayrollInfo?
+  monthlyPayrolls MonthlyPayroll[]
 }
 
 model AttendanceLog {
@@ -173,3 +175,73 @@ model Holiday {
   updatedAt DateTime @updatedAt
 }
 
+model StaffPayrollInfo {
+  id                    String   @id @default(cuid())
+  staffId               String   @unique
+  isActiveForPayroll    Boolean  @default(true)
+  monthlyCtc            Float    @default(0)
+  bankAccount           String?
+  ifsc                  String?
+  nameAsPerBank         String?
+  uan                   String?
+  pan                   String?
+  aadhaar               String?
+  
+  // EPFO Bulk Reg Fields
+  previousMemberId      String?
+  dob                   DateTime?
+  doj                   DateTime?
+  gender                String?
+  fatherHusbandName     String?
+  relationship          String?
+  mobileNumber          String?
+  email                 String?
+  nationality           String?  @default("INDIAN")
+  qualification         String?
+  maritalStatus         String?
+  isInternationalWorker String?  @default("N")
+  countryOfOrigin       String?  @default("INDIA")
+  passportNumber        String?
+  passportValidFrom     DateTime?
+  passportValidTill     DateTime?
+  isPhysicalHandicap    String?  @default("N")
+  locomotive            String?  @default("N")
+  hearing               String?  @default("N")
+  visual                String?  @default("N")
+  nameOnPan             String?
+  nameOnAadhaar         String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  staff                 Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model MonthlyPayroll {
+  id              String   @id @default(cuid())
+  staffId         String
+  month           Int
+  year            Int
+  totalDays       Int
+  presentDays     Float
+  ncpDays         Float
+  actualCtc       Float    @default(0)
+  grossWage       Float    @default(0)
+  basicWage       Float    @default(0)
+  epfWages        Float    @default(0)
+  epsWages        Float    @default(0)
+  edliWages       Float    @default(0)
+  employeeEpf     Float    @default(0)
+  employerEps     Float    @default(0)
+  employerEpf     Float    @default(0)
+  refundOfAdvance Float    @default(0)
+  netPayment      Float    @default(0)
+  isLocked        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  staff           Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, month, year])
+  @@index([month, year])
+}

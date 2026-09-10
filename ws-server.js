@@ -1,6 +1,8 @@
 const WebSocket = require('ws');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const fs = require('fs');
+const path = require('path');
 
 const wss = new WebSocket.Server({ port: 7788, host: '0.0.0.0' });
 const uiWss = new WebSocket.Server({ port: 7789, host: '0.0.0.0' });

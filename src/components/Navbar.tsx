@@ -3,7 +3,7 @@
 import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X } from "lucide-react"
+import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X, Wallet } from "lucide-react"
 import { useState } from 'react'
 
 export default function Navbar() {
@@ -18,6 +18,8 @@ export default function Navbar() {
   ]
 
   const adminLinks = [
+    { name: 'Staff Payroll', href: '/payroll/staff', icon: Wallet },
+    { name: 'Monthly Payroll', href: '/payroll/monthly', icon: FileText },
     { name: 'Shifts', href: '/shifts', icon: Clock },
     { name: 'Departments', href: '/departments', icon: Building2 },
     { name: 'Designations', href: '/designations', icon: IdCard },
