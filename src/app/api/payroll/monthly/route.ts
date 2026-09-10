@@ -88,22 +88,63 @@ export async function GET(request: Request) {
 
     if (staffWithoutPayroll.length > 0) {
       // Calculate present days from attendance for the staff
+      // Fetch 7 days before and after to accurately calculate sandwich rules across month boundaries
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);
+      
+      const queryStartDate = new Date(year, month - 1, -6); // 7 days before
+      const queryEndDate = new Date(year, month, 7, 23, 59, 59); // 7 days after
 
       const newPayrolls = await Promise.all(staffWithoutPayroll.map(async (staff) => {
-        // Count present days from DailyRecord
+        // Fetch all attendance records (including ABSENT) for sandwich logic
         const attendanceRecords = await prisma.dailyRecord.findMany({
           where: {
             staffId: staff.id,
-            date: { gte: startDate, lte: endDate },
-            status: { in: ["PRESENT", "HALF_DAY"] }
-          }
+            date: { gte: queryStartDate, lte: queryEndDate }
+          },
+          orderBy: { date: 'asc' }
         });
 
         let presentDays = 0;
-        for (const record of attendanceRecords) {
-          presentDays += record.status === "HALF_DAY" ? 0.5 : 1;
+        
+        // We only care about adding present days that fall exactly within the current month
+        for (let i = 0; i < attendanceRecords.length; i++) {
+          const record = attendanceRecords[i];
+          
+          // Check if record belongs to the current month
+          if (record.date >= startDate && record.date <= endDate) {
+            
+            if (record.status === "PRESENT") {
+              presentDays += 1;
+            } else if (record.status === "HALF_DAY") {
+              presentDays += 0.5;
+            } else if (record.status === "WEEKOFF" || record.status === "HOLIDAY") {
+              // Apply Sandwich Rule
+              let prevWorkingDayStatus = null;
+              for (let j = i - 1; j >= 0; j--) {
+                 if (attendanceRecords[j].status !== "WEEKOFF" && attendanceRecords[j].status !== "HOLIDAY") {
+                    prevWorkingDayStatus = attendanceRecords[j].status;
+                    break;
+                 }
+              }
+              
+              let nextWorkingDayStatus = null;
+              for (let j = i + 1; j < attendanceRecords.length; j++) {
+                 if (attendanceRecords[j].status !== "WEEKOFF" && attendanceRecords[j].status !== "HOLIDAY") {
+                    nextWorkingDayStatus = attendanceRecords[j].status;
+                    break;
+                 }
+              }
+
+              // Sandwich logic: if both surrounding working days are ABSENT, then salary is deducted
+              if (prevWorkingDayStatus === "ABSENT" && nextWorkingDayStatus === "ABSENT") {
+                 // Sandwich! Deduct salary (do not add to presentDays)
+              } else {
+                 // Either one side is present, or it's the start/end of the data boundary (assume present)
+                 presentDays += 1;
+              }
+            }
+          }
         }
 
         const monthlyCtc = staff.payrollInfo?.monthlyCtc || 0;
