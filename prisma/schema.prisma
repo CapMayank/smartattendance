@@ -184,6 +184,7 @@ model StaffPayrollInfo {
   ifsc                  String?
   nameAsPerBank         String?
   uan                   String?
+  nameOnUan             String?
   pan                   String?
   aadhaar               String?
   

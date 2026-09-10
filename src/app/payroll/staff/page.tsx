@@ -36,8 +36,10 @@ export default function StaffPayrollPage() {
       bankAccount: s.payrollInfo?.bankAccount || '',
       ifsc: s.payrollInfo?.ifsc || '',
       uan: s.payrollInfo?.uan || '',
+      nameOnUan: s.payrollInfo?.nameOnUan || '',
       pan: s.payrollInfo?.pan || '',
       aadhaar: s.payrollInfo?.aadhaar || '',
+      nameAsPerBank: s.payrollInfo?.nameAsPerBank || '',
       isActiveForPayroll: s.payrollInfo?.isActiveForPayroll !== false
     })
   }
@@ -327,6 +329,15 @@ export default function StaffPayrollPage() {
                       className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Name as per Bank</label>
+                    <input
+                      type="text"
+                      value={editForm.nameAsPerBank}
+                      onChange={(e) => setEditForm({...editForm, nameAsPerBank: e.target.value})}
+                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    />
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">UAN (EPFO)</label>
                     <input
@@ -334,6 +345,15 @@ export default function StaffPayrollPage() {
                       value={editForm.uan}
                       onChange={(e) => setEditForm({...editForm, uan: e.target.value})}
                       className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono tracking-wider text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Name on UAN</label>
+                    <input
+                      type="text"
+                      value={editForm.nameOnUan}
+                      onChange={(e) => setEditForm({...editForm, nameOnUan: e.target.value})}
+                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div>
@@ -345,7 +365,7 @@ export default function StaffPayrollPage() {
                       className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Aadhaar</label>
                     <input
                       type="text"

@@ -127,7 +127,7 @@ export async function GET(
           const row = sheet.getRow(o);
           row.values = [
             sno,
-            p.staff.name,
+            p.staff.payrollInfo?.nameAsPerBank || p.staff.name,
             p.staff.payrollInfo?.bankAccount || "",
             p.netPayment
           ];
@@ -220,7 +220,7 @@ export async function GET(
           const row = sheet.getRow(o);
           row.values = [
             p.staff.payrollInfo?.uan || "", // removed the ' prefix
-            p.staff.name,
+            p.staff.payrollInfo?.nameOnUan || p.staff.name,
             p.grossWage,
             p.epfWages,
             p.epsWages,
@@ -265,7 +265,7 @@ export async function GET(
       for (const p of payrolls) {
         if (p.grossWage > 0) {
           const uan = p.staff.payrollInfo?.uan || "";
-          const name = p.staff.name;
+          const name = p.staff.payrollInfo?.nameOnUan || p.staff.name;
           const line = [
             uan,
             name,
@@ -303,7 +303,7 @@ export async function GET(
         const line = [
           info.uan || "",
           info.previousMemberId || "",
-          p.staff.name,
+          info.nameOnUan || p.staff.name,
           info.dob ? format(new Date(info.dob), "dd/MM/yyyy") : "",
           info.doj ? format(new Date(info.doj), "dd/MM/yyyy") : "",
           info.gender || "",
