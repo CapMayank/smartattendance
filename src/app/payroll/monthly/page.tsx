@@ -4,6 +4,33 @@ import { useState, useEffect } from 'react'
 import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck } from 'lucide-react'
 import { format } from 'date-fns'
 
+function calculatePayroll(
+  monthlyCtc: number,
+  presentDays: number,
+  totalDays: number,
+  refundOfAdvance: number = 0
+) {
+  if (totalDays === 0) return null;
+  const baseGrossWage = monthlyCtc / 1.12;
+  const wagePerDay = Math.round(baseGrossWage / totalDays);
+  
+  let basicWage = 0;
+  if (presentDays === totalDays) {
+    basicWage = baseGrossWage;
+  } else {
+    basicWage = wagePerDay * presentDays;
+  }
+  
+  const employeeEpf = Math.round(basicWage * 0.12);
+  const netPayment = Math.round(basicWage - employeeEpf - refundOfAdvance);
+
+  return {
+    grossWage: Math.round(basicWage),
+    employeeEpf,
+    netPayment
+  };
+}
+
 export default function MonthlyPayrollPage() {
   const [payrolls, setPayrolls] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -216,9 +243,12 @@ export default function MonthlyPayrollPage() {
                 </tr>
               ) : (
                 payrolls.map((p) => {
-                  const isEdited = 
-                    edits[p.id]?.presentDays !== p.presentDays ||
-                    edits[p.id]?.refundOfAdvance !== p.refundOfAdvance;
+                  const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays;
+                  const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance;
+                  const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance;
+                  
+                  const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0;
+                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p;
 
                   return (
                     <tr key={p.id} className={`group transition-all duration-300 ${isEdited ? 'bg-indigo-500/[0.03] hover:bg-indigo-500/[0.06]' : 'hover:bg-white/[0.02]'}`}>
@@ -260,11 +290,11 @@ export default function MonthlyPayrollPage() {
                       </td>
                       
                       <td className="px-4 py-4 text-right">
-                        <span className="text-slate-200 font-semibold">₹{p.grossWage.toLocaleString()}</span>
+                        <span className="text-slate-200 font-semibold">₹{calc.grossWage.toLocaleString()}</span>
                       </td>
                       
                       <td className="px-4 py-4 text-right">
-                        <span className="text-rose-400/90 font-medium">-₹{p.employeeEpf.toLocaleString()}</span>
+                        <span className="text-rose-400/90 font-medium">-₹{calc.employeeEpf.toLocaleString()}</span>
                       </td>
                       
                       <td className="px-4 py-4 text-right">
@@ -286,7 +316,7 @@ export default function MonthlyPayrollPage() {
                       
                       <td className="px-6 py-4 text-right">
                         <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shadow-inner">
-                          <span className="text-emerald-400 font-bold tracking-tight text-base">₹{p.netPayment.toLocaleString()}</span>
+                          <span className="text-emerald-400 font-bold tracking-tight text-base">₹{calc.netPayment.toLocaleString()}</span>
                         </div>
                       </td>
                     </tr>
