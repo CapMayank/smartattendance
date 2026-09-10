@@ -59,65 +59,117 @@ export default function DesignationsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Designations Management</h1>
-        <p className="text-slate-400 text-sm mt-1">Manage staff roles and job titles.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-          <form onSubmit={handleCreate} className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Add Designation</h2>
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Designation Name</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Senior Developer" className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-white" required />
-            </div>
-            <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> Add
-            </button>
-          </form>
-        </div>
-
-        <div className="md:col-span-2">
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
-            {loading ? <div className="p-8 text-center text-slate-400">Loading...</div> : items.length > 0 ? (
-              <div className="divide-y divide-white/5">
-                {items.map(desig => {
-                  const isEditing = editingId === desig.id;
-                  return (
-                  <div key={desig.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                    <div className="flex items-center gap-4 w-full mr-4 min-w-0">
-                      <div className="p-3 bg-amber-500/20 rounded-xl shrink-0">
-                        <IdCard className="w-5 h-5 text-amber-400" />
-                      </div>
-                      {isEditing ? (
-                        <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded px-3 py-2 text-white text-sm" />
-                      ) : (
-                        <p className="font-medium text-white truncate">{desig.name}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {isEditing ? (
-                        <>
-                          <button onClick={saveEdit} className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/40 transition-colors"><Check className="w-4 h-4" /></button>
-                          <button onClick={() => setEditingId(null)} className="p-2 bg-rose-500/20 text-rose-400 rounded-lg hover:bg-rose-500/40 transition-colors"><X className="w-4 h-4" /></button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={() => startEditing(desig)} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors" title="Edit Designation"><Edit2 className="w-4 h-4" /></button>
-                          <button onClick={() => handleDelete(desig.id)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors" title="Delete Designation"><Trash2 className="w-4 h-4" /></button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  )
-                })}
-              </div>
-            ) : <div className="p-8 text-center text-slate-400">No designations added yet.</div>}
+    <div className="p-6 max-w-5xl mx-auto min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl border border-white/5 shadow-lg shadow-amber-500/10">
+            <IdCard className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              Designations Management
+            </h1>
+            <p className="text-slate-400 mt-1 font-medium">Manage job titles and professional roles</p>
           </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Create Form Container */}
+        <div className="md:col-span-1">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <h2 className="text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-amber-400" />
+              Add Designation
+            </h2>
+            
+            <form onSubmit={handleCreate} className="relative z-10 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Designation Name</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Senior Developer" className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner" required />
+              </div>
+              
+              <button type="submit" className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5">
+                <Plus className="w-5 h-5" /> Create Designation
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* List Container */}
+        <div className="md:col-span-2">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full">
+            {loading ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 gap-4">
+                <div className="w-10 h-10 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+                <p className="text-slate-400 font-medium animate-pulse">Loading designations...</p>
+              </div>
+            ) : items.length > 0 ? (
+              <div className="divide-y divide-white/[0.05] custom-scrollbar overflow-y-auto max-h-[600px]">
+                {items.map(desig => (
+                  <div key={desig.id} className="p-5 flex items-center justify-between hover:bg-white/[0.02] transition-colors group">
+                    <div className="flex items-center gap-4 w-full mr-4 min-w-0">
+                      <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-white/5 rounded-xl shrink-0 shadow-inner">
+                        <IdCard className="w-6 h-6 text-amber-400" />
+                      </div>
+                      <p className="font-semibold text-slate-200 text-lg truncate">{desig.name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => startEditing(desig)} className="p-2.5 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 bg-slate-900 border border-white/5 rounded-lg transition-all shadow-sm" title="Edit">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(desig.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-slate-900 border border-white/5 rounded-lg transition-all shadow-sm" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 gap-3">
+                <IdCard className="w-12 h-12 text-slate-600 mb-2" />
+                <p className="text-slate-300 font-semibold text-lg">No Designations Yet</p>
+                <p className="text-slate-500 text-sm max-w-sm text-center">Create your first designation using the form to organize job titles.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modern Edit Modal */}
+      {editingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
+          <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center bg-slate-800/30">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-amber-400" /> Edit Designation
+              </h3>
+              <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Designation Name</label>
+                <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner" autoFocus />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-white/10 flex gap-3 bg-slate-800/20">
+              <button onClick={() => setEditingId(null)} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-colors border border-white/5">
+                Cancel
+              </button>
+              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5">
+                <Check className="w-5 h-5" /> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -174,11 +174,27 @@ export default function StaffPayrollPage() {
                       <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Annual: ₹{((s.payrollInfo?.monthlyCtc || 0) * 12).toLocaleString()}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-slate-300 font-medium font-mono">{s.payrollInfo?.bankAccount || 'Not Set'}</div>
-                      <div className="text-xs text-slate-500">{s.payrollInfo?.ifsc || '-'}</div>
+                      <div className="text-slate-300 font-medium font-mono">
+                        {s.payrollInfo?.bankAccount || 'Not Set'}
+                      </div>
+                      <div className="flex flex-col gap-0.5 mt-0.5">
+                        <span className="text-xs text-slate-500 font-semibold">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
+                        {s.payrollInfo?.nameAsPerBank && (
+                          <span className="text-[10px] text-blue-400 uppercase tracking-widest bg-blue-500/10 px-1.5 py-0.5 rounded w-fit">
+                            {s.payrollInfo.nameAsPerBank}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-slate-300 font-mono tracking-wider">{s.payrollInfo?.uan || 'Not Set'}</div>
+                      <div className="text-slate-300 font-mono tracking-wider">
+                        {s.payrollInfo?.uan || 'Not Set'}
+                      </div>
+                      {s.payrollInfo?.nameOnUan && (
+                        <div className="text-[10px] text-purple-400 uppercase tracking-widest bg-purple-500/10 px-1.5 py-0.5 rounded w-fit mt-1">
+                          {s.payrollInfo.nameOnUan}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {s.payrollInfo?.isActiveForPayroll !== false ? (
