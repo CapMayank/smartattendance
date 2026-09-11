@@ -24,6 +24,7 @@ export default function Navbar() {
   ]
 
   const adminLinks = [
+    { name: 'Staff Payroll', href: '/payroll/staff', icon: Wallet },
     { name: 'Departments', href: '/departments', icon: Building2 },
     { name: 'Designations', href: '/designations', icon: IdCard },
     { name: 'Shifts', href: '/shifts', icon: Clock },
