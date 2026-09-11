@@ -70,6 +70,7 @@ export default function StaffPayrollPage() {
 
   const filteredStaff = staff.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase()) ||
+    s.machineId?.toLowerCase().includes(search.toLowerCase()) ||
     s.payrollInfo?.uan?.includes(search)
   )
 
@@ -95,7 +96,7 @@ export default function StaffPayrollPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-14rem)] shadow-2xl relative">
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col min-h-[500px] shadow-2xl relative">
         {/* Decorative ambient light */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -269,8 +270,8 @@ export default function StaffPayrollPage() {
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium group-focus-within:text-blue-400 transition-colors">₹</span>
                         <input
                           type="number"
-                          value={editForm.monthlyCtc}
-                          onChange={(e) => setEditForm({...editForm, monthlyCtc: parseFloat(e.target.value) || 0})}
+                          value={editForm.monthlyCtc === 0 ? '' : editForm.monthlyCtc}
+                          onChange={(e) => setEditForm({...editForm, monthlyCtc: e.target.value === '' ? '' : parseFloat(e.target.value) || 0})}
                           className="w-full bg-slate-950/50 border border-white/10 rounded-2xl pl-9 pr-4 py-3 text-lg font-medium text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
                         />
                       </div>

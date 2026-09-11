@@ -83,6 +83,20 @@ export async function GET(
         { width: 20 }  // Payment Amount
       ];
 
+      // Setup page for perfect printing on A4 portrait
+      sheet.pageSetup = {
+        paperSize: 9, // A4
+        orientation: 'portrait',
+        margins: {
+          left: 0.7, right: 0.7,
+          top: 0.75, bottom: 0.75,
+          header: 0.3, footer: 0.3
+        },
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0 // Scale height automatically
+      };
+
       // Merge and set titles
       sheet.mergeCells('A1:D1');
       const titleCell = sheet.getCell('A1');

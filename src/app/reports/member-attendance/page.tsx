@@ -170,7 +170,7 @@ export default function MemberAttendancePage() {
                 <option value="" disabled>Select Staff Member</option>
                 {staffList.map((staff) => (
                   <option key={staff.id} value={staff.id}>
-                    {staff.name} ({staff.machineId})
+                    {staff.machineId} - {staff.name}
                   </option>
                 ))}
               </select>

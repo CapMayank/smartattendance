@@ -7,9 +7,12 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const staff = await prisma.staff.findMany({ 
-    include: { department: true, designation: true, shift: true },
-    orderBy: { createdAt: 'desc' } 
+    include: { department: true, designation: true, shift: true }
   })
+  
+  // Sort numerically by machineId so they appear in logical order everywhere (e.g. dropdowns)
+  staff.sort((a, b) => a.machineId.localeCompare(b.machineId, undefined, { numeric: true }))
+  
   return NextResponse.json(staff)
 }
 
