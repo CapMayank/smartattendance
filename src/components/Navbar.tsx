@@ -3,7 +3,7 @@
 import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X, Wallet } from "lucide-react"
+import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X, Wallet, UserCheck, ChevronDown } from "lucide-react"
 import { useState } from 'react'
 
 export default function Navbar() {
@@ -14,15 +14,19 @@ export default function Navbar() {
   const mainLinks = [
     { name: 'Dashboard', href: '/', icon: Activity },
     { name: 'Staff', href: '/staff', icon: Users },
-    { name: 'Reports', href: '/reports', icon: FileText },
+  ]
+
+  const reportLinks = [
+    { name: 'Daily/Monthly Attendance', href: '/reports', icon: FileText },
+    { name: 'Member Attendance', href: '/reports/member-attendance', icon: UserCheck },
+    { name: 'Monthly Payroll', href: '/payroll/monthly', icon: FileText },
+    { name: 'Member Payroll', href: '/reports/member-payroll', icon: Wallet },
   ]
 
   const adminLinks = [
-    { name: 'Staff Payroll', href: '/payroll/staff', icon: Wallet },
-    { name: 'Monthly Payroll', href: '/payroll/monthly', icon: FileText },
-    { name: 'Shifts', href: '/shifts', icon: Clock },
     { name: 'Departments', href: '/departments', icon: Building2 },
     { name: 'Designations', href: '/designations', icon: IdCard },
+    { name: 'Shifts', href: '/shifts', icon: Clock },
     { name: 'Devices', href: '/devices', icon: Server },
     { name: 'Users', href: '/users', icon: Users },
     { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
@@ -67,11 +71,45 @@ export default function Navbar() {
                   )
                 })}
                 
+                {/* Reports Dropdown */}
+                <div className="relative group">
+                  <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-slate-200 hover:bg-white/5">
+                    <FileText className="w-4 h-4" />
+                    Reports
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  
+                  {/* Invisible bridge to keep hover active when moving cursor down */}
+                  <div className="absolute top-full left-0 h-4 w-full" />
+                  
+                  <div className="absolute top-[calc(100%+0.5rem)] left-0 w-56 bg-slate-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden py-1">
+                    {reportLinks.map((link) => {
+                      const Icon = link.icon
+                      const isActive = pathname === link.href
+                      return (
+                        <Link
+                          key={link.name}
+                          href={link.href}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                            isActive 
+                              ? 'bg-blue-600/10 text-blue-400' 
+                              : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 opacity-70" />
+                          {link.name}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Management Dropdown */}
                 <div className="relative group">
                   <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-slate-200 hover:bg-white/5">
                     <Settings className="w-4 h-4" />
                     Management
+                    <ChevronDown className="w-3 h-3 opacity-50" />
                   </button>
                   
                   {/* Invisible bridge to keep hover active when moving cursor down */}
@@ -136,10 +174,33 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {session && isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-4 py-4 space-y-4 shadow-xl">
+        <div className="lg:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-4 py-4 space-y-4 shadow-xl max-h-[80vh] overflow-y-auto">
           <div className="flex flex-col space-y-1">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Main</span>
             {mainLinks.map((link) => {
+              const Icon = link.icon
+              const isActive = pathname === link.href
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-blue-600/20 text-blue-400' 
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 opacity-70" />
+                  {link.name}
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-col space-y-1 pt-4 border-t border-white/10">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Reports</span>
+            {reportLinks.map((link) => {
               const Icon = link.icon
               const isActive = pathname === link.href
               return (

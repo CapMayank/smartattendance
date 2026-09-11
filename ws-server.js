@@ -4,6 +4,14 @@ const prisma = new PrismaClient();
 const fs = require('fs');
 const path = require('path');
 
+function getISTTimeStr() {
+  const d = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(d.getTime() + istOffset);
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `${istDate.getUTCFullYear()}-${pad(istDate.getUTCMonth()+1)}-${pad(istDate.getUTCDate())} ${pad(istDate.getUTCHours())}:${pad(istDate.getUTCMinutes())}:${pad(istDate.getUTCSeconds())}`;
+}
+
 const wss = new WebSocket.Server({ port: 7788, host: '0.0.0.0' });
 const uiWss = new WebSocket.Server({ port: 7789, host: '0.0.0.0' });
 
@@ -103,7 +111,7 @@ wss.on('connection', function connection(ws, req) {
         const ack = {
           ret: 'reg',
           result: true,
-          cloudtime: new Date().toISOString().replace('T', ' ').substring(0, 19)
+          cloudtime: getISTTimeStr()
         };
         ws.send(JSON.stringify(ack));
         console.log(`📤 [Biometric WS] Sent ACK:`, JSON.stringify(ack));
@@ -155,8 +163,8 @@ wss.on('connection', function connection(ws, req) {
           // We must use this instead of the server time so offline punches retain their actual time
           let punchTime = new Date();
           try {
-             // Replace space with T to ensure cross-platform Date parsing compatibility
-             const cleanTimeStr = String(timestampStr).replace(' ', 'T');
+             // Replace space with T and append +05:30 to explicitly parse as IST
+             const cleanTimeStr = String(timestampStr).replace(' ', 'T') + '+05:30';
              const parsedTime = new Date(cleanTimeStr);
              if (!isNaN(parsedTime.getTime())) {
                  punchTime = parsedTime;
