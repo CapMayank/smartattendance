@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck } from 'lucide-react'
+import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck, Lock, Unlock, CheckCircle, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 
 function calculatePayroll(
@@ -129,6 +129,27 @@ export default function MonthlyPayrollPage() {
     window.location.href = `/api/payroll/export/${type}?month=${selectedMonth}&year=${selectedYear}`
   }
 
+  const isMonthLocked = payrolls.length > 0 && payrolls.every(p => p.isLocked)
+  const hasUnsavedEdits = Object.keys(edits).some(id => {
+    const p = payrolls.find(p => p.id === id)
+    if (!p) return false
+    return edits[id].presentDays !== p.presentDays || edits[id].refundOfAdvance !== p.refundOfAdvance
+  })
+
+  const handleToggleLock = async () => {
+    if (!confirm(isMonthLocked ? 'Are you sure you want to unlock this month?' : 'Are you sure you want to lock this month? Locked payrolls cannot be edited or synced.')) return;
+    try {
+      const res = await fetch('/api/payroll/monthly/lock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month: selectedMonth, year: selectedYear, isLocked: !isMonthLocked })
+      })
+      if (res.ok) await fetchPayroll()
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto min-h-screen pb-20">
       {/* Header */}
@@ -138,114 +159,158 @@ export default function MonthlyPayrollPage() {
             <FileText className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Monthly Payroll
-            </h1>
-            <p className="text-slate-400 mt-1 font-medium">Generate calculations and export ECR files</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                Monthly Payroll
+              </h1>
+              {payrolls.length > 0 && (
+                <span className={`px-2.5 py-1 rounded-md text-xs font-bold tracking-wider uppercase border shadow-sm ${
+                  isMonthLocked 
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10'
+                }`}>
+                  {isMonthLocked ? 'Locked' : 'Draft'}
+                </span>
+              )}
+            </div>
+            <p className="text-slate-400 mt-1 font-medium">Follow the steps below to process and export payroll</p>
           </div>
         </div>
-
-        {/* Global Save Button */}
-        <button
-          onClick={handleSave}
-          disabled={saving || payrolls.length === 0}
-          className={`flex items-center gap-2 px-6 py-3 text-sm font-bold text-white rounded-xl transition-all shadow-lg ${
-            saveSuccess 
-              ? 'bg-emerald-500 shadow-emerald-500/20' 
-              : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5'
-          } disabled:opacity-50 disabled:hover:-translate-y-0 disabled:hover:shadow-none`}
-        >
-          {saving ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saving ? 'Recalculating...' : saveSuccess ? 'Saved & Recalculated' : 'Save & Recalculate'}
-        </button>
       </div>
 
-      {/* Glassmorphic Control Panel */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-5 mb-8 flex flex-wrap gap-6 items-end justify-between shadow-2xl relative overflow-hidden">
+      {/* 5-Step Process Wizard */}
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-5 mb-8 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
-        <div className="flex flex-wrap items-end gap-4 relative z-10">
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 ml-1">
-              <Calendar className="w-3.5 h-3.5" />
-              Month
-            </label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 shadow-inner appearance-none min-w-[140px]"
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 ml-1">
-              Year
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 shadow-inner appearance-none min-w-[100px]"
-            >
-              {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={fetchPayroll}
-            className="p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5 hover:shadow-md active:scale-95"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
-          </button>
+        <div className="flex flex-col xl:flex-row gap-6 relative z-10 items-stretch">
           
-          <div className="w-px h-8 bg-white/10 mx-2 mb-1"></div>
-          
-          <button
-            onClick={handleSyncAttendance}
-            disabled={syncing || payrolls.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-all border border-amber-500/20 hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-            title="Overwrite present days with fresh attendance data"
-          >
-            {syncing ? (
-               <div className="w-4 h-4 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin"></div>
-            ) : (
-               <RefreshCw className="w-4 h-4" />
-            )}
-            Sync Attendance
-          </button>
-        </div>
+          {/* Step 1 & 2: Setup & Sync */}
+          <div className="flex-1 bg-slate-950/40 p-5 rounded-2xl border border-white/5 relative">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">1</div>
+            <h3 className="text-sm font-bold text-white mb-4 ml-3">Select Period</h3>
+            <div className="flex items-end gap-3 ml-3">
+              <div>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                    <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
+                >
+                  {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={fetchPayroll}
+                className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-lg transition-all border border-white/5"
+                title="Refresh Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+              </button>
+            </div>
 
-        <div className="flex flex-wrap gap-3 relative z-10">
-          <button
-            onClick={() => handleExport('bank-payment')}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <Download className="w-4 h-4" />
-            Bank Payment
-          </button>
-          <div className="w-px bg-white/10 mx-1"></div>
-          <button
-            onClick={() => handleExport('ecr-final')}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-xl transition-all border border-blue-500/20 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <Download className="w-4 h-4" />
-            ECR (Excel)
-          </button>
-          <button
-            onClick={() => handleExport('ecr-text')}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all border border-purple-500/20 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <FileText className="w-4 h-4" />
-            ECR (TXT)
-          </button>
+            <div className="mt-6 ml-3">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[88px]">2</div>
+              <h3 className="text-sm font-bold text-white mb-3">Sync Attendance</h3>
+              <button
+                onClick={handleSyncAttendance}
+                disabled={syncing || payrolls.length === 0 || isMonthLocked}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition-all border border-amber-500/20 disabled:opacity-50"
+              >
+                {syncing ? <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin"></div> : <RefreshCw className="w-3.5 h-3.5" />}
+                Sync with Logs
+              </button>
+            </div>
+          </div>
+
+          <div className="hidden xl:flex items-center justify-center text-slate-700">
+            <ChevronRight className="w-8 h-8" />
+          </div>
+
+          {/* Step 3 & 4: Review & Recalculate */}
+          <div className="flex-1 bg-slate-950/40 p-5 rounded-2xl border border-white/5 relative flex flex-col justify-between">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">3</div>
+            <div className="ml-3">
+              <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
+              <p className="text-xs text-slate-400 max-w-xs">
+                Review the table below. Manually adjust <strong className="text-indigo-400">Present Days</strong> or <strong className="text-rose-400">Advances</strong> if needed.
+              </p>
+            </div>
+
+            <div className="mt-6 ml-3">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[96px]">4</div>
+              <h3 className="text-sm font-bold text-white mb-3">Save & Recalculate</h3>
+              <button
+                onClick={handleSave}
+                disabled={saving || payrolls.length === 0 || isMonthLocked || !hasUnsavedEdits}
+                className={`flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-lg ${
+                  saveSuccess 
+                    ? 'bg-emerald-500' 
+                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400'
+                } disabled:opacity-50`}
+              >
+                {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+
+          <div className="hidden xl:flex items-center justify-center text-slate-700">
+            <ChevronRight className="w-8 h-8" />
+          </div>
+
+          {/* Step 5: Lock & Export */}
+          <div className="flex-[1.2] bg-slate-950/40 p-5 rounded-2xl border border-white/5 relative flex flex-col justify-between">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
+            <div className="ml-3">
+              <h3 className="text-sm font-bold text-white mb-3">Lock & Export</h3>
+              <button
+                onClick={handleToggleLock}
+                disabled={payrolls.length === 0}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all border disabled:opacity-50 mb-6 ${
+                  isMonthLocked 
+                    ? 'text-slate-300 bg-slate-800 border-white/10 hover:bg-slate-700' 
+                    : 'text-rose-400 bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20'
+                }`}
+              >
+                {isMonthLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {isMonthLocked ? 'Unlock Payroll' : 'Lock Payroll'}
+              </button>
+              
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleExport('bank-payment')}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-500/20"
+                >
+                  <Download className="w-3.5 h-3.5" /> Bank Pay
+                </button>
+                <button
+                  onClick={() => handleExport('ecr-final')}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-all border border-blue-500/20"
+                >
+                  <Download className="w-3.5 h-3.5" /> ECR (Excel)
+                </button>
+                <button
+                  onClick={() => handleExport('ecr-text')}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-all border border-purple-500/20"
+                >
+                  <FileText className="w-3.5 h-3.5" /> ECR (TXT)
+                </button>
+              </div>
+            </div>
+          </div>
+          
         </div>
       </div>
 
@@ -317,12 +382,14 @@ export default function MonthlyPayrollPage() {
                             min="0"
                             max={p.totalDays}
                             value={edits[p.id]?.presentDays ?? p.presentDays}
+                            disabled={isMonthLocked}
                             onChange={(e) => setEdits({
                               ...edits, 
                               [p.id]: { ...edits[p.id], presentDays: parseFloat(e.target.value) || 0 }
                             })}
-                            className={`w-16 bg-slate-950/50 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${
-                              edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'border-white/10 hover:border-white/20'
+                            className={`w-16 bg-slate-950/50 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
+                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/5' :
+                              edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)] focus:ring-2 focus:ring-indigo-500/50' : 'border-white/10 hover:border-white/20 focus:ring-2 focus:ring-indigo-500/50'
                             }`}
                           />
                         </div>
@@ -346,12 +413,14 @@ export default function MonthlyPayrollPage() {
                             type="number"
                             min="0"
                             value={edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance}
+                            disabled={isMonthLocked}
                             onChange={(e) => setEdits({
                               ...edits, 
                               [p.id]: { ...edits[p.id], refundOfAdvance: parseFloat(e.target.value) || 0 }
                             })}
-                            className={`w-24 bg-slate-950/50 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition-all ${
-                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]' : 'border-white/10 hover:border-white/20'
+                            className={`w-24 bg-slate-950/50 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none transition-all ${
+                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/5' :
+                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] focus:ring-2 focus:ring-rose-500/50' : 'border-white/10 hover:border-white/20 focus:ring-2 focus:ring-rose-500/50'
                             }`}
                           />
                         </div>

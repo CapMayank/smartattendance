@@ -82,6 +82,11 @@ export async function POST(request: Request) {
     const queryEndDate = new Date(year, month, 7, 23, 59, 59);
 
     const updates = await Promise.all(existingPayrolls.map(async (payroll) => {
+      // Do not sync if the payroll is locked
+      if (payroll.isLocked) {
+        return false;
+      }
+
       const attendanceRecords = await prisma.dailyRecord.findMany({
         where: {
           staffId: payroll.staffId,
