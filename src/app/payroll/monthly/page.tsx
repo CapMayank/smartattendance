@@ -253,7 +253,7 @@ export default function MonthlyPayrollPage() {
               <h3 className="text-sm font-bold text-white mb-3">Save & Recalculate</h3>
               <button
                 onClick={handleSave}
-                disabled={saving || payrolls.length === 0 || isMonthLocked || !hasUnsavedEdits}
+                disabled={saving || payrolls.length === 0 || isMonthLocked}
                 className={`flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-lg ${
                   saveSuccess 
                     ? 'bg-emerald-500' 
