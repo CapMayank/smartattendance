@@ -98,6 +98,33 @@ export default function MonthlyPayrollPage() {
     }
   }
 
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSyncAttendance = async () => {
+    if (!confirm('This will overwrite any manually adjusted Present Days for this month with the fresh attendance data from the logs. Are you sure you want to sync?')) return;
+    
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/payroll/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month: selectedMonth, year: selectedYear })
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert(`Successfully synced attendance. ${data.updatedCount} records were updated.`)
+        await fetchPayroll()
+      } else {
+        alert('Failed to sync attendance: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Failed to sync attendance:', error)
+      alert('Failed to sync attendance due to an error.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const handleExport = (type: string) => {
     window.location.href = `/api/payroll/export/${type}?month=${selectedMonth}&year=${selectedYear}`
   }
@@ -177,6 +204,22 @@ export default function MonthlyPayrollPage() {
             title="Refresh Data"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+          </button>
+          
+          <div className="w-px h-8 bg-white/10 mx-2 mb-1"></div>
+          
+          <button
+            onClick={handleSyncAttendance}
+            disabled={syncing || payrolls.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-all border border-amber-500/20 hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+            title="Overwrite present days with fresh attendance data"
+          >
+            {syncing ? (
+               <div className="w-4 h-4 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin"></div>
+            ) : (
+               <RefreshCw className="w-4 h-4" />
+            )}
+            Sync Attendance
           </button>
         </div>
 
