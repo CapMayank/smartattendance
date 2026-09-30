@@ -32,6 +32,7 @@ export async function GET(request: Request) {
       include: {
         department: true,
         designation: true,
+        payrollInfo: true,
       }
     });
 
@@ -39,12 +40,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
     }
 
-    const dailyRecords = await prisma.dailyRecord.findMany({
+    const queryStartDate = new Date(year, month - 1, -6); // 7 days before target month
+    const queryEndDate = new Date(year, month, 7, 23, 59, 59); // 7 days after target month
+
+    const allDailyRecords = await prisma.dailyRecord.findMany({
       where: {
         staffId: staffId,
         date: {
-          gte: sOfMonth,
-          lte: eOfMonth
+          gte: queryStartDate,
+          lte: queryEndDate
         }
       },
       orderBy: { date: 'asc' }
@@ -71,10 +75,58 @@ export async function GET(request: Request) {
       logsByDate[dateStr].push(log);
     });
 
+    const dailyRecords = allDailyRecords.filter(r => r.date >= sOfMonth && r.date <= eOfMonth);
+    let totalPayrollEligibleDays = 0;
+    
+    const doj = staff.payrollInfo?.doj || staff.createdAt;
+    const normalizedDoj = startOfDay(new Date(doj));
+
     const days = dailyRecords.map(record => {
       const dateStr = format(record.date, 'yyyy-MM-dd');
+      let payrollEligible = 0;
+      let isSandwiched = false;
+
+      // If the date is before the employee joined, they are not eligible for any pay
+      if (record.date < normalizedDoj) {
+        payrollEligible = 0;
+      } else if (record.status === 'PRESENT') {
+        payrollEligible = 1;
+      } else if (record.status === 'HALF_DAY') {
+        payrollEligible = 0.5;
+      } else if (record.status === 'WEEKOFF' || record.status === 'HOLIDAY') {
+        // Apply Sandwich Rule using allDailyRecords
+        const i = allDailyRecords.findIndex(r => r.id === record.id);
+        
+        let prevWorkingDayStatus = null;
+        for (let j = i - 1; j >= 0; j--) {
+           if (allDailyRecords[j].status !== "WEEKOFF" && allDailyRecords[j].status !== "HOLIDAY") {
+              prevWorkingDayStatus = allDailyRecords[j].status;
+              break;
+           }
+        }
+        
+        let nextWorkingDayStatus = null;
+        for (let j = i + 1; j < allDailyRecords.length; j++) {
+           if (allDailyRecords[j].status !== "WEEKOFF" && allDailyRecords[j].status !== "HOLIDAY") {
+              nextWorkingDayStatus = allDailyRecords[j].status;
+              break;
+           }
+        }
+
+        if (prevWorkingDayStatus === "ABSENT" && nextWorkingDayStatus === "ABSENT") {
+           payrollEligible = 0;
+           isSandwiched = true;
+        } else {
+           payrollEligible = 1;
+        }
+      }
+
+      totalPayrollEligibleDays += payrollEligible;
+
       return {
         ...record,
+        payrollEligible,
+        isSandwiched,
         logs: logsByDate[dateStr] || []
       };
     });
@@ -94,7 +146,8 @@ export async function GET(request: Request) {
         totalAbsents,
         totalHalfDays,
         totalLateMinutes,
-        totalWorkMinutes
+        totalWorkMinutes,
+        totalPayrollEligibleDays
       }
     })
 

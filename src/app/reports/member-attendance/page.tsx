@@ -18,6 +18,8 @@ type DailyRecordWithLogs = {
   checkOut: string | null
   lateMinutes: number
   workMinutes: number
+  payrollEligible?: number
+  isSandwiched?: boolean
   logs: AttendanceLog[]
 }
 
@@ -42,7 +44,8 @@ export default function MemberAttendancePage() {
     totalAbsents: 0,
     totalHalfDays: 0,
     totalLateMinutes: 0,
-    totalWorkMinutes: 0
+    totalWorkMinutes: 0,
+    totalPayrollEligibleDays: 0
   })
 
   // Fetch staff list for dropdown
@@ -108,6 +111,7 @@ export default function MemberAttendancePage() {
         'Check Out': r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
         'Late By (Minutes)': r.lateMinutes,
         'Total Work Hours': (r.workMinutes / 60).toFixed(2),
+        'Payroll Eligible (Days)': r.payrollEligible ?? '-',
         'Punch Logs': logsStr || 'No Punches'
       };
     });
@@ -190,7 +194,11 @@ export default function MemberAttendancePage() {
 
         {/* Summary Cards */}
         {staffData && !loading && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-6 border-b border-white/10 relative z-10 bg-slate-900/40">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 p-6 border-b border-white/10 relative z-10 bg-slate-900/40">
+             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent">
+                <span className="text-3xl font-black text-indigo-400 mb-1">{summary.totalPayrollEligibleDays}</span>
+                <span className="text-[10px] font-bold text-indigo-300/70 uppercase tracking-wider">Payroll Days</span>
+             </div>
              <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-black text-emerald-400 mb-1">{summary.totalPresents}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Presents</span>
@@ -220,6 +228,7 @@ export default function MemberAttendancePage() {
               <tr>
                 <th className="px-6 py-5 sticky left-0 bg-slate-950/80 backdrop-blur-xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Date</th>
                 <th className="px-6 py-5">Status</th>
+                <th className="px-6 py-5">Payroll Day</th>
                 <th className="px-6 py-5">Check In</th>
                 <th className="px-6 py-5">Check Out</th>
                 <th className="px-6 py-5 text-right">Late / Work Hrs</th>
@@ -263,6 +272,18 @@ export default function MemberAttendancePage() {
                         }`}>
                           {record.status}
                         </span>
+                        {record.isSandwiched && (
+                          <span className="block mt-1 text-[9px] font-bold text-rose-400 uppercase tracking-wider">Sandwiched (Unpaid)</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 font-bold">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border ${
+                          record.payrollEligible === 1 ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                          record.payrollEligible === 0.5 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                          'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                        }`}>
+                          +{record.payrollEligible} Day
+                        </span>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-300">
                         {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
@@ -302,7 +323,7 @@ export default function MemberAttendancePage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-16 text-center">
+                  <td colSpan={7} className="p-16 text-center">
                     <UserCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                     <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
                     <p className="text-slate-500 text-sm mt-1">Select a different staff member or month.</p>

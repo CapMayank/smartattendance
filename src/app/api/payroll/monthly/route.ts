@@ -107,12 +107,19 @@ export async function GET(request: Request) {
 
         let presentDays = 0;
         
+        const doj = staff.payrollInfo?.doj || staff.createdAt;
+        const normalizedDoj = new Date(doj.getFullYear(), doj.getMonth(), doj.getDate());
+
         // We only care about adding present days that fall exactly within the current month
         for (let i = 0; i < attendanceRecords.length; i++) {
           const record = attendanceRecords[i];
           
           // Check if record belongs to the current month
           if (record.date >= startDate && record.date <= endDate) {
+            // If the date is before the employee joined, they are not eligible for any pay
+            if (record.date < normalizedDoj) {
+               continue;
+            }
             
             if (record.status === "PRESENT") {
               presentDays += 1;
