@@ -123,7 +123,7 @@ export default function MemberPayrollPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -141,7 +141,7 @@ export default function MemberPayrollPage() {
           <button
             onClick={exportCSV}
             disabled={!staffData || payrolls.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
+            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" /> Export CSV
           </button>
@@ -153,7 +153,7 @@ export default function MemberPayrollPage() {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters */}
-        <div className="bg-black/50 px-6 py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+        <div className="bg-black/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 relative z-10">
           <div className="flex-1 max-w-md relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-slate-400" />
@@ -175,7 +175,7 @@ export default function MemberPayrollPage() {
 
         {/* Staff Summary */}
         {staffData && !loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 border-b border-white/[0.08] relative z-10 bg-black/40/40">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-white/[0.08] relative z-10 bg-black/40/40">
              <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current CTC</span>
                 <span className="text-2xl font-black text-emerald-400">{formatCurrency(staffData.payrollInfo?.monthlyCtc || 0)}</span>
@@ -193,7 +193,7 @@ export default function MemberPayrollPage() {
           </div>
         )}
 
-        <div className="overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar">
+        <div className="hidden md:block overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar">
           <table className="w-full text-left text-sm text-slate-400 min-w-[800px]">
             <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               <tr>
@@ -273,6 +273,75 @@ export default function MemberPayrollPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden relative z-10 p-4 space-y-3">
+          {loading ? (
+            <div className="py-16 flex flex-col items-center justify-center gap-4">
+              <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+              <p className="text-slate-400 font-medium animate-pulse">Fetching payroll history...</p>
+            </div>
+          ) : payrolls.length > 0 ? (
+            payrolls.map((payroll) => {
+              const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'long' })
+              const paidPct = payroll.totalDays > 0 ? Math.min(100, (payroll.presentDays / payroll.totalDays) * 100) : 0
+              return (
+                <div key={payroll.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-4 relative overflow-hidden shadow-lg">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                  <div className="flex items-center justify-between gap-3 relative">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl shrink-0">
+                        <CalendarIcon className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-white leading-tight">{monthName}</p>
+                        <p className="text-xs text-slate-500 font-semibold">{payroll.year}</p>
+                      </div>
+                    </div>
+                    {payroll.isLocked ? (
+                      <span className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 text-indigo-400 border-indigo-500/20">Locked</span>
+                    ) : (
+                      <span className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20">Draft</span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 relative">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">Net Payment</p>
+                    <p className="text-2xl font-black text-emerald-400 mt-0.5">{formatCurrency(payroll.netPayment)}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-3 relative">
+                    <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Actual CTC</p>
+                      <p className="text-sm font-bold text-slate-200 mt-1">{formatCurrency(payroll.actualCtc)}</p>
+                    </div>
+                    <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gross Wage</p>
+                      <p className="text-sm font-bold text-slate-200 mt-1">{formatCurrency(payroll.grossWage)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 relative">
+                    <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
+                      <span className="text-slate-400 uppercase tracking-wider">Days Paid</span>
+                      <span className="text-slate-200">{payroll.presentDays} <span className="text-slate-500">/ {payroll.totalDays}</span></span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" style={{ width: `${paidPct}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          ) : (
+            <div className="py-14 text-center">
+              <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-300 font-semibold text-lg">No Payroll Records Found</p>
+              <p className="text-slate-500 text-sm mt-1">Select a different staff member or generate payroll first.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

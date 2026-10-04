@@ -79,7 +79,7 @@ export default function StaffPayrollPage() {
   const estNet = estGross - empPf;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-screen">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">

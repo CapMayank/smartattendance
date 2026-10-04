@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Calendar as CalendarIcon, Filter, Clock, Users, BarChart3, Plus, Trash2, X, Settings2 } from 'lucide-react'
+import { FileText, Download, Calendar as CalendarIcon, Filter, Clock, Users, BarChart3, Plus, Trash2, X, Settings2, ChevronDown, LogIn, LogOut, Timer } from 'lucide-react'
 import Papa from 'papaparse'
 
 type DailyRecord = {
@@ -42,6 +42,162 @@ type MonthlyRecord = {
   totalHalfDays: number
   totalLateMinutes: number
   totalWorkMinutes: number
+}
+
+const timeFmt = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'
+
+type DayKind = 'present' | 'absent' | 'half' | 'holiday' | 'weekoff' | 'none'
+
+const getDayKind = (d?: MonthlyRecord['days'][string]): DayKind => {
+  if (!d) return 'none'
+  if (d.status === 'ABSENT') return 'absent'
+  if (d.status === 'HALF_DAY') return 'half'
+  if (d.status === 'HOLIDAY') return 'holiday'
+  if (d.status === 'WEEKOFF') return 'weekoff'
+  if (d.checkIn) return 'present'
+  return 'none'
+}
+
+const dayKindStyle: Record<DayKind, { cell: string; label: string; name: string }> = {
+  present: { cell: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300', label: 'P', name: 'Present' },
+  absent: { cell: 'bg-rose-500/15 border-rose-500/30 text-rose-300', label: 'A', name: 'Absent' },
+  half: { cell: 'bg-amber-500/15 border-amber-500/30 text-amber-300', label: 'HD', name: 'Half Day' },
+  holiday: { cell: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300', label: 'H', name: 'Holiday' },
+  weekoff: { cell: 'bg-slate-500/10 border-white/[0.06] text-slate-400', label: 'W', name: 'Week Off' },
+  none: { cell: 'bg-white/[0.02] border-white/[0.04] text-slate-600', label: '', name: 'No data' },
+}
+
+function MonthlyMobileCard({
+  record,
+  month,
+  daysArray,
+  firstDow,
+}: {
+  record: MonthlyRecord
+  month: string
+  daysArray: number[]
+  firstDow: number
+}) {
+  const [open, setOpen] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+
+  const selectedStr = selectedDay ? `${month}-${selectedDay.toString().padStart(2, '0')}` : null
+  const selectedData = selectedStr ? record.days[selectedStr] : undefined
+  const selectedKind = getDayKind(selectedData)
+
+  return (
+    <div className="bg-black/40 border border-white/[0.08] rounded-3xl overflow-hidden shadow-lg">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full p-4 text-left active:bg-white/[0.03] transition-colors"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
+            {record.staff.name.substring(0, 2).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-white leading-tight truncate">{record.staff.name}</p>
+            <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{record.staff.designation?.name || 'No Role'}</p>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 py-2 text-center">
+            <p className="text-lg font-black text-emerald-400 leading-none">{record.totalPresents}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-300/70 mt-1">Present</p>
+          </div>
+          <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 py-2 text-center">
+            <p className="text-lg font-black text-rose-400 leading-none">{record.totalAbsents}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-rose-300/70 mt-1">Absent</p>
+          </div>
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 py-2 text-center">
+            <p className="text-lg font-black text-amber-400 leading-none">{record.totalHalfDays}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-300/70 mt-1">Half</p>
+          </div>
+          <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 py-2 text-center">
+            <p className="text-lg font-black text-indigo-400 leading-none">{(record.totalWorkMinutes / 60).toFixed(0)}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-indigo-300/70 mt-1">Hours</p>
+          </div>
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 pt-1 border-t border-white/[0.06] animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid grid-cols-7 gap-1.5 mt-3 mb-1.5">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <div key={i} className="text-center text-[10px] font-bold text-slate-500">{d}</div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1.5">
+            {Array.from({ length: firstDow }).map((_, i) => <div key={`pad-${i}`} />)}
+            {daysArray.map(day => {
+              const dateStr = `${month}-${day.toString().padStart(2, '0')}`
+              const kind = getDayKind(record.days[dateStr])
+              const style = dayKindStyle[kind]
+              const isSelected = selectedDay === day
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  className={`aspect-square rounded-xl border flex flex-col items-center justify-center leading-none transition-all active:scale-90 ${style.cell} ${isSelected ? 'ring-2 ring-white/70 scale-105' : ''}`}
+                >
+                  <span className="text-[13px] font-bold">{day}</span>
+                  <span className="text-[8px] font-extrabold mt-0.5 h-2">{style.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
+            {(['present', 'absent', 'half', 'holiday', 'weekoff'] as DayKind[]).map(k => (
+              <span key={k} className="flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                <span className={`w-2.5 h-2.5 rounded-[4px] border ${dayKindStyle[k].cell}`}></span>
+                {dayKindStyle[k].name}
+              </span>
+            ))}
+          </div>
+
+          {selectedDay && (
+            <div className="mt-3 rounded-2xl bg-black/50 border border-white/[0.08] p-3 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-white">
+                  {new Date(`${selectedStr}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
+                </p>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${dayKindStyle[selectedKind].cell}`}>
+                  {dayKindStyle[selectedKind].name}
+                </span>
+              </div>
+              {selectedData && (selectedData.checkIn || selectedData.checkOut) ? (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">In</p>
+                    <p className="text-sm font-bold text-emerald-400">{timeFmt(selectedData.checkIn)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Out</p>
+                    <p className="text-sm font-bold text-rose-400">{timeFmt(selectedData.checkOut)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Hours</p>
+                    <p className="text-sm font-bold text-slate-200">{(selectedData.workMinutes / 60).toFixed(1)}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 mt-2">No punches recorded for this day.</p>
+              )}
+              {selectedData && selectedData.lateMinutes > 0 && (
+                <p className="text-[11px] font-bold text-rose-400 mt-2">{selectedData.lateMinutes} mins late</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function ReportsPage() {
@@ -229,8 +385,10 @@ export default function ReportsPage() {
     document.body.removeChild(link)
   }
 
+  const firstDow = new Date(`${month}-01T00:00:00`).getDay()
+
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -247,7 +405,7 @@ export default function ReportsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={exportCSV}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5"
+            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" /> Export CSV
           </button>
@@ -259,11 +417,11 @@ export default function ReportsPage() {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters and View Type */}
-        <div className="bg-black/50 px-6 py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-2 bg-black/60 rounded-xl p-1.5 border border-white/[0.08] shadow-inner">
+        <div className="bg-black/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 relative z-10">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 bg-black/60 rounded-xl p-1.5 border border-white/[0.08] shadow-inner">
             <button
               onClick={() => setViewType('daily')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 viewType === 'daily' ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
@@ -271,7 +429,7 @@ export default function ReportsPage() {
             </button>
             <button
               onClick={() => setViewType('monthly')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 viewType === 'monthly' ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
@@ -280,26 +438,26 @@ export default function ReportsPage() {
           </div>
 
           <div className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/[0.08]">
-            <CalendarIcon className="w-5 h-5 text-indigo-400 ml-2" />
+            <CalendarIcon className="w-5 h-5 text-indigo-400 ml-2 shrink-0" />
             {viewType === 'daily' ? (
               <input 
                 type="date" 
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-transparent border-none text-white font-medium focus:ring-0 outline-none cursor-pointer"
+                className="flex-1 min-w-0 bg-transparent border-none text-white font-medium focus:ring-0 outline-none cursor-pointer"
               />
             ) : (
               <input 
                 type="month" 
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                className="bg-transparent border-none text-white font-medium focus:ring-0 outline-none cursor-pointer"
+                className="flex-1 min-w-0 bg-transparent border-none text-white font-medium focus:ring-0 outline-none cursor-pointer"
               />
             )}
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
+        <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
           <table className={`w-full text-left text-sm text-slate-400 min-w-[800px]`}>
             <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               {viewType === 'daily' ? (
@@ -513,6 +671,120 @@ export default function ReportsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden relative z-10 p-4 space-y-3">
+          {loading ? (
+            <div className="py-16 flex flex-col items-center justify-center gap-4">
+              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+              <p className="text-slate-400 font-medium animate-pulse">Calculating attendance records...</p>
+            </div>
+          ) : viewType === 'daily' ? (
+            dailyRecords.length > 0 ? (
+              <>
+                {/* Summary strip */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
+                    <p className="text-2xl font-black text-emerald-400 leading-none">{dailyRecords.filter(r => r.status === 'PRESENT').length}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70 mt-1.5">Present</p>
+                  </div>
+                  <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 p-3 text-center">
+                    <p className="text-2xl font-black text-rose-400 leading-none">{dailyRecords.filter(r => r.status === 'ABSENT').length}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-300/70 mt-1.5">Absent</p>
+                  </div>
+                  <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3 text-center">
+                    <p className="text-2xl font-black text-amber-400 leading-none">{dailyRecords.filter(r => r.lateMinutes > 0 && r.status !== 'ABSENT').length}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300/70 mt-1.5">Late</p>
+                  </div>
+                </div>
+
+                {dailyRecords.map((record) => {
+                  const noWork = record.status === 'ABSENT' || record.status === 'HOLIDAY' || record.status === 'WEEKOFF'
+                  return (
+                    <div key={record.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-4 relative overflow-hidden shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
+                          {record.staff.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-white leading-tight truncate">{record.staff.name}</p>
+                          <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                            {record.staff.designation?.name || 'No Role'} • {record.staff.department?.name || 'No Dept'}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
+                          record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          record.status === 'ABSENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                          record.status === 'HOLIDAY' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
+                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        }`}>
+                          {record.status.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 mt-4">
+                        <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-2.5">
+                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><LogIn className="w-3 h-3 text-emerald-400" />In</p>
+                          <p className="mt-1 text-sm font-bold text-slate-200 whitespace-nowrap">{timeFmt(record.checkIn)}</p>
+                        </div>
+                        <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-2.5">
+                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><LogOut className="w-3 h-3 text-rose-400" />Out</p>
+                          <p className="mt-1 text-sm font-bold text-slate-200 whitespace-nowrap">{timeFmt(record.checkOut)}</p>
+                        </div>
+                        <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-2.5">
+                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><Timer className="w-3 h-3 text-indigo-400" />Hours</p>
+                          <p className="mt-1 text-sm font-bold text-slate-200">{noWork ? '-' : (record.workMinutes / 60).toFixed(1)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 mt-4">
+                        {noWork ? (
+                          <span className="text-xs font-semibold text-slate-600">No punches expected</span>
+                        ) : record.lateMinutes > 0 ? (
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">{record.lateMinutes} mins late</span>
+                        ) : (
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">On time</span>
+                        )}
+                        <button
+                          onClick={() => openPunchModal(record.staffId, record.staff.name)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl transition-all active:scale-95"
+                        >
+                          <Settings2 className="w-4 h-4" /> Punches
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            ) : (
+              <div className="py-14 text-center">
+                <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
+                <p className="text-slate-500 text-sm mt-1">There are no attendance records for this date.</p>
+              </div>
+            )
+          ) : monthlyRecords.length > 0 ? (
+            <>
+              <p className="text-xs text-slate-500 font-medium px-1">Tap a person to open their month calendar. Tap a day for details.</p>
+              {monthlyRecords.map((record) => (
+                <MonthlyMobileCard
+                  key={record.staff.machineId}
+                  record={record}
+                  month={month}
+                  daysArray={daysArray}
+                  firstDow={firstDow}
+                />
+              ))}
+            </>
+          ) : (
+            <div className="py-14 text-center">
+              <BarChart3 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
+              <p className="text-slate-500 text-sm mt-1">There are no attendance records for this month.</p>
+            </div>
+          )}
         </div>
       </div>
 

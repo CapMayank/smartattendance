@@ -151,7 +151,7 @@ export default function MonthlyPayrollPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-screen pb-20">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
@@ -160,7 +160,7 @@ export default function MonthlyPayrollPage() {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
                 Monthly Payroll
               </h1>
               {payrolls.length > 0 && (
@@ -188,7 +188,7 @@ export default function MonthlyPayrollPage() {
           <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative">
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">1</div>
             <h3 className="text-sm font-bold text-white mb-4 ml-3">Select Period</h3>
-            <div className="flex items-end gap-3 ml-3">
+            <div className="flex flex-wrap items-end gap-3 ml-3">
               <div>
                 <select
                   value={selectedMonth}
@@ -319,7 +319,7 @@ export default function MonthlyPayrollPage() {
 
       {/* Main Table Area */}
       <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
-        <div className="flex-1 overflow-x-auto custom-scrollbar">
+        <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl z-10 shadow-sm border-b border-white/[0.04]">
               <tr>
@@ -440,6 +440,115 @@ export default function MonthlyPayrollPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden p-4 space-y-3">
+          {loading && payrolls.length === 0 ? (
+            <div className="py-16 flex flex-col items-center gap-4">
+              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+              <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
+            </div>
+          ) : payrolls.length === 0 ? (
+            <div className="py-14 text-center">
+              <ShieldCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
+              <p className="text-slate-500 text-sm mt-1">No staff are configured for payroll this month.</p>
+            </div>
+          ) : (
+            payrolls.map((p) => {
+              const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
+              const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
+              const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance
+              const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
+              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p
+              const setPresent = (v: number) => {
+                const clamped = Math.max(0, Math.min(p.totalDays, v))
+                setEdits({ ...edits, [p.id]: { ...edits[p.id], refundOfAdvance: currentRefund, presentDays: clamped } })
+              }
+
+              return (
+                <div key={p.id} className={`rounded-3xl p-4 border shadow-lg relative overflow-hidden transition-colors ${isEdited ? 'bg-indigo-500/[0.06] border-indigo-500/30' : 'bg-black/40 border-white/[0.08]'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/[0.08] flex items-center justify-center text-white font-black shrink-0">
+                      {p.staff.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-white leading-tight truncate">{p.staff.name}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500 truncate">{p.staff.payrollInfo?.uan || 'No UAN'}</p>
+                    </div>
+                    {isEdited && <span className="shrink-0 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Edited</span>}
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">Net Payment</p>
+                    <p className="text-2xl font-black text-emerald-400 mt-0.5">₹{calc.netPayment.toLocaleString()}</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2.5">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fixed CTC</p>
+                      <p className="text-[13px] font-bold text-slate-400 mt-1">₹{monthlyCtc.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2.5">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Gross</p>
+                      <p className="text-[13px] font-bold text-slate-200 mt-1">₹{calc.grossWage.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2.5">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-rose-400/70">PF</p>
+                      <p className="text-[13px] font-bold text-rose-400 mt-1">-₹{calc.employeeEpf.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Present Days <span className="text-slate-600">/ {p.totalDays}</span></p>
+                      <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                        <button
+                          disabled={isMonthLocked}
+                          onClick={() => setPresent(currentPresentDays - 0.5)}
+                          className="w-10 h-11 text-lg font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          aria-label="Decrease present days"
+                        >−</button>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.5"
+                          min="0"
+                          max={p.totalDays}
+                          value={currentPresentDays}
+                          disabled={isMonthLocked}
+                          onChange={(e) => setPresent(parseFloat(e.target.value) || 0)}
+                          className="flex-1 min-w-0 w-full h-11 bg-transparent text-center font-bold text-white focus:outline-none disabled:opacity-50"
+                        />
+                        <button
+                          disabled={isMonthLocked}
+                          onClick={() => setPresent(currentPresentDays + 0.5)}
+                          className="w-10 h-11 text-lg font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          aria-label="Increase present days"
+                        >+</button>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80 mb-1.5">Adv. Refund (₹)</p>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={currentRefund}
+                        disabled={isMonthLocked}
+                        onChange={(e) => setEdits({
+                          ...edits,
+                          [p.id]: { ...edits[p.id], presentDays: currentPresentDays, refundOfAdvance: parseFloat(e.target.value) || 0 }
+                        })}
+                        className="w-full h-11 rounded-xl border border-white/[0.08] bg-black/50 px-3 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
         
         {/* Helper Footer */}

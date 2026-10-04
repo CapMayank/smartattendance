@@ -97,11 +97,11 @@ export default async function Dashboard() {
   })
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="px-4 sm:px-0 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <AutoRefresh />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Sarvodaya English Higher Secondary School Lakhnadon</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Sarvodaya English Higher Secondary School Lakhnadon</h1>
           <p className="text-slate-400 mt-1">Staff Attendance System Dashboard</p>
         </div>
         <div className="px-4 py-2 bg-black/20 rounded-xl border border-white/[0.08] flex items-center gap-2 backdrop-blur-2xl shadow-[0_4px_15px_rgba(0,0,0,0.2)]">
