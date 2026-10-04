@@ -134,8 +134,8 @@ export default function UsersPage() {
         {/* List Container */}
         <div className="lg:col-span-2">
           <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col h-full">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm text-slate-400">
+            <div className="overflow-x-auto mobile-card-table-wrapper custom-scrollbar">
+              <table className="mobile-card-table w-full text-left text-sm text-slate-400">
                 <thead className="bg-black/40/50 text-slate-300 text-xs uppercase font-bold tracking-wider">
                   <tr>
                     <th className="px-6 py-5 rounded-tl-3xl">Administrator</th>

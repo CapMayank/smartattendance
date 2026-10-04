@@ -297,8 +297,8 @@ export default function StaffPage() {
           </div>
         )}
 
-        <div className="overflow-x-auto custom-scrollbar flex-1">
-          <table className="w-full text-left text-sm text-slate-400 whitespace-nowrap">
+        <div className="overflow-x-auto mobile-card-table-wrapper custom-scrollbar flex-1">
+          <table className="mobile-card-table w-full text-left text-sm text-slate-400 whitespace-nowrap">
             <thead className="bg-black/60 text-slate-300 text-xs uppercase font-semibold tracking-wider sticky top-0 z-10 backdrop-blur-xl border-b border-white/[0.08]">
               <tr>
                 <th className="px-6 py-5 w-12 text-center">

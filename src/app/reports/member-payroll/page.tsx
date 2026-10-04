@@ -193,8 +193,8 @@ export default function MemberPayrollPage() {
           </div>
         )}
 
-        <div className="overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar">
-          <table className="w-full text-left text-sm text-slate-400 min-w-[800px]">
+        <div className="overflow-x-auto mobile-card-table-wrapper min-h-[400px] relative z-10 custom-scrollbar">
+          <table className={`w-full text-left text-sm text-slate-400 min-w-[800px] ${viewType === 'daily' ? 'mobile-card-table' : ''}`}>
             <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               <tr>
                 <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Period</th>

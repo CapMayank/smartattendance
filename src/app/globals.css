@@ -56,3 +56,91 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
+
+@media (max-width: 768px) {
+  .mobile-card-table-wrapper {
+    overflow-x: visible !important;
+  }
+  
+  .mobile-card-table, 
+  .mobile-card-table thead, 
+  .mobile-card-table tbody, 
+  .mobile-card-table th, 
+  .mobile-card-table td, 
+  .mobile-card-table tr {
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .mobile-card-table thead {
+    display: none !important;
+  }
+  
+  .mobile-card-table tbody tr {
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 1.5rem !important;
+    padding: 0.75rem !important;
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+  }
+  
+  .mobile-card-table tbody td {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding: 0.5rem 0.25rem !important;
+    background: transparent !important;
+    min-height: 2.5rem;
+    text-align: right;
+  }
+  
+  .mobile-card-table tbody td:last-child {
+    border-bottom: none !important;
+    justify-content: center !important;
+  }
+  
+  .mobile-card-table td.sticky {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    box-shadow: none !important;
+    z-index: 1 !important;
+  }
+  
+  .mobile-card-table td > div {
+    text-align: right;
+    justify-content: flex-end;
+  }
+  
+  .mobile-card-table td > div.flex.items-center.gap-3, 
+  .mobile-card-table td > div.flex.items-center.gap-4 {
+    justify-content: space-between;
+    width: 100%;
+    text-align: left;
+  }
+  
+  .mobile-card-table td > div.flex.flex-col {
+    align-items: flex-end;
+  }
+  
+  .mobile-card-table td > div.flex.items-center > div.flex.flex-col {
+    align-items: flex-start;
+  }
+  
+  .mobile-card-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-right: 1rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+}

@@ -124,7 +124,7 @@ export default function StaffPayrollPage() {
         </div>
 
         <div className="flex-1 overflow-auto relative z-10">
-          <table className="w-full text-sm text-left">
+          <table className="mobile-card-table w-full text-sm text-left">
             <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl border-b border-white/[0.04] shadow-sm">
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider">Staff Name</th>
