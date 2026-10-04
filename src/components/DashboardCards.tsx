@@ -50,7 +50,7 @@ export default function DashboardCards({
         {/* Total Staff */}
         <div 
           onClick={() => openModal('Total Staff', allStaff)}
-          className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900/50 border border-white/10 backdrop-blur-xl hover:border-blue-500/50 transition-colors group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-500/20 rounded-xl group-hover:scale-110 transition-transform">
@@ -66,7 +66,7 @@ export default function DashboardCards({
         {/* Currently In */}
         <div 
           onClick={() => openModal('Currently In', presentStaff)}
-          className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900/50 border border-white/10 backdrop-blur-xl hover:border-emerald-500/50 transition-colors group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform">
@@ -82,7 +82,7 @@ export default function DashboardCards({
         {/* Absent Today */}
         <div 
           onClick={() => openModal('Absent Today', absentStaff)}
-          className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900/50 border border-white/10 backdrop-blur-xl hover:border-rose-500/50 transition-colors group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-rose-500/30 hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-rose-500/20 rounded-xl group-hover:scale-110 transition-transform">
@@ -96,7 +96,7 @@ export default function DashboardCards({
         </div>
 
         {/* Logs Today */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900/50 border border-white/10 backdrop-blur-xl hover:border-amber-500/50 transition-colors group">
+        <div className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 group">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Clock className="w-5 h-5 text-amber-400" />
@@ -109,7 +109,7 @@ export default function DashboardCards({
         </div>
 
         {/* Devices Online */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900/50 border border-white/10 backdrop-blur-xl hover:border-indigo-500/50 transition-colors group">
+        <div className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300 group">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-indigo-500/20 rounded-xl group-hover:scale-110 transition-transform relative">
               <Server className="w-5 h-5 text-indigo-400" />
@@ -125,8 +125,8 @@ export default function DashboardCards({
 
       {/* Modal Overlay */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="bg-black/60 border border-white/[0.08] backdrop-blur-3xl rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col max-h-[80vh] scale-in-95 duration-300">
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h3 className="text-lg font-bold text-white">{modalTitle}</h3>
               <button 
@@ -166,7 +166,7 @@ export default function DashboardCards({
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-white/10 bg-slate-900/50">
+            <div className="p-4 border-t border-white/[0.08] bg-black/20">
               <p className="text-sm text-slate-400 text-center">Total count: {modalData.length}</p>
             </div>
           </div>

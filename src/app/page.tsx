@@ -104,7 +104,7 @@ export default async function Dashboard() {
           <h1 className="text-3xl font-bold text-white">Sarvodaya English Higher Secondary School Lakhnadon</h1>
           <p className="text-slate-400 mt-1">Staff Attendance System Dashboard</p>
         </div>
-        <div className="px-4 py-2 bg-slate-900/50 rounded-lg border border-white/10 flex items-center gap-2 backdrop-blur-md">
+        <div className="px-4 py-2 bg-black/20 rounded-xl border border-white/[0.08] flex items-center gap-2 backdrop-blur-2xl shadow-[0_4px_15px_rgba(0,0,0,0.2)]">
           <CalendarDays className="w-4 h-4 text-blue-400" />
           <span className="text-sm font-medium">{format(new Date(), 'EEEE, MMMM do yyyy')}</span>
         </div>
@@ -129,7 +129,7 @@ export default async function Dashboard() {
         {/* Left Column (Chart & Logs) */}
         <div className="lg:col-span-2 space-y-8">
           
-          <div className="rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl p-6">
+          <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <h2 className="text-xl font-bold text-white mb-6">Weekly Attendance</h2>
             <AttendanceChart data={chartData} />
           </div>
@@ -140,7 +140,7 @@ export default async function Dashboard() {
         {/* Right Column (Staff Status) */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white">Current Status</h2>
-          <div className="rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl overflow-hidden p-1">
+          <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl overflow-hidden p-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             {/* Scrollable Container */}
             <div className="flex flex-col gap-1 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
               {(() => {

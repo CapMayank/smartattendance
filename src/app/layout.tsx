@@ -23,10 +23,12 @@ export default function RootLayout({
       >
         <Providers>
           <div className="relative min-h-screen">
-            {/* Background glowing effects */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-              <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[120px]"></div>
-              <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/20 blur-[120px]"></div>
+            {/* Liquid Glass Background Effects */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-[#020205]">
+              <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-blue-900/20 blur-[140px]"></div>
+              <div className="absolute top-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-purple-900/20 blur-[140px]"></div>
+              <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-cyan-900/15 blur-[140px]"></div>
+              <div className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] rounded-full bg-indigo-900/20 blur-[140px]"></div>
             </div>
             
             <Navbar />

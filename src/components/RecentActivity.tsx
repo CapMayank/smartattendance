@@ -26,7 +26,7 @@ export default function RecentActivity({ logs }: { logs: Log[] }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-xl font-bold text-white">Recent Activity</h2>
         <select 
-          className="bg-slate-900 border border-white/10 rounded-lg px-3 py-1 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 cursor-pointer"
+          className="bg-black/40 border border-white/[0.08] backdrop-blur-xl rounded-lg px-3 py-1 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 cursor-pointer shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:bg-black/60 transition-colors"
           value={limit}
           onChange={(e) => setLimit(e.target.value === 'all' ? 'all' : Number(e.target.value))}
         >
@@ -37,11 +37,11 @@ export default function RecentActivity({ logs }: { logs: Log[] }) {
         </select>
       </div>
       
-      <div className="rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl overflow-hidden flex flex-col max-h-[600px]">
+      <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl overflow-hidden flex flex-col max-h-[600px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         {logs.length > 0 ? (
           <div className="divide-y divide-white/5 overflow-y-auto custom-scrollbar flex-1">
             {displayedLogs.map((log) => (
-              <div key={log.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+              <div key={log.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center border border-white/10 shrink-0">
                     <span className="font-semibold text-sm">
