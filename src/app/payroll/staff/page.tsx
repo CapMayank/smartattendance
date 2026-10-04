@@ -123,8 +123,8 @@ export default function StaffPayrollPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto relative z-10">
-          <table className="mobile-card-table w-full text-sm text-left">
+        <div className="hidden md:block flex-1 overflow-auto relative z-10">
+          <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl border-b border-white/[0.04] shadow-sm">
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider">Staff Name</th>
@@ -224,6 +224,78 @@ export default function StaffPayrollPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden flex flex-col p-4 gap-4">
+          {loading ? (
+            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                <p className="text-slate-400 font-medium animate-pulse">Loading directory...</p>
+              </div>
+            </div>
+          ) : filteredStaff.length === 0 ? (
+            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+              <div className="flex flex-col items-center gap-3">
+                <AlertCircle className="w-12 h-12 text-slate-600 mb-2" />
+                <p className="text-slate-300 font-bold text-lg">No Staff Found</p>
+                <p className="text-slate-500 text-sm">No matching staff found in directory.</p>
+              </div>
+            </div>
+          ) : (
+            filteredStaff.map((s) => (
+              <div key={s.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
+                
+                <div className="flex items-start justify-between relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-lg font-black text-white shadow-lg border border-white/[0.08] shrink-0">
+                      {s.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-white text-lg leading-tight">{s.name}</span>
+                      <span className="text-sm font-medium text-slate-400">{s.department?.name || 'No Dept'}</span>
+                    </div>
+                  </div>
+                  {s.payrollInfo?.isActiveForPayroll !== false ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Active
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                      Excluded
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-2 relative z-10">
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monthly CTC</span>
+                    <span className="font-bold text-slate-300">₹{s.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mt-0.5">Annual: ₹{((s.payrollInfo?.monthlyCtc || 0) * 12).toLocaleString()}</span>
+                  </div>
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Bank</span>
+                    <span className="font-bold text-slate-300 font-mono text-sm block truncate">{s.payrollInfo?.bankAccount || 'Not Set'}</span>
+                    <span className="text-[10px] text-slate-500 font-semibold block">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.08] relative z-10">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">UAN</span>
+                    <span className="text-slate-300 font-mono text-sm">{s.payrollInfo?.uan || 'Not Set'}</span>
+                  </div>
+                  <button onClick={() => handleEdit(s)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

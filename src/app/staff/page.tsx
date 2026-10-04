@@ -297,8 +297,8 @@ export default function StaffPage() {
           </div>
         )}
 
-        <div className="overflow-x-auto mobile-card-table-wrapper custom-scrollbar flex-1">
-          <table className="mobile-card-table w-full text-left text-sm text-slate-400 whitespace-nowrap">
+        <div className="hidden md:block overflow-x-auto custom-scrollbar flex-1">
+          <table className="w-full text-left text-sm text-slate-400 whitespace-nowrap">
             <thead className="bg-black/60 text-slate-300 text-xs uppercase font-semibold tracking-wider sticky top-0 z-10 backdrop-blur-xl border-b border-white/[0.08]">
               <tr>
                 <th className="px-6 py-5 w-12 text-center">
@@ -391,6 +391,88 @@ export default function StaffPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden flex flex-col gap-4">
+          {loading ? (
+            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                <p className="text-slate-400 font-medium animate-pulse">Loading staff directory...</p>
+              </div>
+            </div>
+          ) : staffList.length > 0 ? (
+            staffList.map((staff) => (
+              <div key={staff.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
+                {/* Decorative background glow */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
+                
+                <div className="flex items-start justify-between relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg font-black text-white shadow-lg border border-white/[0.08] shrink-0">
+                      {staff.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-white text-lg leading-tight">{staff.name}</span>
+                      <span className="text-sm font-medium text-slate-400">{staff.designation?.name || 'Unassigned'}</span>
+                    </div>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    className="rounded border-white/20 bg-black/60 text-blue-500 focus:ring-blue-500 w-5 h-5 cursor-pointer mt-1"
+                    checked={selectedIds.includes(staff.id)}
+                    onChange={() => toggleSelect(staff.id)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-2 relative z-10">
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Machine ID</span>
+                    <div className="inline-flex items-center gap-1.5 font-bold text-slate-300">
+                      <Hash className="w-3.5 h-3.5 text-blue-400" />
+                      {staff.machineId}
+                    </div>
+                  </div>
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Department</span>
+                    <span className="font-bold text-slate-300 truncate block">
+                      {staff.department?.name || 'None'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.08] relative z-10">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Shift</span>
+                    {staff.shift ? (
+                      <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20 text-xs font-bold">
+                        {staff.shift.name}
+                      </span>
+                    ) : (
+                      <span className="text-slate-600 font-medium text-xs">-</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => startEditing(staff)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(staff.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+              <div className="flex flex-col items-center gap-3">
+                <Users className="w-12 h-12 text-slate-600 mb-2" />
+                <p className="text-slate-300 font-bold text-lg">No Staff Found</p>
+                <p className="text-slate-500 text-sm">Add your first staff member.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -299,8 +299,8 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto mobile-card-table-wrapper min-h-[500px] relative z-10 custom-scrollbar">
-          <table className={`w-full text-left text-sm text-slate-400 min-w-[800px] ${viewType === 'daily' ? 'mobile-card-table' : ''}`}>
+        <div className="overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
+          <table className={`w-full text-left text-sm text-slate-400 min-w-[800px]`}>
             <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               {viewType === 'daily' ? (
                 <tr>

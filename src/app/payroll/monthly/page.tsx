@@ -320,7 +320,7 @@ export default function MonthlyPayrollPage() {
       {/* Main Table Area */}
       <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
         <div className="flex-1 overflow-x-auto custom-scrollbar">
-          <table className="mobile-card-table w-full text-sm text-left whitespace-nowrap">
+          <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl z-10 shadow-sm border-b border-white/[0.04]">
               <tr>
                 <th className="px-6 py-5 font-semibold tracking-wider">Staff Name</th>

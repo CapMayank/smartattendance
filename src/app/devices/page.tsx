@@ -131,8 +131,8 @@ export default function DevicesPage() {
         {/* List Container */}
         <div className="lg:col-span-2">
           <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col h-full">
-            <div className="overflow-x-auto mobile-card-table-wrapper custom-scrollbar">
-              <table className="mobile-card-table w-full text-left text-sm text-slate-400">
+            <div className="hidden md:block overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left text-sm text-slate-400">
                 <thead className="bg-black/40/50 text-slate-300 text-xs uppercase font-bold tracking-wider">
                   <tr>
                     <th className="px-6 py-5 rounded-tl-3xl">Device Info</th>
@@ -214,6 +214,82 @@ export default function DevicesPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden flex flex-col p-4 gap-4">
+              {loading ? (
+                <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+                    <p className="text-slate-400 font-medium animate-pulse">Loading devices...</p>
+                  </div>
+                </div>
+              ) : devices.length > 0 ? (
+                devices.map((device) => {
+                  const now = new Date()
+                  const isOnline = (now.getTime() - new Date(device.lastPing).getTime()) < 5 * 60 * 1000
+
+                  return (
+                    <div key={device.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
+                      <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none transition-colors ${isOnline ? 'bg-emerald-500/5 group-hover:bg-emerald-500/10' : 'bg-rose-500/5 group-hover:bg-rose-500/10'}`}></div>
+                      
+                      <div className="flex items-start justify-between relative z-10">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className={`p-3 rounded-xl shrink-0 shadow-inner border border-white/[0.04] transition-colors duration-500 ${isOnline ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-400' : 'bg-gradient-to-br from-rose-500/20 to-red-500/20 text-rose-400'}`}>
+                            <Server className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0 flex flex-col">
+                            <p className="font-bold text-white text-lg truncate">{device.name}</p>
+                            <p className="text-xs text-slate-500 font-mono mt-0.5">ID: {device.id}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mt-2 relative z-10">
+                        <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04] flex flex-col justify-center">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Network</span>
+                          <p className="font-mono text-sm text-slate-300">{device.ipAddress || <span className="text-slate-600 italic font-sans text-xs">No IP</span>}</p>
+                          {device.port && <p className="text-xs text-indigo-400/80 font-mono">:{device.port}</p>}
+                        </div>
+                        <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04] flex flex-col justify-center items-start">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Status</span>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border shadow-sm transition-colors duration-500 ${
+                            isOnline 
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
+                              : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                            {isOnline ? 'ONLINE' : 'OFFLINE'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.08] relative z-10">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          Seen {format(new Date(device.lastPing), 'MMM dd, hh:mm a')}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => startEditing(device)} className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDelete(device.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+                  <div className="flex flex-col items-center gap-3">
+                    <Server className="w-12 h-12 text-slate-600 mb-2" />
+                    <p className="text-slate-300 font-bold text-lg">No Devices Configured</p>
+                    <p className="text-slate-500 text-sm">Add your first biometric attendance device.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
