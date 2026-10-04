@@ -134,7 +134,7 @@ export default function MemberAttendancePage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl border border-white/5 shadow-lg shadow-indigo-500/10">
+          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
             <UserCheck className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
@@ -155,12 +155,12 @@ export default function MemberAttendancePage() {
         </div>
       </div>
 
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters */}
-        <div className="bg-slate-800/30 px-6 py-5 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+        <div className="bg-black/50 px-6 py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div className="flex-1 flex flex-col sm:flex-row gap-4 w-full">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -169,7 +169,7 @@ export default function MemberAttendancePage() {
               <select
                 value={selectedStaffId}
                 onChange={(e) => setSelectedStaffId(e.target.value)}
-                className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none shadow-inner"
+                className="w-full bg-black/60 border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none shadow-inner"
               >
                 <option value="" disabled>Select Staff Member</option>
                 {staffList.map((staff) => (
@@ -180,7 +180,7 @@ export default function MemberAttendancePage() {
               </select>
             </div>
             
-            <div className="flex items-center gap-3 bg-slate-950/50 p-2.5 rounded-xl border border-white/10 shadow-inner">
+            <div className="flex items-center gap-3 bg-black/40 p-2.5 rounded-xl border border-white/[0.08] shadow-inner">
               <CalendarIcon className="w-5 h-5 text-indigo-400 ml-2" />
               <input 
                 type="month" 
@@ -194,28 +194,28 @@ export default function MemberAttendancePage() {
 
         {/* Summary Cards */}
         {staffData && !loading && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 p-6 border-b border-white/10 relative z-10 bg-slate-900/40">
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 p-6 border-b border-white/[0.08] relative z-10 bg-black/40/40">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent">
                 <span className="text-3xl font-black text-indigo-400 mb-1">{summary.totalPayrollEligibleDays}</span>
                 <span className="text-[10px] font-bold text-indigo-300/70 uppercase tracking-wider">Payroll Days</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-black text-emerald-400 mb-1">{summary.totalPresents}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Presents</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-black text-rose-400 mb-1">{summary.totalAbsents}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Absents</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-black text-amber-400 mb-1">{summary.totalHalfDays}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Half Days</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-black text-orange-400 mb-1">{summary.totalLateMinutes}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Late (Mins)</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-black text-indigo-400 mb-1">{(summary.totalWorkMinutes / 60).toFixed(1)}</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Work Hours</span>
              </div>
@@ -224,9 +224,9 @@ export default function MemberAttendancePage() {
 
         <div className="overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
           <table className="w-full text-left text-sm text-slate-400 min-w-[900px]">
-            <thead className="bg-slate-950/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/10">
+            <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               <tr>
-                <th className="px-6 py-5 sticky left-0 bg-slate-950/80 backdrop-blur-xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Date</th>
+                <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Date</th>
                 <th className="px-6 py-5">Status</th>
                 <th className="px-6 py-5">Payroll Day</th>
                 <th className="px-6 py-5">Check In</th>
@@ -253,8 +253,8 @@ export default function MemberAttendancePage() {
                   const isWeekend = dayName === 'Sun' || dayName === 'Sat';
 
                   return (
-                    <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className={`px-6 py-4 sticky left-0 bg-slate-900/90 backdrop-blur-xl group-hover:bg-slate-800/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors ${isWeekend ? 'bg-indigo-500/5 group-hover:bg-indigo-500/10' : ''}`}>
+                    <tr key={record.id} className="hover:bg-white/5 transition-colors group">
+                      <td className={`px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors ${isWeekend ? 'bg-indigo-500/5 group-hover:bg-indigo-500/10' : ''}`}>
                         <div className="flex flex-col">
                           <span className={`font-bold text-base whitespace-nowrap ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{dateStr}</span>
                           <span className={`text-xs font-bold uppercase tracking-widest mt-1 w-fit px-1.5 py-0.5 rounded ${isWeekend ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>

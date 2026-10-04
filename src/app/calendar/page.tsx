@@ -127,7 +127,7 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl border border-white/5 shadow-lg shadow-indigo-500/10">
+          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
             <CalendarDays className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
@@ -139,16 +139,16 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Calendar Header */}
-        <div className="bg-slate-800/30 px-8 py-6 border-b border-white/10 flex items-center justify-between relative z-10">
+        <div className="bg-black/50 px-8 py-6 border-b border-white/[0.08] flex items-center justify-between relative z-10">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
-          <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-white/10 shadow-inner">
+          <div className="flex items-center gap-2 bg-black/60 p-1.5 rounded-xl border border-white/[0.08] shadow-inner">
             <button 
               onClick={prevMonth}
               className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
@@ -174,7 +174,7 @@ export default function CalendarPage() {
         <div className="p-4 sm:p-8 relative z-10">
           <div className="grid grid-cols-7 gap-2 sm:gap-4 mb-4">
             {weekDays.map(day => (
-              <div key={day} className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest py-2 bg-slate-950/30 rounded-lg border border-white/5">
+              <div key={day} className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest py-2 bg-black/50/30 rounded-lg border border-white/[0.04]">
                 {day}
               </div>
             ))}
@@ -191,8 +191,8 @@ export default function CalendarPage() {
                   key={day.toString()} 
                   onClick={() => handleDayClick(day)}
                   className={`
-                    min-h-[100px] sm:min-h-[120px] p-3 rounded-2xl transition-all cursor-pointer relative group border shadow-sm
-                    ${!isCurrentMonth ? 'opacity-40 bg-transparent border-transparent' : 'bg-slate-950/50 border-white/10 hover:border-indigo-500/50 hover:shadow-indigo-500/20 hover:-translate-y-0.5'}
+                    min-h-[100px] sm:min-h-[120px] p-3 rounded-3xl transition-all cursor-pointer relative group border shadow-sm
+                    ${!isCurrentMonth ? 'opacity-40 bg-transparent border-transparent' : 'bg-black/40 border-white/[0.08] hover:border-indigo-500/50 hover:shadow-indigo-500/20 hover:-translate-y-0.5'}
                     ${holiday ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/40 ring-1 ring-inset ring-indigo-500/30' : ''}
                     ${isTodayDate && !holiday ? 'border-emerald-500/50 bg-emerald-500/10 shadow-emerald-500/10' : ''}
                   `}
@@ -236,9 +236,9 @@ export default function CalendarPage() {
 
       {/* Modern Add Holiday Modal */}
       {isModalOpen && selectedDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-            <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center bg-slate-800/30">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in">
+          <div className="bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-3xl w-full max-w-md shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col">
+            <div className="px-6 py-5 border-b border-white/[0.08] flex justify-between items-center bg-black/50">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-indigo-400" /> Mark Holiday
               </h3>
@@ -254,7 +254,7 @@ export default function CalendarPage() {
                 </div>
               )}
               
-              <div className="mb-6 flex items-center gap-3 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-400 shadow-inner">
+              <div className="mb-6 flex items-center gap-3 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl text-indigo-400 shadow-inner">
                 <CalendarIcon className="w-6 h-6" />
                 <span className="font-bold text-lg">{format(selectedDate, 'EEEE, MMMM do, yyyy')}</span>
               </div>
@@ -269,14 +269,14 @@ export default function CalendarPage() {
                     placeholder="e.g. Independence Day"
                     value={newHolidayName}
                     onChange={e => setNewHolidayName(e.target.value)}
-                    className="w-full bg-slate-950/80 border border-white/10 rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner"
+                    className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner"
                   />
                 </div>
-                <div className="flex gap-3 pt-2 border-t border-white/10 mt-6 pt-6">
+                <div className="flex gap-3 pt-2 border-t border-white/[0.08] mt-6 pt-6">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-colors border border-white/5"
+                    className="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-colors border border-white/[0.04]"
                   >
                     Cancel
                   </button>

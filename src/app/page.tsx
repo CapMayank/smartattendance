@@ -169,7 +169,7 @@ export default async function Dashboard() {
                 return staffWithStatus.map(staff => (
                   <div key={staff.id} className="p-3 rounded-xl hover:bg-white/5 flex items-center justify-between transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-xs font-bold text-white shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/[0.08] text-xs font-bold text-white shrink-0">
                         {staff.name.substring(0,2).toUpperCase()}
                       </div>
                       <span className="font-medium text-slate-200 truncate">{staff.name}</span>

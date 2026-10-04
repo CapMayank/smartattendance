@@ -62,7 +62,7 @@ export default function Navbar() {
                       href={link.href}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                         isActive 
-                          ? 'bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/5' 
+                          ? 'bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/[0.04]' 
                           : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
@@ -149,7 +149,7 @@ export default function Navbar() {
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-200 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 border border-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] active:scale-95"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-200 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 border border-white/[0.08] hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] active:scale-95"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
@@ -164,7 +164,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600/80 hover:bg-blue-500 rounded-lg transition-all duration-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] backdrop-blur-md active:scale-95"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600/80 hover:bg-blue-500 rounded-lg transition-all duration-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] backdrop-blur-xl active:scale-95"
               >
                 Sign In
               </Link>
@@ -175,7 +175,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {session && isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-4 py-4 space-y-4 shadow-xl max-h-[80vh] overflow-y-auto">
+        <div className="lg:hidden border-t border-white/[0.08] bg-black/70 backdrop-blur-xl px-4 py-4 space-y-4 shadow-xl max-h-[80vh] overflow-y-auto">
           <div className="flex flex-col space-y-1">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Main</span>
             {mainLinks.map((link) => {
@@ -199,7 +199,7 @@ export default function Navbar() {
             })}
           </div>
 
-          <div className="flex flex-col space-y-1 pt-4 border-t border-white/10">
+          <div className="flex flex-col space-y-1 pt-4 border-t border-white/[0.08]">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Reports</span>
             {reportLinks.map((link) => {
               const Icon = link.icon
@@ -222,7 +222,7 @@ export default function Navbar() {
             })}
           </div>
           
-          <div className="flex flex-col space-y-1 pt-4 border-t border-white/10">
+          <div className="flex flex-col space-y-1 pt-4 border-t border-white/[0.08]">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Management</span>
             {adminLinks.map((link) => {
               const Icon = link.icon
@@ -245,7 +245,7 @@ export default function Navbar() {
             })}
           </div>
 
-          <div className="pt-4 border-t border-white/10">
+          <div className="pt-4 border-t border-white/[0.08]">
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false)

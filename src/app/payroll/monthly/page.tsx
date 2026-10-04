@@ -155,7 +155,7 @@ export default function MonthlyPayrollPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl border border-white/5 shadow-lg shadow-indigo-500/10">
+          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
             <FileText className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
@@ -179,21 +179,21 @@ export default function MonthlyPayrollPage() {
       </div>
 
       {/* 5-Step Process Wizard */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-5 mb-8 shadow-2xl relative overflow-hidden">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-5 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         <div className="flex flex-col xl:flex-row gap-6 relative z-10 items-stretch">
           
           {/* Step 1 & 2: Setup & Sync */}
-          <div className="flex-1 bg-slate-950/40 p-5 rounded-2xl border border-white/5 relative">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">1</div>
+          <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">1</div>
             <h3 className="text-sm font-bold text-white mb-4 ml-3">Select Period</h3>
             <div className="flex items-end gap-3 ml-3">
               <div>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
+                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                     <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
@@ -204,7 +204,7 @@ export default function MonthlyPayrollPage() {
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
+                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
                 >
                   {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -213,7 +213,7 @@ export default function MonthlyPayrollPage() {
               </div>
               <button
                 onClick={fetchPayroll}
-                className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-lg transition-all border border-white/5"
+                className="p-2 text-slate-400 hover:text-white bg-black/40 rounded-lg transition-all border border-white/[0.04]"
                 title="Refresh Data"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
@@ -221,7 +221,7 @@ export default function MonthlyPayrollPage() {
             </div>
 
             <div className="mt-6 ml-3">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[88px]">2</div>
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[88px]">2</div>
               <h3 className="text-sm font-bold text-white mb-3">Sync Attendance</h3>
               <button
                 onClick={handleSyncAttendance}
@@ -239,8 +239,8 @@ export default function MonthlyPayrollPage() {
           </div>
 
           {/* Step 3 & 4: Review & Recalculate */}
-          <div className="flex-1 bg-slate-950/40 p-5 rounded-2xl border border-white/5 relative flex flex-col justify-between">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">3</div>
+          <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">3</div>
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
               <p className="text-xs text-slate-400 max-w-xs">
@@ -249,7 +249,7 @@ export default function MonthlyPayrollPage() {
             </div>
 
             <div className="mt-6 ml-3">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[96px]">4</div>
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[96px]">4</div>
               <h3 className="text-sm font-bold text-white mb-3">Save & Recalculate</h3>
               <button
                 onClick={handleSave}
@@ -271,8 +271,8 @@ export default function MonthlyPayrollPage() {
           </div>
 
           {/* Step 5: Lock & Export */}
-          <div className="flex-[1.2] bg-slate-950/40 p-5 rounded-2xl border border-white/5 relative flex flex-col justify-between">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
+          <div className="flex-[1.2] bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-3">Lock & Export</h3>
               {!isMonthLocked ? (
@@ -285,7 +285,7 @@ export default function MonthlyPayrollPage() {
                   Lock Payroll
                 </button>
               ) : (
-                <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border mb-6 text-slate-400 bg-slate-800 border-white/10 cursor-not-allowed" title="Contact database administrator to unlock">
+                <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border mb-6 text-slate-400 bg-black/40 border-white/[0.08] cursor-not-allowed" title="Contact database administrator to unlock">
                   <Lock className="w-4 h-4" />
                   Payroll Locked
                 </div>
@@ -318,10 +318,10 @@ export default function MonthlyPayrollPage() {
       </div>
 
       {/* Main Table Area */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
         <div className="flex-1 overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="text-xs text-slate-400 uppercase bg-slate-950/80 sticky top-0 backdrop-blur-md z-10 shadow-sm border-b border-white/5">
+            <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl z-10 shadow-sm border-b border-white/[0.04]">
               <tr>
                 <th className="px-6 py-5 font-semibold tracking-wider">Staff Name</th>
                 <th className="px-4 py-5 font-semibold tracking-wider text-center">Total / Present</th>
@@ -362,10 +362,10 @@ export default function MonthlyPayrollPage() {
                   const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p;
 
                   return (
-                    <tr key={p.id} className={`group transition-all duration-300 ${isEdited ? 'bg-indigo-500/[0.03] hover:bg-indigo-500/[0.06]' : 'hover:bg-white/[0.02]'}`}>
+                    <tr key={p.id} className={`group transition-all duration-300 ${isEdited ? 'bg-indigo-500/[0.03] hover:bg-indigo-500/[0.06]' : 'hover:bg-white/5'}`}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-slate-400 font-bold text-xs shadow-inner">
+                          <div className="w-8 h-8 rounded-full bg-black/40 border border-white/[0.04] flex items-center justify-center text-slate-400 font-bold text-xs shadow-inner">
                             {p.staff.name.charAt(0)}
                           </div>
                           <div>
@@ -390,9 +390,9 @@ export default function MonthlyPayrollPage() {
                               ...edits, 
                               [p.id]: { ...edits[p.id], presentDays: parseFloat(e.target.value) || 0 }
                             })}
-                            className={`w-16 bg-slate-950/50 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
-                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/5' :
-                              edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)] focus:ring-2 focus:ring-indigo-500/50' : 'border-white/10 hover:border-white/20 focus:ring-2 focus:ring-indigo-500/50'
+                            className={`w-16 bg-black/40 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
+                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
+                              edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)] focus:ring-2 focus:ring-indigo-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-indigo-500/50'
                             }`}
                           />
                         </div>
@@ -421,9 +421,9 @@ export default function MonthlyPayrollPage() {
                               ...edits, 
                               [p.id]: { ...edits[p.id], refundOfAdvance: parseFloat(e.target.value) || 0 }
                             })}
-                            className={`w-24 bg-slate-950/50 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none transition-all ${
-                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/5' :
-                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] focus:ring-2 focus:ring-rose-500/50' : 'border-white/10 hover:border-white/20 focus:ring-2 focus:ring-rose-500/50'
+                            className={`w-24 bg-black/40 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none transition-all ${
+                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
+                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] focus:ring-2 focus:ring-rose-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-rose-500/50'
                             }`}
                           />
                         </div>
@@ -443,7 +443,7 @@ export default function MonthlyPayrollPage() {
         </div>
         
         {/* Helper Footer */}
-        <div className="p-4 border-t border-white/5 bg-slate-950/40 text-xs text-slate-500 flex items-center justify-between">
+        <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-slate-500 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-indigo-400/70" />
             <span>Changes to <strong className="text-indigo-400">Present Days</strong> or <strong className="text-rose-400">Refunds</strong> require recalculation.</span>

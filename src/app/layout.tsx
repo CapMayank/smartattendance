@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.className} bg-slate-950 text-slate-100 min-h-screen antialiased`}
+        className={`${inter.className} bg-black/50 text-slate-100 min-h-screen antialiased`}
       >
         <Providers>
           <div className="relative min-h-screen">

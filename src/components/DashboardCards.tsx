@@ -125,9 +125,9 @@ export default function DashboardCards({
 
       {/* Modal Overlay */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-300">
           <div className="bg-black/60 border border-white/[0.08] backdrop-blur-3xl rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col max-h-[80vh] scale-in-95 duration-300">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <div className="flex items-center justify-between p-4 border-b border-white/[0.08]">
               <h3 className="text-lg font-bold text-white">{modalTitle}</h3>
               <button 
                 onClick={() => setModalOpen(false)}
@@ -142,7 +142,7 @@ export default function DashboardCards({
                   {modalData.map(staff => (
                     <div key={staff.id} className="p-3 hover:bg-white/5 rounded-lg flex items-center justify-between transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 text-xs font-bold text-white shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/[0.08] text-xs font-bold text-white shrink-0">
                           {staff.name.substring(0,2).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex flex-col">

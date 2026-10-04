@@ -83,7 +83,7 @@ export default function StaffPayrollPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl border border-white/5 shadow-lg shadow-blue-500/10">
+          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-blue-500/10">
             <Wallet className="w-8 h-8 text-blue-400" />
           </div>
           <div>
@@ -96,11 +96,11 @@ export default function StaffPayrollPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col min-h-[500px] shadow-2xl relative">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col min-h-[500px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
         {/* Decorative ambient light */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="p-5 border-b border-white/10 relative z-10 flex items-center justify-between">
+        <div className="p-5 border-b border-white/[0.08] relative z-10 flex items-center justify-between">
           <div className="relative w-full max-w-md group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
             <input
@@ -108,7 +108,7 @@ export default function StaffPayrollPage() {
               placeholder="Search by name or UAN..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-950/50 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
+              className="w-full bg-black/40 border border-white/[0.08] rounded-3xl pl-12 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
             />
           </div>
           <div className="hidden md:flex text-sm text-slate-500 gap-6 px-4">
@@ -125,7 +125,7 @@ export default function StaffPayrollPage() {
 
         <div className="flex-1 overflow-auto relative z-10">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-400 uppercase bg-slate-950/80 sticky top-0 backdrop-blur-md border-b border-white/5 shadow-sm">
+            <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl border-b border-white/[0.04] shadow-sm">
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider">Staff Name</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-right">Monthly CTC (₹)</th>
@@ -159,7 +159,7 @@ export default function StaffPayrollPage() {
                   <tr key={s.id} className="group hover:bg-white/[0.03] transition-colors duration-300">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center text-slate-300 font-bold shadow-inner">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-white/[0.08] flex items-center justify-center text-slate-300 font-bold shadow-inner">
                           {s.name.charAt(0)}
                         </div>
                         <div>
@@ -230,11 +230,11 @@ export default function StaffPayrollPage() {
       {/* Modern Edit Modal */}
       {editingStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !saving && setEditingStaff(null)}></div>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => !saving && setEditingStaff(null)}></div>
           
-          <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+          <div className="bg-black/40 border border-white/[0.08] rounded-3xl w-full max-w-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative z-10 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-white/5 bg-slate-900/50 flex items-center justify-between sticky top-0 z-20 backdrop-blur-xl">
+            <div className="px-6 py-5 border-b border-white/[0.04] bg-black/20 flex items-center justify-between sticky top-0 z-20 backdrop-blur-2xl">
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                   <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
@@ -272,13 +272,13 @@ export default function StaffPayrollPage() {
                           type="number"
                           value={editForm.monthlyCtc === 0 ? '' : editForm.monthlyCtc}
                           onChange={(e) => setEditForm({...editForm, monthlyCtc: e.target.value === '' ? '' : parseFloat(e.target.value) || 0})}
-                          className="w-full bg-slate-950/50 border border-white/10 rounded-2xl pl-9 pr-4 py-3 text-lg font-medium text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
+                          className="w-full bg-black/40 border border-white/[0.08] rounded-3xl pl-9 pr-4 py-3 text-lg font-medium text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer" onClick={() => setEditForm({...editForm, isActiveForPayroll: !editForm.isActiveForPayroll})}>
-                      <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${editForm.isActiveForPayroll ? 'bg-blue-500 text-white' : 'bg-slate-800 border border-white/20'}`}>
+                    <div className="flex items-center gap-3 p-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer" onClick={() => setEditForm({...editForm, isActiveForPayroll: !editForm.isActiveForPayroll})}>
+                      <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${editForm.isActiveForPayroll ? 'bg-blue-500 text-white' : 'bg-black/40 border border-white/20'}`}>
                         {editForm.isActiveForPayroll && <CheckCircle2 className="w-3.5 h-3.5" />}
                       </div>
                       <div className="flex-1">
@@ -289,7 +289,7 @@ export default function StaffPayrollPage() {
                   </div>
 
                   {/* Dynamic Preview Receipt */}
-                  <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                  <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/[0.08] rounded-3xl p-5 shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10"></div>
                     
                     <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
@@ -312,7 +312,7 @@ export default function StaffPayrollPage() {
                       </div>
                     </div>
                     
-                    <div className="mt-4 pt-3 border-t border-white/10 border-dashed flex justify-between items-end">
+                    <div className="mt-4 pt-3 border-t border-white/[0.08] border-dashed flex justify-between items-end">
                       <span className="text-sm font-medium text-slate-400">Net Payment</span>
                       <span className="text-2xl font-bold text-emerald-400 tracking-tight">₹{estNet.toLocaleString()}</span>
                     </div>
@@ -334,7 +334,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.bankAccount}
                       onChange={(e) => setEditForm({...editForm, bankAccount: e.target.value})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div>
@@ -343,7 +343,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.ifsc}
                       onChange={(e) => setEditForm({...editForm, ifsc: e.target.value.toUpperCase()})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -352,7 +352,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.nameAsPerBank}
                       onChange={(e) => setEditForm({...editForm, nameAsPerBank: e.target.value})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div>
@@ -361,7 +361,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.uan}
                       onChange={(e) => setEditForm({...editForm, uan: e.target.value})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono tracking-wider text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono tracking-wider text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div>
@@ -370,7 +370,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.nameOnUan}
                       onChange={(e) => setEditForm({...editForm, nameOnUan: e.target.value})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div>
@@ -379,7 +379,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.pan}
                       onChange={(e) => setEditForm({...editForm, pan: e.target.value.toUpperCase()})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                   <div>
@@ -388,7 +388,7 @@ export default function StaffPayrollPage() {
                       type="text"
                       value={editForm.aadhaar}
                       onChange={(e) => setEditForm({...editForm, aadhaar: e.target.value})}
-                      className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono tracking-widest text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono tracking-widest text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                   </div>
                 </div>
@@ -397,7 +397,7 @@ export default function StaffPayrollPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-5 border-t border-white/5 bg-slate-900/80 backdrop-blur-md flex justify-end gap-3 items-center">
+            <div className="p-5 border-t border-white/[0.04] bg-black/40/80 backdrop-blur-xl flex justify-end gap-3 items-center">
               {saveSuccess && (
                 <span className="text-sm text-emerald-400 font-medium flex items-center gap-1.5 mr-auto animate-in fade-in slide-in-from-left-2">
                   <CheckCircle2 className="w-4 h-4" />

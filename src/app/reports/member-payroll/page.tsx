@@ -127,7 +127,7 @@ export default function MemberPayrollPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl border border-white/5 shadow-lg shadow-emerald-500/10">
+          <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-emerald-500/10">
             <Wallet className="w-8 h-8 text-emerald-400" />
           </div>
           <div>
@@ -148,12 +148,12 @@ export default function MemberPayrollPage() {
         </div>
       </div>
 
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters */}
-        <div className="bg-slate-800/30 px-6 py-5 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+        <div className="bg-black/50 px-6 py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div className="flex-1 max-w-md relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-slate-400" />
@@ -161,7 +161,7 @@ export default function MemberPayrollPage() {
             <select
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
-              className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none shadow-inner"
+              className="w-full bg-black/60 border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none shadow-inner"
             >
               <option value="" disabled>Select Staff Member</option>
               {staffList.map((staff) => (
@@ -175,17 +175,17 @@ export default function MemberPayrollPage() {
 
         {/* Staff Summary */}
         {staffData && !loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 border-b border-white/10 relative z-10 bg-slate-900/40">
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 border-b border-white/[0.08] relative z-10 bg-black/40/40">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current CTC</span>
                 <span className="text-2xl font-black text-emerald-400">{formatCurrency(staffData.payrollInfo?.monthlyCtc || 0)}</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Department / Role</span>
                 <span className="text-lg font-bold text-white">{staffData.department?.name || '-'}</span>
                 <span className="text-sm font-medium text-slate-400">{staffData.designation?.name || '-'}</span>
              </div>
-             <div className="bg-slate-800/50 rounded-2xl p-4 border border-white/5 flex flex-col">
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Bank Details</span>
                 <span className="text-sm font-medium text-white break-all">{staffData.payrollInfo?.bankAccount || 'Not Provided'}</span>
                 <span className="text-xs font-medium text-slate-400">{staffData.payrollInfo?.ifsc || 'No IFSC'}</span>
@@ -195,9 +195,9 @@ export default function MemberPayrollPage() {
 
         <div className="overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar">
           <table className="w-full text-left text-sm text-slate-400 min-w-[800px]">
-            <thead className="bg-slate-950/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/10">
+            <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               <tr>
-                <th className="px-6 py-5 sticky left-0 bg-slate-950/80 backdrop-blur-xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Period</th>
+                <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Period</th>
                 <th className="px-6 py-5 text-center">Days (Total / Paid)</th>
                 <th className="px-6 py-5 text-right">Actual CTC</th>
                 <th className="px-6 py-5 text-right">Gross Wage</th>
@@ -220,10 +220,10 @@ export default function MemberPayrollPage() {
                   const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'short' });
                   
                   return (
-                    <tr key={payroll.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-slate-900/90 backdrop-blur-xl group-hover:bg-slate-800/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
+                    <tr key={payroll.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-slate-800 rounded-lg">
+                          <div className="p-2 bg-black/40 rounded-lg">
                             <CalendarIcon className="w-4 h-4 text-emerald-400" />
                           </div>
                           <div className="flex flex-col">

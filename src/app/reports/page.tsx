@@ -234,7 +234,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl border border-white/5 shadow-lg shadow-indigo-500/10">
+          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
             <FileText className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
@@ -254,13 +254,13 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters and View Type */}
-        <div className="bg-slate-800/30 px-6 py-5 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-2 bg-slate-950/80 rounded-xl p-1.5 border border-white/10 shadow-inner">
+        <div className="bg-black/50 px-6 py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-2 bg-black/60 rounded-xl p-1.5 border border-white/[0.08] shadow-inner">
             <button
               onClick={() => setViewType('daily')}
               className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${
@@ -279,7 +279,7 @@ export default function ReportsPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-950/50 p-2 rounded-xl border border-white/10">
+          <div className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/[0.08]">
             <CalendarIcon className="w-5 h-5 text-indigo-400 ml-2" />
             {viewType === 'daily' ? (
               <input 
@@ -301,10 +301,10 @@ export default function ReportsPage() {
 
         <div className="overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
           <table className="w-full text-left text-sm text-slate-400 min-w-[800px]">
-            <thead className="bg-slate-950/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/10">
+            <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
               {viewType === 'daily' ? (
                 <tr>
-                  <th className="px-6 py-5 sticky left-0 bg-slate-950/80 backdrop-blur-xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Staff Details</th>
+                  <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Staff Details</th>
                   <th className="px-6 py-5">Status</th>
                   <th className="px-6 py-5">Check In</th>
                   <th className="px-6 py-5">Check Out</th>
@@ -313,13 +313,13 @@ export default function ReportsPage() {
                 </tr>
               ) : (
                 <tr>
-                  <th className="px-6 py-5 sticky left-0 bg-slate-950/80 backdrop-blur-xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)] whitespace-nowrap">Staff Details</th>
+                  <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)] whitespace-nowrap">Staff Details</th>
                   {daysArray.map(day => {
                     const dateObj = new Date(`${month}-${day.toString().padStart(2, '0')}T00:00:00`);
                     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
                     const isWeekend = dayName === 'Sun' || dayName === 'Sat';
                     return (
-                      <th key={day} className={`px-2 py-3 text-center min-w-[75px] border-l border-white/5 ${isWeekend ? 'bg-indigo-500/5' : ''}`}>
+                      <th key={day} className={`px-2 py-3 text-center min-w-[75px] border-l border-white/[0.04] ${isWeekend ? 'bg-indigo-500/5' : ''}`}>
                         <div className="flex flex-col items-center gap-1.5">
                           <span className={`text-sm ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{day}</span>
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${isWeekend ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-400'}`}>{dayName}</span>
@@ -327,9 +327,9 @@ export default function ReportsPage() {
                       </th>
                     );
                   })}
-                  <th className="px-4 py-4 text-center border-l border-white/10 bg-slate-950/60 text-emerald-400">P</th>
-                  <th className="px-4 py-4 text-center bg-slate-950/60 text-rose-400">A</th>
-                  <th className="px-4 py-4 text-right bg-slate-950/60 text-indigo-400">Total Hrs</th>
+                  <th className="px-4 py-4 text-center border-l border-white/[0.08] bg-black/50/60 text-emerald-400">P</th>
+                  <th className="px-4 py-4 text-center bg-black/50/60 text-rose-400">A</th>
+                  <th className="px-4 py-4 text-right bg-black/50/60 text-indigo-400">Total Hrs</th>
                 </tr>
               )}
             </thead>
@@ -346,8 +346,8 @@ export default function ReportsPage() {
               ) : viewType === 'daily' ? (
                 dailyRecords.length > 0 ? (
                   dailyRecords.map((record) => (
-                    <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-slate-900/90 backdrop-blur-xl group-hover:bg-slate-800/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
+                    <tr key={record.id} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-200 text-base whitespace-nowrap">{record.staff.name}</span>
                           <span className="text-xs font-medium text-slate-500 whitespace-nowrap mt-0.5">
@@ -387,7 +387,7 @@ export default function ReportsPage() {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => openPunchModal(record.staffId, record.staff.name)}
-                          className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 bg-slate-950 border border-white/5 rounded-xl transition-all shadow-sm opacity-50 group-hover:opacity-100"
+                          className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 bg-black/50 border border-white/[0.04] rounded-xl transition-all shadow-sm opacity-50 group-hover:opacity-100"
                           title="Manage Punches"
                         >
                           <Settings2 className="w-4 h-4" />
@@ -407,8 +407,8 @@ export default function ReportsPage() {
               ) : (
                 monthlyRecords.length > 0 ? (
                   monthlyRecords.map((record) => (
-                    <tr key={record.staff.machineId} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-slate-900/90 backdrop-blur-xl group-hover:bg-slate-800/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
+                    <tr key={record.staff.machineId} className="hover:bg-white/5 transition-colors group">
+                      <td className="px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-200 text-base whitespace-nowrap">{record.staff.name}</span>
                           <span className="text-xs font-medium text-slate-500 whitespace-nowrap mt-0.5">
@@ -421,7 +421,7 @@ export default function ReportsPage() {
                         const dateStr = `${month}-${day.toString().padStart(2, '0')}`;
                         const dayData = record.days[dateStr];
                         
-                        if (!dayData) return <td key={day} className="px-2 py-4 text-center border-l border-white/5 text-slate-600 font-bold">-</td>;
+                        if (!dayData) return <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] text-slate-600 font-bold">-</td>;
                         
                         if (dayData.checkIn) {
                           const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -445,7 +445,7 @@ export default function ReportsPage() {
                           }
 
                           return (
-                            <td key={day} className={`px-2 py-3 text-center border-l border-white/5 whitespace-nowrap ${bgClass}`}>
+                            <td key={day} className={`px-2 py-3 text-center border-l border-white/[0.04] whitespace-nowrap ${bgClass}`}>
                               <div className="flex flex-col items-center">
                                 <span className="text-emerald-400 text-[11px] font-bold leading-none mb-1">{inTime}</span>
                                 <span className="text-rose-400 text-[11px] font-bold leading-none">{outTime}</span>
@@ -457,7 +457,7 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'ABSENT') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/5 bg-rose-500/10">
+                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-rose-500/10">
                               <span className="text-rose-400 font-extrabold">A</span>
                             </td>
                           );
@@ -465,7 +465,7 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'HALF_DAY') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/5 bg-amber-500/10">
+                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-amber-500/10">
                               <span className="text-amber-400 font-extrabold">HD</span>
                             </td>
                           );
@@ -473,7 +473,7 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'HOLIDAY') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/5 bg-indigo-500/10">
+                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-indigo-500/10">
                               <span className="text-indigo-400 font-extrabold">H</span>
                             </td>
                           );
@@ -481,22 +481,22 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'WEEKOFF') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/5 bg-slate-500/10">
+                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-slate-500/10">
                               <span className="text-slate-400 font-extrabold">W</span>
                             </td>
                           );
                         }
 
-                        return <td key={day} className="px-2 py-4 text-center border-l border-white/5 text-slate-600 font-bold">-</td>;
+                        return <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] text-slate-600 font-bold">-</td>;
                       })}
 
-                      <td className="px-4 py-4 text-center border-l border-white/10 bg-slate-950/60 group-hover:bg-slate-900 transition-colors">
+                      <td className="px-4 py-4 text-center border-l border-white/[0.08] bg-black/50/60 group-hover:bg-black/40 transition-colors">
                         <span className="font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">{record.totalPresents}</span>
                       </td>
-                      <td className="px-4 py-4 text-center bg-slate-950/60 group-hover:bg-slate-900 transition-colors">
+                      <td className="px-4 py-4 text-center bg-black/50/60 group-hover:bg-black/40 transition-colors">
                         <span className="font-extrabold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md">{record.totalAbsents}</span>
                       </td>
-                      <td className="px-4 py-4 text-right bg-slate-950/60 group-hover:bg-slate-900 transition-colors">
+                      <td className="px-4 py-4 text-right bg-black/50/60 group-hover:bg-black/40 transition-colors">
                         <span className="font-extrabold text-indigo-400 whitespace-nowrap bg-indigo-500/10 px-2 py-1 rounded-md">{(record.totalWorkMinutes / 60).toFixed(1)} hrs</span>
                       </td>
                     </tr>
@@ -518,9 +518,9 @@ export default function ReportsPage() {
 
       {/* Modern Punches Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center bg-slate-800/30">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in">
+          <div className="bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-3xl w-full max-w-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-5 border-b border-white/[0.08] flex justify-between items-center bg-black/50">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Settings2 className="w-5 h-5 text-indigo-400" /> Manage Punches
               </h3>
@@ -535,19 +535,19 @@ export default function ReportsPage() {
                 <p className="text-xl font-extrabold text-white">{selectedStaffName}</p>
               </div>
 
-              <div className="space-y-4 bg-slate-950/50 p-5 rounded-2xl border border-white/5 shadow-inner">
+              <div className="space-y-4 bg-black/40 p-5 rounded-3xl border border-white/[0.04] shadow-inner">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Add Manual Punch</h4>
                 <div className="flex gap-3">
                   <input
                     type="time"
                     value={newPunchTime}
                     onChange={(e) => setNewPunchTime(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner"
+                    className="flex-1 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner"
                   />
                   <select
                     value={newPunchType}
                     onChange={(e) => setNewPunchType(e.target.value)}
-                    className="w-24 bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner appearance-none cursor-pointer"
+                    className="w-24 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner appearance-none cursor-pointer"
                   >
                     <option value="IN">IN</option>
                     <option value="OUT">OUT</option>
@@ -568,13 +568,13 @@ export default function ReportsPage() {
                   <span className="text-indigo-400">{date}</span>
                 </h4>
                 {rawPunches.length === 0 ? (
-                  <div className="p-6 text-center border border-white/5 rounded-2xl border-dashed">
+                  <div className="p-6 text-center border border-white/[0.04] rounded-3xl border-dashed">
                     <p className="text-sm font-medium text-slate-500">No punches recorded for this date.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {rawPunches.map((punch: any) => (
-                      <div key={punch.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-colors group">
+                      <div key={punch.id} className="flex items-center justify-between p-4 rounded-3xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.05] transition-colors group">
                         <div className="flex items-center gap-4">
                           <span className={`px-3 py-1.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider border shadow-sm ${punch.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10'}`}>
                             {punch.type}
@@ -586,7 +586,7 @@ export default function ReportsPage() {
                         <button
                           onClick={() => handleDeletePunch(punch.id)}
                           disabled={isPunchLoading}
-                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 bg-slate-900 border border-white/5 rounded-lg transition-all shadow-sm disabled:opacity-50 opacity-50 group-hover:opacity-100"
+                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm disabled:opacity-50 opacity-50 group-hover:opacity-100"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
