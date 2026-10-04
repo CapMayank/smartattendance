@@ -275,18 +275,21 @@ export default function MonthlyPayrollPage() {
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-3">Lock & Export</h3>
-              <button
-                onClick={handleToggleLock}
-                disabled={payrolls.length === 0}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all border disabled:opacity-50 mb-6 ${
-                  isMonthLocked 
-                    ? 'text-slate-300 bg-slate-800 border-white/10 hover:bg-slate-700' 
-                    : 'text-rose-400 bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20'
-                }`}
-              >
-                {isMonthLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                {isMonthLocked ? 'Unlock Payroll' : 'Lock Payroll'}
-              </button>
+              {!isMonthLocked ? (
+                <button
+                  onClick={handleToggleLock}
+                  disabled={payrolls.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all border disabled:opacity-50 mb-6 text-rose-400 bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20"
+                >
+                  <Lock className="w-4 h-4" />
+                  Lock Payroll
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border mb-6 text-slate-400 bg-slate-800 border-white/10 cursor-not-allowed" title="Contact database administrator to unlock">
+                  <Lock className="w-4 h-4" />
+                  Payroll Locked
+                </div>
+              )}
               
               <div className="flex flex-wrap gap-2">
                 <button
