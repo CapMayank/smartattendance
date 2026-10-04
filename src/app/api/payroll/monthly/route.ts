@@ -73,18 +73,22 @@ export async function GET(request: Request) {
     });
 
     const existingStaffIds = existingPayrolls.map(p => p.staffId);
+    const isMonthAlreadyLocked = existingPayrolls.length > 0 && existingPayrolls.every(p => p.isLocked);
 
     // Fetch staff that don't have payroll generated yet
-    const staffWithoutPayroll = await prisma.staff.findMany({
-      where: {
-        id: { notIn: existingStaffIds },
-        OR: [
-          { payrollInfo: { isActiveForPayroll: true } },
-          { payrollInfo: null }
-        ]
-      },
-      include: { payrollInfo: true }
-    });
+    let staffWithoutPayroll = [];
+    if (!isMonthAlreadyLocked) {
+      staffWithoutPayroll = await prisma.staff.findMany({
+        where: {
+          id: { notIn: existingStaffIds },
+          OR: [
+            { payrollInfo: { isActiveForPayroll: true } },
+            { payrollInfo: null }
+          ]
+        },
+        include: { payrollInfo: true }
+      });
+    }
 
     if (staffWithoutPayroll.length > 0) {
       // Calculate present days from attendance for the staff
