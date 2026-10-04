@@ -22,8 +22,8 @@ function calculatePayroll(
   }
   
   const epfWages = basicWage;
-  const epsWages = Math.min(epfWages, 15000);
-  const edliWages = Math.min(epfWages, 15000);
+  const epsWages = Math.min(epfWages, 25000);
+  const edliWages = Math.min(epfWages, 25000);
   
   const employeeEpf = Math.round(epfWages * 0.12);
   const employerEps = Math.round(epsWages * 0.0833);
@@ -97,10 +97,17 @@ export async function POST(request: Request) {
 
       let presentDays = 0;
       
+      const doj = payroll.staff.payrollInfo?.doj || payroll.staff.createdAt;
+      const normalizedDoj = new Date(doj.getFullYear(), doj.getMonth(), doj.getDate());
+      
       for (let i = 0; i < attendanceRecords.length; i++) {
         const record = attendanceRecords[i];
         
         if (record.date >= startDate && record.date <= endDate) {
+          
+          if (record.date < normalizedDoj) {
+             continue;
+          }
           
           if (record.status === "PRESENT") {
             presentDays += 1;

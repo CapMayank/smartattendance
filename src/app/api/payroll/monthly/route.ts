@@ -22,8 +22,8 @@ function calculatePayroll(
   }
   
   const epfWages = basicWage;
-  const epsWages = Math.min(epfWages, 15000);
-  const edliWages = Math.min(epfWages, 15000);
+  const epsWages = Math.min(epfWages, 25000);
+  const edliWages = Math.min(epfWages, 25000);
   
   const employeeEpf = Math.round(epfWages * 0.12);
   const employerEps = Math.round(epsWages * 0.0833);
