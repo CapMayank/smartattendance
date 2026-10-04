@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     const isMonthAlreadyLocked = existingPayrolls.length > 0 && existingPayrolls.every(p => p.isLocked);
 
     // Fetch staff that don't have payroll generated yet
-    let staffWithoutPayroll = [];
+    let staffWithoutPayroll: any[] = [];
     if (!isMonthAlreadyLocked) {
       staffWithoutPayroll = await prisma.staff.findMany({
         where: {
