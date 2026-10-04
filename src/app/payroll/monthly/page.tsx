@@ -451,6 +451,25 @@ export default function MonthlyPayrollPage() {
           <span>Showing {payrolls.length} active staff records</span>
         </div>
       </div>
+
+      {/* Danger Zone */}
+      {isMonthLocked && (
+        <div className="mt-8 border border-rose-500/20 rounded-3xl bg-rose-500/5 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-rose-500/5">
+          <div>
+            <h3 className="text-lg font-bold text-rose-400 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" /> Danger Zone
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">Unlocking payroll will allow manual edits and synchronization again. This should only be done if an error was made.</p>
+          </div>
+          <button
+            onClick={handleToggleLock}
+            className="whitespace-nowrap px-6 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold rounded-xl border border-rose-500/20 transition-all flex items-center gap-2"
+          >
+            <Unlock className="w-4 h-4" />
+            Force Unlock Payroll
+          </button>
+        </div>
+      )}
     </div>
   )
 }
