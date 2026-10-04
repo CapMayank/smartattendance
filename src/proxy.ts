@@ -23,6 +23,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - login (public login page)
      */
-    "/((?!api/auth|api/punches|iclock|_next/static|_next/image|favicon.ico|login).*)",
+    "/((?!api/auth|api/attendance|iclock|_next/static|_next/image|favicon.ico|login).*)",
   ],
 }
