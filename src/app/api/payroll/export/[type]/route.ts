@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
 
@@ -37,6 +39,9 @@ export async function GET(
   { params }: { params: Promise<{ type: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return new NextResponse("Unauthorized", { status: 401 });
+
     const { type } = await params;
     const { searchParams } = new URL(request.url);
     const month = parseInt(searchParams.get("month") || "");

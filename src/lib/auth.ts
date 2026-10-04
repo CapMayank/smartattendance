@@ -2,6 +2,7 @@ import { AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
+import bcrypt from "bcryptjs"
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -26,8 +27,7 @@ export const authOptions: AuthOptions = {
         const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || "admin"
 
         if (userCount === 0 && credentials.email === defaultEmail && credentials.password === defaultPassword) {
-          const crypto = require('crypto')
-          const hash = crypto.createHash('sha256').update(defaultPassword).digest('hex')
+          const hash = await bcrypt.hash(defaultPassword, 10)
           const admin = await prisma.user.create({
             data: {
               name: "Super Admin",
@@ -43,11 +43,27 @@ export const authOptions: AuthOptions = {
         })
 
         if (user && user.password) {
-          const crypto = require('crypto')
-          const hash = crypto.createHash('sha256').update(credentials.password).digest('hex')
+          // Check if the password is a legacy SHA-256 hash (64 hex characters)
+          const isLegacyHash = /^[a-f0-9]{64}$/.test(user.password)
           
-          if (user.password === hash) {
-            return { id: user.id, name: user.name, email: user.email }
+          if (isLegacyHash) {
+            const crypto = require('crypto')
+            const legacyHash = crypto.createHash('sha256').update(credentials.password).digest('hex')
+            if (user.password === legacyHash) {
+              // Valid login! Silently upgrade the hash in the DB to bcrypt
+              const newHash = await bcrypt.hash(credentials.password, 10)
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { password: newHash }
+              })
+              return { id: user.id, name: user.name, email: user.email }
+            }
+          } else {
+            // Standard bcrypt verification
+            const isValid = await bcrypt.compare(credentials.password, user.password)
+            if (isValid) {
+              return { id: user.id, name: user.name, email: user.email }
+            }
           }
         }
 

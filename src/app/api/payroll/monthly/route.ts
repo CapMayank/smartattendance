@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 function calculatePayroll(
   monthlyCtc: number,
@@ -50,6 +52,9 @@ function calculatePayroll(
 
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const month = parseInt(searchParams.get("month") || "");
     const year = parseInt(searchParams.get("year") || "");
@@ -205,6 +210,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json();
     const { payrolls } = body; // Array of payroll updates
     
