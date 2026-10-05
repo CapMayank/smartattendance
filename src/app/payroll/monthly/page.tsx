@@ -362,7 +362,7 @@ export default function MonthlyPayrollPage() {
                   const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p;
 
                   return (
-                    <tr key={p.id} data-accent={isEdited ? 'indigo' : 'emerald'} className="group">
+                    <tr key={p.id} className="group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">

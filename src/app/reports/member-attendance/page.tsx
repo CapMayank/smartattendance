@@ -253,12 +253,7 @@ export default function MemberAttendancePage() {
                   const isWeekend = dayName === 'Sun' || dayName === 'Sat';
 
                   return (
-                    <tr key={record.id} data-accent={
-                      record.status === 'PRESENT' ? 'emerald' :
-                      record.status === 'ABSENT' ? 'rose' :
-                      record.status === 'HOLIDAY' ? 'indigo' :
-                      record.status === 'WEEKOFF' ? 'slate' : 'amber'
-                    } className="group">
+                    <tr key={record.id} className="group">
                       <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex flex-col">
                           <span className={`font-bold text-base whitespace-nowrap ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{dateStr}</span>

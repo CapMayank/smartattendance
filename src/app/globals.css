@@ -111,14 +111,7 @@ input[type="number"] {
     border-color: rgba(255, 255, 255, 0.13);
   }
 
-  /* Coloured left accent per row, set with data-accent="..." */
-  .glass-table tbody tr[data-accent] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-  .glass-table tbody tr[data-accent="emerald"] { --accent: #10b981; }
-  .glass-table tbody tr[data-accent="rose"] { --accent: #f43f5e; }
-  .glass-table tbody tr[data-accent="indigo"] { --accent: #6366f1; }
-  .glass-table tbody tr[data-accent="amber"] { --accent: #f59e0b; }
-  .glass-table tbody tr[data-accent="slate"] { --accent: #64748b; }
-  .glass-table tbody tr[data-accent="blue"] { --accent: #3b82f6; }
+
 
   /* Sticky columns need an opaque-ish surface so scrolled content doesn't bleed through */
   .glass-table td.sticky,

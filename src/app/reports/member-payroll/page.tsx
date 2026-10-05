@@ -220,7 +220,7 @@ export default function MemberPayrollPage() {
                   const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'short' });
                   
                   return (
-                    <tr key={payroll.id} data-accent={payroll.isLocked ? 'indigo' : 'amber'} className="group">
+                    <tr key={payroll.id} className="group">
                       <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
                           <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">

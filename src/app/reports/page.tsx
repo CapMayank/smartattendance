@@ -504,12 +504,7 @@ export default function ReportsPage() {
               ) : viewType === 'daily' ? (
                 dailyRecords.length > 0 ? (
                   dailyRecords.map((record) => (
-                    <tr key={record.id} data-accent={
-                      record.status === 'PRESENT' ? 'emerald' :
-                      record.status === 'ABSENT' ? 'rose' :
-                      record.status === 'HOLIDAY' ? 'indigo' :
-                      record.status === 'WEEKOFF' ? 'slate' : 'amber'
-                    } className="group">
+                    <tr key={record.id} className="group">
                       <td className="px-6 py-4 sticky left-0 z-10">
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">

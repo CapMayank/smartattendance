@@ -156,7 +156,7 @@ export default function StaffPayrollPage() {
                 </tr>
               ) : (
                 filteredStaff.map((s) => (
-                  <tr key={s.id} data-accent={s.payrollInfo?.isActiveForPayroll !== false ? 'emerald' : 'rose'} className="group">
+                  <tr key={s.id} className="group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-sm text-white font-black shadow-lg shrink-0">
