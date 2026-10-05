@@ -169,7 +169,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {session && isMobileMenuOpen && (
-        <div className="lg:hidden fixed top-20 inset-x-4 border border-white/[0.08] rounded-2xl bg-black/80 backdrop-blur-2xl px-4 py-4 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar z-40">
+        <div className="lg:hidden fixed top-20 inset-x-4 border border-white/[0.08] rounded-2xl bg-black/80 backdrop-blur-2xl px-4 py-4 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar z-40 pointer-events-auto">
           
           <Link
             href={dashboardLink.href}
