@@ -190,7 +190,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
                   itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: any) => formatCurrency(Number(value) || 0)}
                 />
                 <Legend />
                 <Area type="monotone" dataKey="Gross" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorGross)" />
@@ -224,7 +224,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
                 </Pie>
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: any) => formatCurrency(Number(value) || 0)}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -257,7 +257,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
                 />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: any) => formatCurrency(Number(value) || 0)}
                 />
                 <Legend />
                 <Bar dataKey="Employee EPF" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} />
