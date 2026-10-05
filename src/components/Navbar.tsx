@@ -3,7 +3,11 @@
 import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LogOut, Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server, Calendar as CalendarIcon, Menu, X, Wallet, UserCheck, ChevronDown } from "lucide-react"
+import { 
+  LogOut, Activity, Users, Clock, Settings, Building2, 
+  IdCard, FileText, Server, Calendar as CalendarIcon, 
+  Menu, X, Wallet, UserCheck, ChevronDown 
+} from "lucide-react"
 import { useState } from 'react'
 
 export default function Navbar() {
@@ -11,27 +15,43 @@ export default function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const mainLinks = [
-    { name: 'Dashboard', href: '/', icon: Activity },
-    { name: 'Staff', href: '/staff', icon: Users },
-  ]
+  // 1. Dashboard (Direct Link)
+  const dashboardLink = { name: 'Dashboard', href: '/', icon: Activity }
 
-  const reportLinks = [
-    { name: 'Daily/Monthly Attendance', href: '/reports', icon: FileText },
-    { name: 'Member Attendance', href: '/reports/member-attendance', icon: UserCheck },
-    { name: 'Monthly Payroll', href: '/payroll/monthly', icon: FileText },
-    { name: 'Member Payroll', href: '/reports/member-payroll', icon: Wallet },
-  ]
-
-  const adminLinks = [
-    { name: 'Staff Payroll', href: '/payroll/staff', icon: Wallet },
+  // 2. Organization
+  const orgLinks = [
+    { name: 'Staff Directory', href: '/staff', icon: Users },
     { name: 'Departments', href: '/departments', icon: Building2 },
     { name: 'Designations', href: '/designations', icon: IdCard },
     { name: 'Shifts', href: '/shifts', icon: Clock },
+    { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
+  ]
+
+  // 3. Attendance
+  const attendanceLinks = [
+    { name: 'Overall Reports', href: '/reports', icon: FileText },
+    { name: 'Member Details', href: '/reports/member-attendance', icon: UserCheck },
+  ]
+
+  // 4. Payroll
+  const payrollLinks = [
+    { name: 'Monthly Generation', href: '/payroll/monthly', icon: FileText },
+    { name: 'Member History', href: '/reports/member-payroll', icon: Wallet },
+    { name: 'Staff Salary Setup', href: '/payroll/staff', icon: Wallet },
+  ]
+
+  // 5. System
+  const systemLinks = [
     { name: 'Devices', href: '/devices', icon: Server },
     { name: 'Users', href: '/users', icon: Users },
-    { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
     { name: 'Settings', href: '/settings', icon: Settings },
+  ]
+
+  const dropdowns = [
+    { label: 'Organization', icon: Building2, links: orgLinks },
+    { label: 'Attendance', icon: UserCheck, links: attendanceLinks },
+    { label: 'Payroll', icon: Wallet, links: payrollLinks },
+    { label: 'System', icon: Settings, links: systemLinks },
   ]
 
   return (
@@ -53,90 +73,59 @@ export default function Navbar() {
 
             {session && (
               <div className="hidden lg:flex items-center gap-1">
-                {mainLinks.map((link) => {
-                  const Icon = link.icon
-                  const isActive = pathname === link.href
+                {/* Dashboard Link */}
+                <Link
+                  href={dashboardLink.href}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    pathname === dashboardLink.href 
+                      ? 'bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/[0.04]' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <dashboardLink.icon className="w-4 h-4" />
+                  {dashboardLink.name}
+                </Link>
+
+                {/* Dropdowns */}
+                {dropdowns.map((dropdown) => {
+                  const DropdownIcon = dropdown.icon
+                  const isActive = dropdown.links.some(link => pathname === link.href)
+                  
                   return (
-                    <Link
-                      key={link.name}
-                      href={link.href}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                        isActive 
-                          ? 'bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/[0.04]' 
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {link.name}
-                    </Link>
+                    <div key={dropdown.label} className="relative group">
+                      <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                        isActive ? 'text-white bg-white/5 border border-white/[0.04]' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}>
+                        <DropdownIcon className="w-4 h-4" />
+                        {dropdown.label}
+                        <ChevronDown className="w-3 h-3 opacity-50 transition-transform group-hover:rotate-180" />
+                      </button>
+                      
+                      <div className="absolute top-full left-0 h-4 w-full" />
+                      
+                      <div className="absolute top-[calc(100%+0.5rem)] left-0 w-56 bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden py-1 transform origin-top group-hover:translate-y-0 translate-y-2">
+                        {dropdown.links.map((link) => {
+                          const Icon = link.icon
+                          const isLinkActive = pathname === link.href
+                          return (
+                            <Link
+                              key={link.name}
+                              href={link.href}
+                              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                                isLinkActive 
+                                  ? 'bg-blue-500/15 text-blue-400 border-l-2 border-blue-400' 
+                                  : 'text-slate-300 hover:bg-white/10 hover:text-white border-l-2 border-transparent'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 opacity-70" />
+                              {link.name}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )
                 })}
-                
-                {/* Reports Dropdown */}
-                <div className="relative group">
-                  <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-slate-400 hover:text-white hover:bg-white/5">
-                    <FileText className="w-4 h-4" />
-                    Reports
-                    <ChevronDown className="w-3 h-3 opacity-50 transition-transform group-hover:rotate-180" />
-                  </button>
-                  
-                  {/* Invisible bridge to keep hover active when moving cursor down */}
-                  <div className="absolute top-full left-0 h-4 w-full" />
-                  
-                  <div className="absolute top-[calc(100%+0.5rem)] left-0 w-56 bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden py-1 transform origin-top group-hover:translate-y-0 translate-y-2">
-                    {reportLinks.map((link) => {
-                      const Icon = link.icon
-                      const isActive = pathname === link.href
-                      return (
-                        <Link
-                          key={link.name}
-                          href={link.href}
-                          className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
-                            isActive 
-                              ? 'bg-blue-500/15 text-blue-400 border-l-2 border-blue-400' 
-                              : 'text-slate-300 hover:bg-white/10 hover:text-white border-l-2 border-transparent'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4 opacity-70" />
-                          {link.name}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Management Dropdown */}
-                <div className="relative group">
-                  <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-slate-400 hover:text-white hover:bg-white/5">
-                    <Settings className="w-4 h-4" />
-                    Management
-                    <ChevronDown className="w-3 h-3 opacity-50 transition-transform group-hover:rotate-180" />
-                  </button>
-                  
-                  {/* Invisible bridge to keep hover active when moving cursor down */}
-                  <div className="absolute top-full left-0 h-4 w-full" />
-                  
-                  <div className="absolute top-[calc(100%+0.5rem)] left-0 w-48 bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden py-1 transform origin-top group-hover:translate-y-0 translate-y-2">
-                    {adminLinks.map((link) => {
-                      const Icon = link.icon
-                      const isActive = pathname === link.href
-                      return (
-                        <Link
-                          key={link.name}
-                          href={link.href}
-                          className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
-                            isActive 
-                              ? 'bg-blue-500/15 text-blue-400 border-l-2 border-blue-400' 
-                              : 'text-slate-300 hover:bg-white/10 hover:text-white border-l-2 border-transparent'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4 opacity-70" />
-                          {link.name}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -175,75 +164,48 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {session && isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/[0.08] bg-black/70 backdrop-blur-xl px-4 py-4 space-y-4 shadow-xl max-h-[80vh] overflow-y-auto">
-          <div className="flex flex-col space-y-1">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Main</span>
-            {mainLinks.map((link) => {
-              const Icon = link.icon
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'bg-blue-600/20 text-blue-400' 
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 opacity-70" />
-                  {link.name}
-                </Link>
-              )
-            })}
-          </div>
-
-          <div className="flex flex-col space-y-1 pt-4 border-t border-white/[0.08]">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Reports</span>
-            {reportLinks.map((link) => {
-              const Icon = link.icon
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'bg-blue-600/20 text-blue-400' 
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 opacity-70" />
-                  {link.name}
-                </Link>
-              )
-            })}
-          </div>
+        <div className="lg:hidden border-t border-white/[0.08] bg-black/70 backdrop-blur-xl px-4 py-4 space-y-4 shadow-xl max-h-[80vh] overflow-y-auto custom-scrollbar">
           
-          <div className="flex flex-col space-y-1 pt-4 border-t border-white/[0.08]">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Management</span>
-            {adminLinks.map((link) => {
-              const Icon = link.icon
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'bg-blue-600/20 text-blue-400' 
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 opacity-70" />
-                  {link.name}
-                </Link>
-              )
-            })}
-          </div>
+          <Link
+            href={dashboardLink.href}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              pathname === dashboardLink.href
+                ? 'bg-blue-600/20 text-blue-400' 
+                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <dashboardLink.icon className="w-4 h-4 opacity-70" />
+            {dashboardLink.name}
+          </Link>
+
+          {dropdowns.map((dropdown) => (
+            <div key={dropdown.label} className="flex flex-col space-y-1 pt-4 border-t border-white/[0.08]">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2 flex items-center gap-2">
+                <dropdown.icon className="w-3 h-3" />
+                {dropdown.label}
+              </span>
+              {dropdown.links.map((link) => {
+                const Icon = link.icon
+                const isActive = pathname === link.href
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive 
+                        ? 'bg-blue-600/20 text-blue-400' 
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 opacity-70" />
+                    {link.name}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
 
           <div className="pt-4 border-t border-white/[0.08]">
             <button
