@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { Users, Clock, Fingerprint, CalendarDays, Server, UserMinus } from "lucide-react"
 import { format } from "date-fns"
 import AttendanceChart from "@/components/AttendanceChart"
+import DepartmentPieChart from "@/components/DepartmentPieChart"
 import AutoRefresh from "@/components/AutoRefresh"
 import DashboardCards from "@/components/DashboardCards"
 import RecentActivity from "@/components/RecentActivity"
@@ -96,6 +97,29 @@ export default async function Dashboard() {
     }
   })
 
+  // Generate data for department pie chart
+  const deptStats = new Map<string, { present: number, total: number }>()
+  
+  staffStatus.forEach(s => {
+    const dName = s.department?.name || 'Unassigned'
+    if (!deptStats.has(dName)) {
+      deptStats.set(dName, { present: 0, total: 0 })
+    }
+    const stat = deptStats.get(dName)!
+    stat.total += 1
+    
+    // Check if present
+    if (presentStaffData.some(ps => ps.id === s.id)) {
+      stat.present += 1
+    }
+  })
+
+  const pieData = Array.from(deptStats.entries()).map(([name, stats]) => ({
+    name,
+    value: stats.present,
+    total: stats.total
+  })).sort((a, b) => b.value - a.value)
+
   return (
     <div className="px-4 sm:px-0 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <AutoRefresh />
@@ -126,12 +150,18 @@ export default async function Dashboard() {
       {/* Graphs & Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column (Chart & Logs) */}
         <div className="lg:col-span-2 space-y-8">
           
-          <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <h2 className="text-xl font-bold text-white mb-6">Weekly Attendance</h2>
-            <AttendanceChart data={chartData} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <h2 className="text-xl font-bold text-white mb-6">Weekly Attendance</h2>
+              <AttendanceChart data={chartData} />
+            </div>
+
+            <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <h2 className="text-xl font-bold text-white mb-6">Today by Department</h2>
+              <DepartmentPieChart data={pieData} />
+            </div>
           </div>
 
           <RecentActivity logs={todayLogs} />
