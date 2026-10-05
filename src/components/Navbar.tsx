@@ -55,18 +55,18 @@ export default function Navbar() {
   ]
 
   return (
-    <nav className="border-b border-white/[0.08] bg-black/30 backdrop-blur-2xl sticky top-0 z-50 transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
+    <nav className="fixed top-4 inset-x-0 z-50 transition-all duration-300 pointer-events-none">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pointer-events-auto">
+        <div className="flex items-center justify-between h-14 px-2 sm:px-4 bg-black/50 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-[0_16px_32px_rgba(0,0,0,0.5)]">
+          <div className="flex items-center gap-4 xl:gap-8">
+            <Link href="/" className="flex items-center gap-2 pl-2">
+              <div className="p-1.5 bg-blue-500/20 rounded-lg">
                 <Activity className="w-6 h-6 text-blue-400" />
               </div>
-              <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 hidden sm:block">
+              <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 hidden xl:block">
                 SEHSS Lakhnadon
               </span>
-              <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 sm:hidden">
+              <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 xl:hidden">
                 SEHSS
               </span>
             </Link>
@@ -130,24 +130,29 @@ export default function Navbar() {
             )}
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {session ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-slate-400 hidden sm:inline-block">
-                  {session.user?.email}
-                </span>
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/[0.04]">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[10px] font-bold text-white">
+                    {session.user?.email?.[0].toUpperCase() || 'A'}
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 hidden lg:block max-w-[120px] truncate">
+                    {session.user?.email}
+                  </span>
+                </div>
                 <button
                   onClick={() => signOut()}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-200 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-300 border border-white/[0.08] hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] active:scale-95"
+                  className="hidden sm:flex items-center justify-center p-2 text-slate-400 bg-white/5 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all duration-300 border border-white/[0.04] active:scale-95"
+                  title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sign Out
                 </button>
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   className="lg:hidden p-2 text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
                 >
-                  {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
               </div>
             ) : (
@@ -164,7 +169,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {session && isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/[0.08] bg-black/70 backdrop-blur-xl px-4 py-4 space-y-4 shadow-xl max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <div className="lg:hidden fixed top-20 inset-x-4 border border-white/[0.08] rounded-2xl bg-black/80 backdrop-blur-2xl px-4 py-4 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar z-40">
           
           <Link
             href={dashboardLink.href}
