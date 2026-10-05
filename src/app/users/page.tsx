@@ -134,92 +134,11 @@ export default function UsersPage() {
         {/* List Container */}
         <div className="lg:col-span-2">
           <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col h-full">
-            <div className="hidden md:block overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm text-slate-400">
-                <thead className="bg-black/40/50 text-slate-300 text-xs uppercase font-bold tracking-wider">
-                  <tr>
-                    <th className="px-6 py-5 rounded-tl-3xl">Administrator</th>
-                    <th className="px-6 py-5">Role & Access</th>
-                    <th className="px-6 py-5 text-right rounded-tr-3xl">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.05]">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={3} className="p-12">
-                        <div className="flex flex-col items-center justify-center gap-4">
-                          <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                          <p className="text-slate-400 font-medium animate-pulse">Loading users...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : users.length > 0 ? (
-                    users.map((u) => {
-                      const isMe = session?.user?.email === u.email;
 
-                      return (
-                        <tr key={u.id} className="hover:bg-white/5 transition-colors group">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-4 min-w-0">
-                              <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/[0.04] rounded-xl shrink-0 shadow-inner">
-                                <User className="w-5 h-5 text-indigo-400" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-semibold text-slate-200 text-base truncate">{u.name}</p>
-                                  {isMe && (
-                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 uppercase tracking-wider">
-                                      You
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 mt-1 text-slate-500 text-xs">
-                                  <Mail className="w-3.5 h-3.5" />
-                                  <span className="truncate">{u.email}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase border shadow-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10">
-                                <Shield className="w-3.5 h-3.5" />
-                                Admin
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => startEditing(u)} className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Edit Security">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              {!isMe && (
-                                <button onClick={() => handleDelete(u.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Revoke Access">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="p-16 text-center">
-                        <User className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-300 font-semibold text-lg">No Users Found</p>
-                        <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">Create administrative users to manage the system.</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Cards View */}
-            <div className="md:hidden flex flex-col p-4 gap-4">
+            {/* Card grid (all breakpoints) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5">
               {loading ? (
-                <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+                <div className="col-span-full p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
                     <p className="text-slate-400 font-medium animate-pulse">Loading users...</p>
@@ -277,7 +196,7 @@ export default function UsersPage() {
                   );
                 })
               ) : (
-                <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+                <div className="col-span-full p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
                   <div className="flex flex-col items-center gap-3">
                     <User className="w-12 h-12 text-slate-600 mb-2" />
                     <p className="text-slate-300 font-bold text-lg">No Users Found</p>

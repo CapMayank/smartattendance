@@ -123,19 +123,19 @@ export default function StaffPayrollPage() {
           </div>
         </div>
 
-        <div className="hidden md:block flex-1 overflow-auto relative z-10">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl border-b border-white/[0.04] shadow-sm">
+        <div className="hidden md:block flex-1 overflow-auto relative z-10 px-4 pb-3">
+          <table className="glass-table text-sm text-left">
+            <thead>
               <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider">Staff Name</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Monthly CTC (₹)</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Bank Details</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">UAN</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Status</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-center">Actions</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider text-right">Monthly CTC (₹)</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider">Bank Details</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider">UAN</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider">Status</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.02]">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center">
@@ -156,11 +156,11 @@ export default function StaffPayrollPage() {
                 </tr>
               ) : (
                 filteredStaff.map((s) => (
-                  <tr key={s.id} className="group hover:bg-white/[0.03] transition-colors duration-300">
+                  <tr key={s.id} data-accent={s.payrollInfo?.isActiveForPayroll !== false ? 'emerald' : 'rose'} className="group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-white/[0.08] flex items-center justify-center text-slate-300 font-bold shadow-inner">
-                          {s.name.charAt(0)}
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-sm text-white font-black shadow-lg shrink-0">
+                          {s.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">{s.name}</div>
@@ -169,10 +169,10 @@ export default function StaffPayrollPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="font-bold text-slate-200">
+                      <div className="inline-block font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
                         ₹{s.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}
                       </div>
-                      <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Annual: ₹{((s.payrollInfo?.monthlyCtc || 0) * 12).toLocaleString()}</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Annual: ₹{((s.payrollInfo?.monthlyCtc || 0) * 12).toLocaleString()}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-slate-300 font-medium font-mono">
@@ -213,7 +213,7 @@ export default function StaffPayrollPage() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleEdit(s)}
-                        className="inline-flex items-center justify-center w-9 h-9 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                        className="inline-flex items-center justify-center w-10 h-10 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 bg-black/40 border border-white/[0.08] rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
                         title="Edit Payroll Details"
                       >
                         <Edit2 className="w-4 h-4" />

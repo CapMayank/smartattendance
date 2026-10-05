@@ -131,95 +131,11 @@ export default function DevicesPage() {
         {/* List Container */}
         <div className="lg:col-span-2">
           <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col h-full">
-            <div className="hidden md:block overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm text-slate-400">
-                <thead className="bg-black/40/50 text-slate-300 text-xs uppercase font-bold tracking-wider">
-                  <tr>
-                    <th className="px-6 py-5 rounded-tl-3xl">Device Info</th>
-                    <th className="px-6 py-5">Network</th>
-                    <th className="px-6 py-5">Status</th>
-                    <th className="px-6 py-5 text-right rounded-tr-3xl">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.05]">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={4} className="p-12">
-                        <div className="flex flex-col items-center justify-center gap-4">
-                          <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                          <p className="text-slate-400 font-medium animate-pulse">Loading devices...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : devices.length > 0 ? (
-                    devices.map((device) => {
-                      const now = new Date()
-                      const isOnline = (now.getTime() - new Date(device.lastPing).getTime()) < 5 * 60 * 1000
 
-                      return (
-                        <tr key={device.id} className="hover:bg-white/5 transition-colors group">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-4 min-w-0">
-                              <div className={`p-3 rounded-xl shrink-0 shadow-inner border border-white/[0.04] transition-colors duration-500 ${isOnline ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-400' : 'bg-gradient-to-br from-rose-500/20 to-red-500/20 text-rose-400'}`}>
-                                <Server className="w-5 h-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-200 text-base truncate">{device.name}</p>
-                                <p className="text-xs text-slate-500 truncate mt-0.5 font-mono">ID: {device.id}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="font-mono text-sm">
-                              <p className="text-slate-300">{device.ipAddress || <span className="text-slate-600 italic font-sans text-xs">No IP</span>}</p>
-                              {device.port && <p className="text-xs text-indigo-400/80 mt-1">:{device.port}</p>}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col items-start gap-1.5">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border shadow-sm transition-colors duration-500 ${
-                                isOnline 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
-                                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
-                                {isOnline ? 'ONLINE' : 'OFFLINE'}
-                              </span>
-                              <span className="text-[11px] text-slate-500 font-medium">
-                                Seen {format(new Date(device.lastPing), 'MMM dd, hh:mm a')}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => startEditing(device)} className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Edit">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleDelete(device.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Delete">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="p-16 text-center">
-                        <Server className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-300 font-semibold text-lg">No Devices Configured</p>
-                        <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">Add your first biometric attendance device using the registration form.</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Cards View */}
-            <div className="md:hidden flex flex-col p-4 gap-4">
+            {/* Card grid (all breakpoints) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5">
               {loading ? (
-                <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+                <div className="col-span-full p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
                     <p className="text-slate-400 font-medium animate-pulse">Loading devices...</p>
@@ -282,7 +198,7 @@ export default function DevicesPage() {
                   );
                 })
               ) : (
-                <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
+                <div className="col-span-full p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
                   <div className="flex flex-col items-center gap-3">
                     <Server className="w-12 h-12 text-slate-600 mb-2" />
                     <p className="text-slate-300 font-bold text-lg">No Devices Configured</p>

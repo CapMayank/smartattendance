@@ -193,19 +193,19 @@ export default function MemberPayrollPage() {
           </div>
         )}
 
-        <div className="hidden md:block overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar">
-          <table className="w-full text-left text-sm text-slate-400 min-w-[800px]">
-            <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
+        <div className="hidden md:block overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar px-4 pb-3">
+          <table className="glass-table text-left text-sm text-slate-400 min-w-[800px]">
+            <thead>
               <tr>
-                <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Period</th>
-                <th className="px-6 py-5 text-center">Days (Total / Paid)</th>
-                <th className="px-6 py-5 text-right">Actual CTC</th>
-                <th className="px-6 py-5 text-right">Gross Wage</th>
-                <th className="px-6 py-5 text-right">Net Payment</th>
-                <th className="px-6 py-5 text-center">Status</th>
+                <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">Period</th>
+                <th className="px-6 py-3.5 text-center">Days (Total / Paid)</th>
+                <th className="px-6 py-3.5 text-right">Actual CTC</th>
+                <th className="px-6 py-3.5 text-right">Gross Wage</th>
+                <th className="px-6 py-3.5 text-right">Net Payment</th>
+                <th className="px-6 py-3.5 text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={6} className="p-16">
@@ -220,10 +220,10 @@ export default function MemberPayrollPage() {
                   const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'short' });
                   
                   return (
-                    <tr key={payroll.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
+                    <tr key={payroll.id} data-accent={payroll.isLocked ? 'indigo' : 'amber'} className="group">
+                      <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-black/40 rounded-lg">
+                          <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                             <CalendarIcon className="w-4 h-4 text-emerald-400" />
                           </div>
                           <div className="flex flex-col">

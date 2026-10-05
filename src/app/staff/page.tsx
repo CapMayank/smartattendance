@@ -297,11 +297,11 @@ export default function StaffPage() {
           </div>
         )}
 
-        <div className="hidden md:block overflow-x-auto custom-scrollbar flex-1">
-          <table className="w-full text-left text-sm text-slate-400 whitespace-nowrap">
-            <thead className="bg-black/60 text-slate-300 text-xs uppercase font-semibold tracking-wider sticky top-0 z-10 backdrop-blur-xl border-b border-white/[0.08]">
+        <div className="hidden md:block overflow-x-auto custom-scrollbar flex-1 px-4 pb-3">
+          <table className="glass-table text-left text-sm text-slate-400 whitespace-nowrap">
+            <thead>
               <tr>
-                <th className="px-6 py-5 w-12 text-center">
+                <th className="px-6 py-3.5 w-12 text-center">
                   <input 
                     type="checkbox" 
                     className="rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer w-4 h-4"
@@ -309,14 +309,14 @@ export default function StaffPage() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="px-6 py-5">Staff Name</th>
-                <th className="px-6 py-5">Machine ID</th>
-                <th className="px-6 py-5">Department / Role</th>
-                <th className="px-6 py-5">Shift</th>
-                <th className="px-6 py-5 text-right">Actions</th>
+                <th className="px-6 py-3.5">Staff Name</th>
+                <th className="px-6 py-3.5">Machine ID</th>
+                <th className="px-6 py-3.5">Department / Role</th>
+                <th className="px-6 py-3.5">Shift</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-24 text-center">

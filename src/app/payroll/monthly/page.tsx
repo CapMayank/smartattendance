@@ -319,20 +319,20 @@ export default function MonthlyPayrollPage() {
 
       {/* Main Table Area */}
       <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
-        <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="text-xs text-slate-400 uppercase bg-black/60 sticky top-0 backdrop-blur-xl z-10 shadow-sm border-b border-white/[0.04]">
+        <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar px-4 pb-3">
+          <table className="glass-table text-sm text-left whitespace-nowrap">
+            <thead>
               <tr>
-                <th className="px-6 py-5 font-semibold tracking-wider">Staff Name</th>
-                <th className="px-4 py-5 font-semibold tracking-wider text-center">Total / Present</th>
-                <th className="px-4 py-5 font-semibold tracking-wider text-right">Fixed CTC</th>
-                <th className="px-4 py-5 font-semibold tracking-wider text-right">Gross Wage</th>
-                <th className="px-4 py-5 font-semibold tracking-wider text-right text-rose-400/80">Employee PF</th>
-                <th className="px-4 py-5 font-semibold tracking-wider text-right text-rose-400/80">Adv. Refund</th>
-                <th className="px-6 py-5 font-bold tracking-wider text-right text-emerald-400">Net Payment</th>
+                <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-center">Total / Present</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Fixed CTC</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Gross Wage</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Employee PF</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Adv. Refund</th>
+                <th className="px-6 py-3.5 font-bold tracking-wider text-right text-emerald-400">Net Payment</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.02]">
+            <tbody>
               {loading && payrolls.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-24 text-center">
@@ -362,11 +362,11 @@ export default function MonthlyPayrollPage() {
                   const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p;
 
                   return (
-                    <tr key={p.id} className={`group transition-all duration-300 ${isEdited ? 'bg-indigo-500/[0.03] hover:bg-indigo-500/[0.06]' : 'hover:bg-white/5'}`}>
+                    <tr key={p.id} data-accent={isEdited ? 'indigo' : 'emerald'} className="group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-black/40 border border-white/[0.04] flex items-center justify-center text-slate-400 font-bold text-xs shadow-inner">
-                            {p.staff.name.charAt(0)}
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
+                            {p.staff.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <div className="font-semibold text-slate-200">{p.staff.name}</div>

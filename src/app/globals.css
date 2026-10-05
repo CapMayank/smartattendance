@@ -56,3 +56,98 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
+
+/* ============================================================
+   Glass Table design language (tablet / desktop)
+   Rounded floating row-strips, frosted headers, status accents.
+   Lives in the components layer so Tailwind utilities still win.
+   ============================================================ */
+@layer components {
+  .glass-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+
+  .glass-table thead th {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.025);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .glass-table thead th:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1rem 0 0 1rem;
+  }
+  .glass-table thead th:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0 1rem 1rem 0;
+  }
+
+  .glass-table tbody td {
+    background: rgba(255, 255, 255, 0.035);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .glass-table tbody td:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.25rem 0 0 1.25rem;
+  }
+  .glass-table tbody td:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0 1.25rem 1.25rem 0;
+  }
+  .glass-table tbody td:only-child {
+    border-radius: 1.25rem;
+  }
+  .glass-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.075);
+    border-color: rgba(255, 255, 255, 0.13);
+  }
+
+  /* Coloured left accent per row, set with data-accent="..." */
+  .glass-table tbody tr[data-accent] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .glass-table tbody tr[data-accent="emerald"] { --accent: #10b981; }
+  .glass-table tbody tr[data-accent="rose"] { --accent: #f43f5e; }
+  .glass-table tbody tr[data-accent="indigo"] { --accent: #6366f1; }
+  .glass-table tbody tr[data-accent="amber"] { --accent: #f59e0b; }
+  .glass-table tbody tr[data-accent="slate"] { --accent: #64748b; }
+  .glass-table tbody tr[data-accent="blue"] { --accent: #3b82f6; }
+
+  /* Sticky columns need an opaque-ish surface so scrolled content doesn't bleed through */
+  .glass-table td.sticky,
+  .glass-table th.sticky {
+    background-color: rgba(14, 14, 24, 0.92);
+    backdrop-filter: blur(18px);
+  }
+
+  /* Matrix variant: monthly attendance grid with rounded colour-coded day cells */
+  .glass-matrix {
+    border-collapse: separate;
+    border-spacing: 4px;
+    width: 100%;
+  }
+  .glass-matrix thead th {
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .glass-matrix tbody td {
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .glass-matrix td.sticky,
+  .glass-matrix th.sticky {
+    background-color: rgba(14, 14, 24, 0.95);
+    backdrop-filter: blur(18px);
+  }
+  .glass-matrix tbody tr:hover td:not(.sticky) {
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+}

@@ -222,20 +222,20 @@ export default function MemberAttendancePage() {
           </div>
         )}
 
-        <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
-          <table className="w-full text-left text-sm text-slate-400 min-w-[900px]">
-            <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
+        <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar px-4 pb-3">
+          <table className="glass-table text-left text-sm text-slate-400 min-w-[900px]">
+            <thead>
               <tr>
-                <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Date</th>
-                <th className="px-6 py-5">Status</th>
-                <th className="px-6 py-5">Payroll Day</th>
-                <th className="px-6 py-5">Check In</th>
-                <th className="px-6 py-5">Check Out</th>
-                <th className="px-6 py-5 text-right">Late / Work Hrs</th>
-                <th className="px-6 py-5">Punch Logs</th>
+                <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">Date</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5">Payroll Day</th>
+                <th className="px-6 py-3.5">Check In</th>
+                <th className="px-6 py-3.5">Check Out</th>
+                <th className="px-6 py-3.5 text-right">Late / Work Hrs</th>
+                <th className="px-6 py-3.5">Punch Logs</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={6} className="p-16">
@@ -253,8 +253,13 @@ export default function MemberAttendancePage() {
                   const isWeekend = dayName === 'Sun' || dayName === 'Sat';
 
                   return (
-                    <tr key={record.id} className="hover:bg-white/5 transition-colors group">
-                      <td className={`px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors ${isWeekend ? 'bg-indigo-500/5 group-hover:bg-indigo-500/10' : ''}`}>
+                    <tr key={record.id} data-accent={
+                      record.status === 'PRESENT' ? 'emerald' :
+                      record.status === 'ABSENT' ? 'rose' :
+                      record.status === 'HOLIDAY' ? 'indigo' :
+                      record.status === 'WEEKOFF' ? 'slate' : 'amber'
+                    } className="group">
+                      <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex flex-col">
                           <span className={`font-bold text-base whitespace-nowrap ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{dateStr}</span>
                           <span className={`text-xs font-bold uppercase tracking-widest mt-1 w-fit px-1.5 py-0.5 rounded ${isWeekend ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>

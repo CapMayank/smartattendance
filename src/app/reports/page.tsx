@@ -457,27 +457,27 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar">
-          <table className={`w-full text-left text-sm text-slate-400 min-w-[800px]`}>
-            <thead className="bg-black/50/40 text-slate-300 text-xs uppercase font-bold tracking-wider border-b border-white/[0.08]">
+        <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar px-4 pb-3">
+          <table className={`${viewType === 'daily' ? 'glass-table min-w-[800px]' : 'glass-matrix min-w-[1400px]'} text-left text-sm text-slate-400`}>
+            <thead>
               {viewType === 'daily' ? (
                 <tr>
-                  <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">Staff Details</th>
-                  <th className="px-6 py-5">Status</th>
-                  <th className="px-6 py-5">Check In</th>
-                  <th className="px-6 py-5">Check Out</th>
-                  <th className="px-6 py-5 text-right">Late By / Work Hrs</th>
-                  <th className="px-6 py-5 text-center">Manage</th>
+                  <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">Staff Details</th>
+                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5">Check In</th>
+                  <th className="px-6 py-3.5">Check Out</th>
+                  <th className="px-6 py-3.5 text-right">Late By / Work Hrs</th>
+                  <th className="px-6 py-3.5 text-center">Manage</th>
                 </tr>
               ) : (
                 <tr>
-                  <th className="px-6 py-5 sticky left-0 bg-black/60 backdrop-blur-2xl z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)] whitespace-nowrap">Staff Details</th>
+                  <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)] whitespace-nowrap">Staff Details</th>
                   {daysArray.map(day => {
                     const dateObj = new Date(`${month}-${day.toString().padStart(2, '0')}T00:00:00`);
                     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
                     const isWeekend = dayName === 'Sun' || dayName === 'Sat';
                     return (
-                      <th key={day} className={`px-2 py-3 text-center min-w-[75px] border-l border-white/[0.04] ${isWeekend ? 'bg-indigo-500/5' : ''}`}>
+                      <th key={day} className={`px-2 py-3 text-center min-w-[75px] ${isWeekend ? 'bg-indigo-500/5' : ''}`}>
                         <div className="flex flex-col items-center gap-1.5">
                           <span className={`text-sm ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{day}</span>
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${isWeekend ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-400'}`}>{dayName}</span>
@@ -485,13 +485,13 @@ export default function ReportsPage() {
                       </th>
                     );
                   })}
-                  <th className="px-4 py-4 text-center border-l border-white/[0.08] bg-black/50/60 text-emerald-400">P</th>
-                  <th className="px-4 py-4 text-center bg-black/50/60 text-rose-400">A</th>
-                  <th className="px-4 py-4 text-right bg-black/50/60 text-indigo-400">Total Hrs</th>
+                  <th className="px-4 py-3.5 text-center text-emerald-400">P</th>
+                  <th className="px-4 py-3.5 text-center text-rose-400">A</th>
+                  <th className="px-4 py-3.5 text-right text-indigo-400">Total Hrs</th>
                 </tr>
               )}
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={viewType === 'daily' ? 6 : daysArray.length + 4} className="p-16">
@@ -504,13 +504,23 @@ export default function ReportsPage() {
               ) : viewType === 'daily' ? (
                 dailyRecords.length > 0 ? (
                   dailyRecords.map((record) => (
-                    <tr key={record.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-200 text-base whitespace-nowrap">{record.staff.name}</span>
-                          <span className="text-xs font-medium text-slate-500 whitespace-nowrap mt-0.5">
-                            {record.staff.designation?.name || 'No Role'} • {record.staff.department?.name || 'No Dept'}
-                          </span>
+                    <tr key={record.id} data-accent={
+                      record.status === 'PRESENT' ? 'emerald' :
+                      record.status === 'ABSENT' ? 'rose' :
+                      record.status === 'HOLIDAY' ? 'indigo' :
+                      record.status === 'WEEKOFF' ? 'slate' : 'amber'
+                    } className="group">
+                      <td className="px-6 py-4 sticky left-0 z-10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
+                            {record.staff.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-100 text-base whitespace-nowrap">{record.staff.name}</span>
+                            <span className="text-xs font-medium text-slate-500 whitespace-nowrap mt-0.5">
+                              {record.staff.designation?.name || 'No Role'} • {record.staff.department?.name || 'No Dept'}
+                            </span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -565,13 +575,18 @@ export default function ReportsPage() {
               ) : (
                 monthlyRecords.length > 0 ? (
                   monthlyRecords.map((record) => (
-                    <tr key={record.staff.machineId} className="hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-black/60 backdrop-blur-2xl group-hover:bg-black/40/90 z-10 shadow-[4px_0_15px_rgba(0,0,0,0.2)] transition-colors">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-200 text-base whitespace-nowrap">{record.staff.name}</span>
-                          <span className="text-xs font-medium text-slate-500 whitespace-nowrap mt-0.5">
-                            {record.staff.designation?.name || 'No Role'}
-                          </span>
+                    <tr key={record.staff.machineId} className="group">
+                      <td className="px-4 py-3 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-lg border border-white/[0.08] shrink-0">
+                            {record.staff.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-100 text-sm whitespace-nowrap">{record.staff.name}</span>
+                            <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                              {record.staff.designation?.name || 'No Role'}
+                            </span>
+                          </div>
                         </div>
                       </td>
                       
@@ -579,7 +594,7 @@ export default function ReportsPage() {
                         const dateStr = `${month}-${day.toString().padStart(2, '0')}`;
                         const dayData = record.days[dateStr];
                         
-                        if (!dayData) return <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] text-slate-600 font-bold">-</td>;
+                        if (!dayData) return <td key={day} className="px-2 py-4 text-center text-slate-600 font-bold">-</td>;
                         
                         if (dayData.checkIn) {
                           const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -603,7 +618,7 @@ export default function ReportsPage() {
                           }
 
                           return (
-                            <td key={day} className={`px-2 py-3 text-center border-l border-white/[0.04] whitespace-nowrap ${bgClass}`}>
+                            <td key={day} className={`px-2 py-3 text-center whitespace-nowrap ${bgClass}`}>
                               <div className="flex flex-col items-center">
                                 <span className="text-emerald-400 text-[11px] font-bold leading-none mb-1">{inTime}</span>
                                 <span className="text-rose-400 text-[11px] font-bold leading-none">{outTime}</span>
@@ -615,7 +630,7 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'ABSENT') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-rose-500/10">
+                            <td key={day} className="px-2 py-4 text-center bg-rose-500/10">
                               <span className="text-rose-400 font-extrabold">A</span>
                             </td>
                           );
@@ -623,7 +638,7 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'HALF_DAY') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-amber-500/10">
+                            <td key={day} className="px-2 py-4 text-center bg-amber-500/10">
                               <span className="text-amber-400 font-extrabold">HD</span>
                             </td>
                           );
@@ -631,7 +646,7 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'HOLIDAY') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-indigo-500/10">
+                            <td key={day} className="px-2 py-4 text-center bg-indigo-500/10">
                               <span className="text-indigo-400 font-extrabold">H</span>
                             </td>
                           );
@@ -639,22 +654,22 @@ export default function ReportsPage() {
                         
                         if (dayData.status === 'WEEKOFF') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] bg-slate-500/10">
+                            <td key={day} className="px-2 py-4 text-center bg-slate-500/10">
                               <span className="text-slate-400 font-extrabold">W</span>
                             </td>
                           );
                         }
 
-                        return <td key={day} className="px-2 py-4 text-center border-l border-white/[0.04] text-slate-600 font-bold">-</td>;
+                        return <td key={day} className="px-2 py-4 text-center text-slate-600 font-bold">-</td>;
                       })}
 
-                      <td className="px-4 py-4 text-center border-l border-white/[0.08] bg-black/50/60 group-hover:bg-black/40 transition-colors">
+                      <td className="px-4 py-4 text-center bg-white/[0.04]">
                         <span className="font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">{record.totalPresents}</span>
                       </td>
-                      <td className="px-4 py-4 text-center bg-black/50/60 group-hover:bg-black/40 transition-colors">
+                      <td className="px-4 py-4 text-center bg-white/[0.04]">
                         <span className="font-extrabold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md">{record.totalAbsents}</span>
                       </td>
-                      <td className="px-4 py-4 text-right bg-black/50/60 group-hover:bg-black/40 transition-colors">
+                      <td className="px-4 py-4 text-right bg-white/[0.04]">
                         <span className="font-extrabold text-indigo-400 whitespace-nowrap bg-indigo-500/10 px-2 py-1 rounded-md">{(record.totalWorkMinutes / 60).toFixed(1)} hrs</span>
                       </td>
                     </tr>
