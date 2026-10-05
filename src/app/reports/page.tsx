@@ -566,7 +566,10 @@ export default function ReportsPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
-                          onClick={() => openPunchModal(record.staffId, record.staff.name)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openPunchModal(record.staffId, record.staff.name)
+                          }}
                           className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 bg-black/50 border border-white/[0.04] rounded-xl transition-all shadow-sm opacity-50 group-hover:opacity-100"
                           title="Manage Punches"
                         >
@@ -779,7 +782,10 @@ export default function ReportsPage() {
                           <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">On time</span>
                         )}
                         <button
-                          onClick={() => openPunchModal(record.staffId, record.staff.name)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openPunchModal(record.staffId, record.staff.name)
+                          }}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl transition-all active:scale-95"
                         >
                           <Settings2 className="w-4 h-4" /> Punches
