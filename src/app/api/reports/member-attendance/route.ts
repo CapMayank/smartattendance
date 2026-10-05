@@ -138,6 +138,16 @@ export async function GET(request: Request) {
     const totalLateMinutes = dailyRecords.reduce((sum, r) => sum + r.lateMinutes, 0);
     const totalWorkMinutes = dailyRecords.reduce((sum, r) => sum + r.workMinutes, 0);
 
+    const monthlyPayroll = await prisma.monthlyPayroll.findUnique({
+      where: {
+        staffId_month_year: {
+          staffId: staffId,
+          month: month,
+          year: year
+        }
+      }
+    });
+
     return NextResponse.json({
       staff,
       days,
@@ -148,7 +158,8 @@ export async function GET(request: Request) {
         totalLateMinutes,
         totalWorkMinutes,
         totalPayrollEligibleDays
-      }
+      },
+      payroll: monthlyPayroll
     })
 
   } catch (error) {

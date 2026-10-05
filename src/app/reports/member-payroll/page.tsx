@@ -223,9 +223,9 @@ export default function MemberPayrollPage() {
                   
                   return (
                     <tr 
-                      key={payroll.id} 
-                      className="group cursor-pointer"
-                      onClick={() => router.push(`/reports/member-attendance?staffId=${selectedStaffId}&month=${payroll.year}-${String(payroll.month).padStart(2, '0')}`)}
+                      key={payroll.id}
+                      className="group cursor-pointer hover:bg-white/[0.02] transition-colors"
+                      onClick={() => router.push(`/reports/member-payroll/${payroll.id}`)}
                     >
                       <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
@@ -293,7 +293,11 @@ export default function MemberPayrollPage() {
               const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'long' })
               const paidPct = payroll.totalDays > 0 ? Math.min(100, (payroll.presentDays / payroll.totalDays) * 100) : 0
               return (
-                <div key={payroll.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-4 relative overflow-hidden shadow-lg">
+                <div 
+                  key={payroll.id} 
+                  onClick={() => router.push(`/reports/member-payroll/${payroll.id}`)}
+                  className="bg-black/40 border border-white/[0.08] rounded-3xl p-4 relative overflow-hidden shadow-lg cursor-pointer active:scale-[0.98] transition-transform"
+                >
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
                   <div className="flex items-center justify-between gap-3 relative">

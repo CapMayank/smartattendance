@@ -38,6 +38,7 @@ export default function MemberAttendancePage() {
   
   const [loading, setLoading] = useState(false)
   const [staffData, setStaffData] = useState<Staff | null>(null)
+  const [payrollData, setPayrollData] = useState<any | null>(null)
   const [dailyRecords, setDailyRecords] = useState<DailyRecordWithLogs[]>([])
   const [summary, setSummary] = useState({
     totalPresents: 0,
@@ -91,14 +92,17 @@ export default function MemberAttendancePage() {
           setStaffData(data.staff)
           setDailyRecords(data.days)
           setSummary(data.summary)
+          setPayrollData(data.payroll)
         } else {
           setStaffData(null)
           setDailyRecords([])
+          setPayrollData(null)
         }
       } catch (e) {
         console.error('Failed to fetch report:', e)
         setStaffData(null)
         setDailyRecords([])
+        setPayrollData(null)
       } finally {
         setLoading(false)
       }
@@ -205,31 +209,55 @@ export default function MemberAttendancePage() {
 
         {/* Summary Cards */}
         {staffData && !loading && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-white/[0.08] relative z-10 bg-black/40/40">
-             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent">
-                <span className="text-3xl font-black text-indigo-400 mb-1">{summary.totalPayrollEligibleDays}</span>
-                <span className="text-[10px] font-bold text-indigo-300/70 uppercase tracking-wider">Payroll Days</span>
-             </div>
-             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-emerald-400 mb-1">{summary.totalPresents}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Presents</span>
-             </div>
-             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-rose-400 mb-1">{summary.totalAbsents}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Absents</span>
-             </div>
-             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-amber-400 mb-1">{summary.totalHalfDays}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Half Days</span>
-             </div>
-             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-orange-400 mb-1">{summary.totalLateMinutes}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Late (Mins)</span>
-             </div>
-             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-indigo-400 mb-1">{(summary.totalWorkMinutes / 60).toFixed(1)}</span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Work Hours</span>
-             </div>
+          <div className="flex flex-col border-b border-white/[0.08] relative z-10 bg-black/40/40">
+            {payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays && (
+              <div className="bg-rose-500/10 border-b border-rose-500/20 p-4 flex items-start gap-3">
+                <div className="mt-0.5 p-1 bg-rose-500/20 rounded-md">
+                  <UserCheck className="w-4 h-4 text-rose-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-rose-400">Days Mismatch Detected</h4>
+                  <p className="text-sm font-medium text-rose-300/70 mt-0.5">
+                    The system calculated <strong>{summary.totalPayrollEligibleDays}</strong> present days based on punches, but the generated payroll has been manually set to <strong>{payrollData.presentDays}</strong> present days.
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4 p-4 sm:p-6">
+               <div className={`rounded-3xl p-4 border flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 ${payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-transparent' : 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent'}`}>
+                  <span className={`text-3xl font-black mb-1 ${payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'text-rose-400' : 'text-indigo-400'}`}>{summary.totalPayrollEligibleDays}</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'text-rose-300/70' : 'text-indigo-300/70'}`}>System Days</span>
+               </div>
+               
+               {payrollData && (
+                 <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent">
+                    <span className="text-3xl font-black text-emerald-400 mb-1">{payrollData.presentDays}</span>
+                    <span className="text-[10px] font-bold text-emerald-300/70 uppercase tracking-wider">Paid Days</span>
+                 </div>
+               )}
+
+               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-black text-emerald-400 mb-1">{summary.totalPresents}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Presents</span>
+               </div>
+               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-black text-rose-400 mb-1">{summary.totalAbsents}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Absents</span>
+               </div>
+               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-black text-amber-400 mb-1">{summary.totalHalfDays}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Half Days</span>
+               </div>
+               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-black text-orange-400 mb-1">{summary.totalLateMinutes}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Late (Mins)</span>
+               </div>
+               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-black text-indigo-400 mb-1">{(summary.totalWorkMinutes / 60).toFixed(1)}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Work Hours</span>
+               </div>
+            </div>
           </div>
         )}
 
