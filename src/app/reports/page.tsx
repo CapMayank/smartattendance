@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { FileText, Download, Calendar as CalendarIcon, Filter, Clock, Users, BarChart3, Plus, Trash2, X, Settings2, ChevronDown, LogIn, LogOut, Timer } from 'lucide-react'
 import Papa from 'papaparse'
 
@@ -201,6 +202,7 @@ function MonthlyMobileCard({
 }
 
 export default function ReportsPage() {
+  const router = useRouter()
   const [viewType, setViewType] = useState<'daily' | 'monthly'>('daily')
   const [dailyRecords, setDailyRecords] = useState<DailyRecord[]>([])
   const [monthlyRecords, setMonthlyRecords] = useState<MonthlyRecord[]>([])
@@ -504,7 +506,11 @@ export default function ReportsPage() {
               ) : viewType === 'daily' ? (
                 dailyRecords.length > 0 ? (
                   dailyRecords.map((record) => (
-                    <tr key={record.id} className="group">
+                    <tr 
+                      key={record.id} 
+                      className="group cursor-pointer hover:bg-white/5 transition-colors"
+                      onClick={() => router.push(`/reports/member-attendance?staffId=${record.staffId}&month=${date.substring(0, 7)}`)}
+                    >
                       <td className="px-6 py-4 sticky left-0 z-10">
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
@@ -570,7 +576,11 @@ export default function ReportsPage() {
               ) : (
                 monthlyRecords.length > 0 ? (
                   monthlyRecords.map((record) => (
-                    <tr key={record.staff.machineId} className="group">
+                    <tr 
+                      key={record.staff.machineId} 
+                      className="group cursor-pointer hover:bg-white/5 transition-colors"
+                      onClick={() => router.push(`/reports/member-attendance?staffId=${record.staffId}&month=${month}`)}
+                    >
                       <td className="px-4 py-3 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-lg border border-white/[0.08] shrink-0">

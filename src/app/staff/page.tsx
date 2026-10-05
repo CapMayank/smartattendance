@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Users, Hash, Upload, Download, FileSpreadsheet, Trash2, Edit2, Check, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Users, Hash, Upload, Download, FileSpreadsheet, Trash2, Edit2, Check, X, Calendar } from 'lucide-react'
 import Papa from 'papaparse'
 
 type Staff = {
@@ -14,6 +15,7 @@ type Staff = {
 }
 
 export default function StaffPage() {
+  const router = useRouter()
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [depts, setDepts] = useState<{id:string, name:string}[]>([])
   const [desigs, setDesigs] = useState<{id:string, name:string}[]>([])
@@ -368,6 +370,9 @@ export default function StaffPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="View Attendance">
+                          <Calendar className="w-4 h-4" />
+                        </button>
                         <button onClick={() => startEditing(staff)} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Edit Staff">
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -454,7 +459,10 @@ export default function StaffPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => startEditing(staff)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
+                    <button onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} className="p-2.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm" title="View Attendance">
+                      <Calendar className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => startEditing(staff)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm" title="Edit Staff">
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button onClick={() => handleDelete(staff.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
