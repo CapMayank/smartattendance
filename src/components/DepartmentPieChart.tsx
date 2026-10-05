@@ -49,7 +49,7 @@ export default function DepartmentPieChart({ data }: { data: ChartData[] }) {
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
             }}
             itemStyle={{ color: '#fff', fontWeight: 600 }}
-            formatter={(value: number, name: string, props: any) => [
+            formatter={(value: any, name: any, props: any) => [
               `${value} / ${props.payload.total} Present`, 
               name
             ]}
