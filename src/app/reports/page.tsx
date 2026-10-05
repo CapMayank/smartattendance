@@ -25,6 +25,7 @@ type DailyRecord = {
 
 type MonthlyRecord = {
   staff: {
+    id: string
     name: string
     machineId: string
     department: { name: string } | null
@@ -579,7 +580,7 @@ export default function ReportsPage() {
                     <tr 
                       key={record.staff.machineId} 
                       className="group cursor-pointer hover:bg-white/5 transition-colors"
-                      onClick={() => router.push(`/reports/member-attendance?staffId=${record.staffId}&month=${month}`)}
+                      onClick={() => router.push(`/reports/member-attendance?staffId=${record.staff.id}&month=${month}`)}
                     >
                       <td className="px-4 py-3 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
