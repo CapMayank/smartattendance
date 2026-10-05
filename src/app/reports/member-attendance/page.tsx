@@ -56,7 +56,18 @@ export default function MemberAttendancePage() {
         if (res.ok) {
           const data = await res.json()
           setStaffList(data)
-          if (data.length > 0) {
+          
+          const params = new URLSearchParams(window.location.search)
+          const paramStaffId = params.get('staffId')
+          const paramMonth = params.get('month')
+          
+          if (paramMonth) {
+            setMonth(paramMonth)
+          }
+
+          if (paramStaffId) {
+            setSelectedStaffId(paramStaffId)
+          } else if (data.length > 0) {
             setSelectedStaffId(data[0].id)
           }
         }

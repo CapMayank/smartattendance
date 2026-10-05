@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Download, Search, Wallet, IndianRupee, FileText, Calendar as CalendarIcon } from 'lucide-react'
 import Papa from 'papaparse'
 
@@ -31,6 +32,7 @@ type Staff = {
 }
 
 export default function MemberPayrollPage() {
+  const router = useRouter()
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [selectedStaffId, setSelectedStaffId] = useState<string>('')
   
@@ -220,7 +222,11 @@ export default function MemberPayrollPage() {
                   const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'short' });
                   
                   return (
-                    <tr key={payroll.id} className="group">
+                    <tr 
+                      key={payroll.id} 
+                      className="group cursor-pointer"
+                      onClick={() => router.push(`/reports/member-attendance?staffId=${selectedStaffId}&month=${payroll.year}-${String(payroll.month).padStart(2, '0')}`)}
+                    >
                       <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
                           <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
