@@ -496,14 +496,24 @@ export default function ReportsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={viewType === 'daily' ? 6 : daysArray.length + 4} className="p-16">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                      <p className="text-slate-400 font-medium animate-pulse">Calculating attendance records...</p>
-                    </div>
-                  </td>
-                </tr>
+                <>
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i} className="animate-pulse border-b border-white/[0.04]">
+                      <td className="px-6 py-4 sticky left-0 z-10 bg-black/40">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-white/10"></div>
+                          <div className="flex flex-col gap-2">
+                            <div className="h-4 w-32 bg-white/10 rounded"></div>
+                            <div className="h-3 w-20 bg-white/5 rounded"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td colSpan={viewType === 'daily' ? 5 : daysArray.length + 3} className="px-6 py-4 bg-black/40">
+                        <div className="h-4 w-full bg-white/5 rounded"></div>
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ) : viewType === 'daily' ? (
                 dailyRecords.length > 0 ? (
                   dailyRecords.map((record) => (

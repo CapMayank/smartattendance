@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Users, Hash, Upload, Download, FileSpreadsheet, Trash2, Edit2, Check, X, Calendar } from 'lucide-react'
+import { Plus, Users, Hash, Upload, Download, FileSpreadsheet, Trash2, Edit2, Check, X, Calendar, Settings } from 'lucide-react'
 import Papa from 'papaparse'
+import { toast } from 'sonner'
 
 type Staff = {
   id: string
@@ -53,6 +54,9 @@ export default function StaffPage() {
     if (res.ok) {
       setEditingId(null)
       fetchData()
+      toast.success("Staff member updated successfully")
+    } else {
+      toast.error("Failed to update staff member")
     }
   }
 
@@ -90,21 +94,52 @@ export default function StaffPage() {
     if (res.ok) {
       setFormData({ name: '', machineId: '', departmentId: '', designationId: '', shiftId: '' })
       fetchData()
+      toast.success("Staff member added successfully")
+    } else {
+      toast.error("Failed to add staff member")
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this staff member?')) return
     const res = await fetch(`/api/staff?id=${id}`, { method: 'DELETE' })
-    if (res.ok) fetchData()
+    if (res.ok) {
+      fetchData()
+      toast.success("Staff member deleted")
+    } else {
+      toast.error("Failed to delete staff member")
+    }
   }
 
   const handleBulkDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${selectedIds.length} staff members?`)) return
-    const res = await fetch(`/api/staff?ids=${selectedIds.join(',')}`, { method: 'DELETE' })
+    const res = await fetch('/api/staff/bulk', { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds })
+    })
     if (res.ok) {
       setSelectedIds([])
       fetchData()
+      toast.success(`${selectedIds.length} staff members deleted`)
+    } else {
+      toast.error("Failed to delete staff members")
+    }
+  }
+
+  const handleBulkAssignShift = async (shiftId: string) => {
+    if (!shiftId) return
+    const res = await fetch('/api/staff/bulk', { 
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: selectedIds, shiftId })
+    })
+    if (res.ok) {
+      setSelectedIds([])
+      fetchData()
+      toast.success(`${selectedIds.length} staff members assigned to new shift`)
+    } else {
+      toast.error("Failed to assign shift")
     }
   }
 
@@ -152,20 +187,20 @@ export default function StaffPage() {
           })
           if (res.ok) {
             const data = await res.json()
-            alert(`Successfully imported ${data.processedCount} staff members!`)
+            toast.success(`Successfully imported ${data.processedCount} staff members!`)
             fetchData()
           } else {
-            alert('Failed to import data. Please check the format.')
+            toast.error('Failed to import data. Please check the format.')
           }
         } catch (error) {
-          alert('An error occurred during import.')
+          toast.error('An error occurred during import.')
         } finally {
           setUploading(false)
           if (fileInputRef.current) fileInputRef.current.value = ''
         }
       },
       error: () => {
-        alert('Failed to parse CSV file.')
+        toast.error('Failed to parse CSV file.')
         setUploading(false)
       }
     })
@@ -286,16 +321,27 @@ export default function StaffPage() {
         
         {/* Bulk Actions Header */}
         {selectedIds.length > 0 && (
-          <div className="bg-rose-500/10 px-6 py-4 flex items-center justify-between border-b border-rose-500/20 animate-in slide-in-from-top-2">
-            <span className="text-sm text-rose-200 font-bold tracking-wide">
+          <div className="bg-blue-500/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-between border-b border-blue-500/20 animate-in slide-in-from-top-2 gap-4">
+            <span className="text-sm text-blue-200 font-bold tracking-wide shrink-0">
               {selectedIds.length} STAFF SELECTED
             </span>
-            <button
-              onClick={handleBulkDelete}
-              className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white hover:bg-rose-400 rounded-xl transition-colors text-sm font-bold shadow-lg shadow-rose-500/20 hover:shadow-rose-500/40"
-            >
-              <Trash2 className="w-4 h-4" /> Bulk Delete
-            </button>
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <select 
+                onChange={(e) => handleBulkAssignShift(e.target.value)}
+                value=""
+                className="bg-black/60 border border-blue-500/30 rounded-xl px-3 py-2 text-sm text-white font-medium focus:outline-none focus:border-blue-500 transition-colors shadow-inner w-full sm:w-auto"
+              >
+                <option value="" disabled>Bulk Assign Shift...</option>
+                {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30 rounded-xl transition-colors text-sm font-bold shadow-sm w-full sm:w-auto"
+              >
+                <Trash2 className="w-4 h-4" /> Bulk Delete
+              </button>
+            </div>
           </div>
         )}
 
@@ -320,14 +366,40 @@ export default function StaffPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
-                      <p className="text-slate-400 font-medium animate-pulse">Loading staff directory...</p>
-                    </div>
-                  </td>
-                </tr>
+                <>
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i} className="animate-pulse border-b border-white/[0.04]">
+                      <td className="px-6 py-4 text-center">
+                        <div className="w-4 h-4 rounded bg-white/10 mx-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-white/10 shrink-0"></div>
+                          <div className="h-4 w-32 bg-white/10 rounded"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-6 w-20 bg-white/5 rounded-md"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="h-4 w-24 bg-white/10 rounded"></div>
+                          <div className="h-3 w-16 bg-white/5 rounded"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-6 w-24 bg-white/5 rounded-md"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-white/5"></div>
+                          <div className="w-8 h-8 rounded-lg bg-white/5"></div>
+                          <div className="w-8 h-8 rounded-lg bg-white/5"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ) : staffList.length > 0 ? (
                 staffList.map((staff) => (
                   <tr key={staff.id} className="hover:bg-white/5 transition-colors group">
@@ -401,12 +473,26 @@ export default function StaffPage() {
         {/* Mobile Cards View */}
         <div className="md:hidden flex flex-col gap-4">
           {loading ? (
-            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
-                <p className="text-slate-400 font-medium animate-pulse">Loading staff directory...</p>
-              </div>
-            </div>
+            <>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-black/40 border border-white/[0.04] rounded-3xl p-5 flex flex-col gap-4 animate-pulse">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 shrink-0"></div>
+                      <div className="flex flex-col gap-2">
+                        <div className="h-5 w-32 bg-white/10 rounded"></div>
+                        <div className="h-4 w-20 bg-white/5 rounded"></div>
+                      </div>
+                    </div>
+                    <div className="w-5 h-5 rounded bg-white/10"></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="bg-white/5 h-16 rounded-2xl"></div>
+                    <div className="bg-white/5 h-16 rounded-2xl"></div>
+                  </div>
+                </div>
+              ))}
+            </>
           ) : staffList.length > 0 ? (
             staffList.map((staff) => (
               <div key={staff.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">

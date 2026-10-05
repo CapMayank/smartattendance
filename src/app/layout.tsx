@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,6 +36,12 @@ export default function RootLayout({
             <main className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-2 sm:py-8">
               {children}
             </main>
+            <Toaster 
+              theme="dark" 
+              toastOptions={{ 
+                className: 'bg-black/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl',
+              }} 
+            />
           </div>
         </Providers>
       </body>

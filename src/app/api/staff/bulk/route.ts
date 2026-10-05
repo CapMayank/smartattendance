@@ -82,3 +82,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to process bulk import' }, { status: 500 })
   }
 }
+
+export async function PUT(request: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { ids, departmentId, designationId, shiftId } = await request.json()
+    if (!Array.isArray(ids) || ids.length === 0) return NextResponse.json({ error: 'Invalid ids' }, { status: 400 })
+
+    const dataToUpdate: any = {}
+    if (departmentId !== undefined) dataToUpdate.departmentId = departmentId || null
+    if (designationId !== undefined) dataToUpdate.designationId = designationId || null
+    if (shiftId !== undefined) dataToUpdate.shiftId = shiftId || null
+
+    await prisma.staff.updateMany({
+      where: { id: { in: ids } },
+      data: dataToUpdate
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Bulk Update Error:', error)
+    return NextResponse.json({ error: 'Failed to process bulk update' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { ids } = await request.json()
+    if (!Array.isArray(ids) || ids.length === 0) return NextResponse.json({ error: 'Invalid ids' }, { status: 400 })
+
+    await prisma.staff.deleteMany({
+      where: { id: { in: ids } }
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Bulk Delete Error:', error)
+    return NextResponse.json({ error: 'Failed to process bulk delete' }, { status: 500 })
+  }
+}
