@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { 
   LogOut, Activity, Users, Clock, Settings, Building2, 
   IdCard, FileText, Server, Calendar as CalendarIcon, 
-  Menu, X, Wallet, UserCheck, ChevronDown 
+  Menu, X, Wallet, UserCheck, ChevronDown, TrendingUp 
 } from "lucide-react"
 import { useState } from 'react'
 
@@ -38,6 +38,7 @@ export default function Navbar() {
     { name: 'Monthly Generation', href: '/payroll/monthly', icon: FileText },
     { name: 'Member History', href: '/reports/member-payroll', icon: Wallet },
     { name: 'Staff Salary Setup', href: '/payroll/staff', icon: Wallet },
+    { name: 'Payroll Analytics', href: '/reports/payroll-analytics', icon: TrendingUp },
   ]
 
   // 5. System
