@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     
     const lockedKeys = new Set(lockedPayrolls.map(p => `${p.staffId}-${p.month}-${p.year}`));
 
-    const newRecords = [];
+    const newRecords: any[] = [];
 
     for (const date of dateRange) {
       const dayOfWeek = date.getDay();
