@@ -222,6 +222,12 @@ export async function POST(request: Request) {
 
     const updatedPayrolls = await Promise.all(payrolls.map(async (p: any) => {
       const { id, presentDays, refundOfAdvance, monthlyCtc, totalDays } = p;
+
+      // Check if the payroll is locked before updating
+      const existing = await prisma.monthlyPayroll.findUnique({ where: { id } });
+      if (existing?.isLocked) {
+        return null; // Skip updating locked payrolls
+      }
       
       const calc = calculatePayroll(monthlyCtc, presentDays, totalDays, refundOfAdvance);
 

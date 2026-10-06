@@ -38,7 +38,7 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
       }
     }
   });
-  
+
   const holidayMap = new Map(holidays.map(h => [h.date.getTime(), h.name]));
   const weekOffDays = (policy as any).weekOffDays ? (policy as any).weekOffDays.split(',').map(Number) : [0]; // default Sunday
 
@@ -63,61 +63,74 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
       staffLogs[log.staffId].push(log);
     }
 
-      const dayOfWeek = date.getDay();
-      const dateKey = startOfDay(date).getTime();
-      const isHoliday = holidayMap.has(dateKey);
-      const isWeekOff = weekOffDays.includes(dayOfWeek);
+    const dayOfWeek = date.getDay();
+    const dateKey = startOfDay(date).getTime();
+    const isHoliday = holidayMap.has(dateKey);
+    const isWeekOff = weekOffDays.includes(dayOfWeek);
 
-      for (const staff of staffList) {
-        const myLogs = staffLogs[staff.id] || [];
-        
-        let status = 'ABSENT';
-        let checkIn = null;
-        let checkOut = null;
-        let workMinutes = 0;
-        let lateMinutes = 0;
+    for (const staff of staffList) {
+      const myLogs = staffLogs[staff.id] || [];
 
-        if (myLogs.length > 0) {
-          status = 'PRESENT';
-          
-          if (policy.allInOut === 'First IN Last OUT') {
-            checkIn = myLogs[0].timestamp;
-            checkOut = myLogs[myLogs.length - 1].timestamp;
-            
-            if (checkIn.getTime() !== checkOut.getTime()) {
-              workMinutes = differenceInMinutes(checkOut, checkIn);
-            }
-          } else {
-             checkIn = myLogs[0].timestamp;
-             checkOut = myLogs[myLogs.length - 1].timestamp;
-             workMinutes = differenceInMinutes(checkOut, checkIn);
-          }
+      let status = 'ABSENT';
+      let checkIn = null;
+      let checkOut = null;
+      let workMinutes = 0;
+      let lateMinutes = 0;
 
-          // Calculate Late Minutes based on shift
-          if (staff.shift) {
-            const shiftStart = parse(staff.shift.startTime, 'HH:mm', date);
-            const expectedArrival = new Date(shiftStart.getTime() + lateAllowMins * 60000);
-            
-            if (isAfter(checkIn, expectedArrival)) {
-              lateMinutes = differenceInMinutes(checkIn, shiftStart);
-            }
-          }
+      if (myLogs.length > 0) {
+        status = 'PRESENT';
 
-          if (!isHoliday && !isWeekOff) {
-            if (workMinutes < absentWorkMins && absentWorkMins > 0) {
-               status = 'ABSENT';
-            } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
-               status = 'HALF_DAY';
-            }
+        if (policy.allInOut === 'First IN Last OUT') {
+          checkIn = myLogs[0].timestamp;
+          checkOut = myLogs[myLogs.length - 1].timestamp;
+
+          if (checkIn.getTime() !== checkOut.getTime()) {
+            workMinutes = differenceInMinutes(checkOut, checkIn);
           }
         } else {
-          // No logs. Check if it's a holiday or a week off
-          if (isHoliday) {
-            status = 'HOLIDAY';
-          } else if (isWeekOff) {
-            status = 'WEEKOFF';
+          // "Every IN OUT" calculation
+          let totalMinutes = 0;
+          let currentIn = null;
+
+          for (const log of myLogs) {
+            if (log.type === 'IN') {
+              currentIn = log.timestamp;
+            } else if (log.type === 'OUT' && currentIn) {
+              totalMinutes += differenceInMinutes(log.timestamp, currentIn);
+              currentIn = null; // Reset for next pair
+            }
+          }
+
+          checkIn = myLogs[0].timestamp;
+          checkOut = myLogs[myLogs.length - 1].timestamp;
+          workMinutes = totalMinutes;
+        }
+
+        // Calculate Late Minutes based on shift
+        if (staff.shift) {
+          const shiftStart = parse(staff.shift.startTime, 'HH:mm', date);
+          const expectedArrival = new Date(shiftStart.getTime() + lateAllowMins * 60000);
+
+          if (isAfter(checkIn, expectedArrival)) {
+            lateMinutes = differenceInMinutes(checkIn, shiftStart);
           }
         }
+
+        if (!isHoliday && !isWeekOff) {
+          if (workMinutes < absentWorkMins && absentWorkMins > 0) {
+            status = 'ABSENT';
+          } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
+            status = 'HALF_DAY';
+          }
+        }
+      } else {
+        // No logs. Check if it's a holiday or a week off
+        if (isHoliday) {
+          status = 'HOLIDAY';
+        } else if (isWeekOff) {
+          status = 'WEEKOFF';
+        }
+      }
 
       newRecords.push({
         staffId: staff.id,
@@ -132,27 +145,64 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
     }
   }
 
+  const startYear = startDate.getFullYear();
+  const endYear = endDate.getFullYear();
+
+  // Fetch all locked payrolls within this range to prevent modifying their daily records
+  const lockedPayrolls = await prisma.monthlyPayroll.findMany({
+    where: {
+      isLocked: true,
+      year: { gte: startYear, lte: endYear }
+    },
+    select: { staffId: true, month: true, year: true }
+  });
+  
+  const lockedKeys = new Set(lockedPayrolls.map(p => `${p.staffId}-${p.month}-${p.year}`));
+
+  const validNewRecords = newRecords.filter(r => {
+    const m = r.date.getMonth() + 1;
+    const y = r.date.getFullYear();
+    return !lockedKeys.has(`${r.staffId}-${m}-${y}`);
+  });
+
   // Use a transaction to safely delete and replace to prevent race conditions
   await prisma.$transaction(async (tx) => {
-    // Delete existing records in the date range to recalculate
-    await tx.dailyRecord.deleteMany({
+    const existingRecords = await tx.dailyRecord.findMany({
       where: {
         date: {
           gte: startOfDay(startDate),
           lte: startOfDay(endDate)
         }
-      }
+      },
+      select: { id: true, staffId: true, date: true }
     });
 
-    // Batch insert
+    const idsToDelete = existingRecords.filter(r => {
+      const m = r.date.getMonth() + 1;
+      const y = r.date.getFullYear();
+      return !lockedKeys.has(`${r.staffId}-${m}-${y}`);
+    }).map(r => r.id);
+
+    // Delete existing unlocked records in the date range
+    if (idsToDelete.length > 0) {
+      // Chunk deletions if there are too many (e.g., > 10000)
+      const delChunkSize = 5000;
+      for (let i = 0; i < idsToDelete.length; i += delChunkSize) {
+        await tx.dailyRecord.deleteMany({
+          where: { id: { in: idsToDelete.slice(i, i + delChunkSize) } }
+        });
+      }
+    }
+
+    // Batch insert valid new records
     const chunkSize = 100;
-    for (let i = 0; i < newRecords.length; i += chunkSize) {
-      const chunk = newRecords.slice(i, i + chunkSize);
+    for (let i = 0; i < validNewRecords.length; i += chunkSize) {
+      const chunk = validNewRecords.slice(i, i + chunkSize);
       await tx.dailyRecord.createMany({
         data: chunk,
       });
     }
   });
 
-  return newRecords.length;
+  return validNewRecords.length;
 }

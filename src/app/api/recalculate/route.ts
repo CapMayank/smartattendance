@@ -64,15 +64,7 @@ export async function POST(request: Request) {
     const holidayMap = new Map(holidays.map(h => [h.date.getTime(), h.name]));
     const weekOffDays = (policy as any).weekOffDays ? (policy as any).weekOffDays.split(',').map(Number) : [0]; // default Sunday
 
-    // Delete existing records in the date range to recalculate
-    await prisma.dailyRecord.deleteMany({
-      where: {
-        date: {
-          gte: startOfDay(startD),
-          lte: startOfDay(endD)
-        }
-      }
-    });
+    // Deletion will happen safely at the end inside a transaction
 
     const newRecords = [];
 
@@ -120,9 +112,22 @@ export async function POST(request: Request) {
               workMinutes = differenceInMinutes(checkOut, checkIn);
             }
           } else {
+             // "Every IN OUT" calculation
+             let totalMinutes = 0;
+             let currentIn = null;
+             
+             for (const log of myLogs) {
+                if (log.type === 'IN') {
+                   currentIn = log.timestamp;
+                } else if (log.type === 'OUT' && currentIn) {
+                   totalMinutes += differenceInMinutes(log.timestamp, currentIn);
+                   currentIn = null; // Reset for next pair
+                }
+             }
+             
              checkIn = myLogs[0].timestamp;
              checkOut = myLogs[myLogs.length - 1].timestamp;
-             workMinutes = differenceInMinutes(checkOut, checkIn);
+             workMinutes = totalMinutes;
           }
 
           // Calculate Late Minutes based on shift
@@ -164,8 +169,63 @@ export async function POST(request: Request) {
       }
     }
 
-    await prisma.dailyRecord.createMany({
-      data: newRecords,
+    const startYear = startD.getFullYear();
+    const endYear = endD.getFullYear();
+
+    // Fetch all locked payrolls within this range to prevent modifying their daily records
+    const lockedPayrolls = await prisma.monthlyPayroll.findMany({
+      where: {
+        isLocked: true,
+        year: { gte: startYear, lte: endYear }
+      },
+      select: { staffId: true, month: true, year: true }
+    });
+    
+    const lockedKeys = new Set(lockedPayrolls.map(p => `${p.staffId}-${p.month}-${p.year}`));
+
+    const validNewRecords = newRecords.filter(r => {
+      const m = r.date.getMonth() + 1;
+      const y = r.date.getFullYear();
+      return !lockedKeys.has(`${r.staffId}-${m}-${y}`);
+    });
+
+    // Use a transaction to safely delete and replace to prevent race conditions
+    await prisma.$transaction(async (tx) => {
+      const existingRecords = await tx.dailyRecord.findMany({
+        where: {
+          date: {
+            gte: startOfDay(startD!),
+            lte: startOfDay(endD)
+          }
+        },
+        select: { id: true, staffId: true, date: true }
+      });
+
+      const idsToDelete = existingRecords.filter(r => {
+        const m = r.date.getMonth() + 1;
+        const y = r.date.getFullYear();
+        return !lockedKeys.has(`${r.staffId}-${m}-${y}`);
+      }).map(r => r.id);
+
+      // Delete existing unlocked records in the date range
+      if (idsToDelete.length > 0) {
+        // Chunk deletions if there are too many
+        const delChunkSize = 5000;
+        for (let i = 0; i < idsToDelete.length; i += delChunkSize) {
+          await tx.dailyRecord.deleteMany({
+            where: { id: { in: idsToDelete.slice(i, i + delChunkSize) } }
+          });
+        }
+      }
+
+      // Batch insert valid new records
+      const chunkSize = 100;
+      for (let i = 0; i < validNewRecords.length; i += chunkSize) {
+        const chunk = validNewRecords.slice(i, i + chunkSize);
+        await tx.dailyRecord.createMany({
+          data: chunk,
+        });
+      }
     });
 
     return NextResponse.json({ success: true, recalculatedDays: dateRange.length, processedRecords: newRecords.length });
