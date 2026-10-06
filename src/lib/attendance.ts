@@ -177,11 +177,12 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
     } else {
       // Build conditions to exclude locked staff/months from deletion
       const lockedConditions = lockedPayrolls.map(p => {
-        const startOfMonth = new Date(Date.UTC(p.year, p.month - 1, 1));
-        const endOfMonth = new Date(Date.UTC(p.year, p.month, 0, 23, 59, 59, 999));
+        // Use local timezone to match the 'startOfDay' dates in the DB
+        const startOfM = startOfDay(new Date(p.year, p.month - 1, 1));
+        const endOfM = endOfDay(new Date(p.year, p.month, 0));
         return {
           staffId: p.staffId,
-          date: { gte: startOfMonth, lte: endOfMonth }
+          date: { gte: startOfM, lte: endOfM }
         };
       });
 
