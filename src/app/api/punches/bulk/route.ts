@@ -20,11 +20,43 @@ export async function POST(req: Request) {
     const start = parseISO(startDate)
     const end = parseISO(endDate)
 
+    // Guardrail: Cannot punch in the future
+    if (start > new Date() || end > new Date()) {
+      return NextResponse.json({ error: 'Cannot add punches for future dates' }, { status: 400 })
+    }
+
     if (start > end) {
       return NextResponse.json({ error: 'Start date must be before end date' }, { status: 400 })
     }
 
     const days = eachDayOfInterval({ start, end })
+
+    // Guardrail: Check if any payroll is locked for the selected staff and months involved
+    const monthYears = new Set<string>()
+    for (const day of days) {
+      monthYears.add(`${day.getMonth() + 1}-${day.getFullYear()}`)
+    }
+
+    const lockedChecks = Array.from(monthYears).map(async (my) => {
+      const [monthStr, yearStr] = my.split('-')
+      const month = parseInt(monthStr, 10)
+      const year = parseInt(yearStr, 10)
+
+      const lockedPayrolls = await prisma.monthlyPayroll.findFirst({
+        where: {
+          staffId: { in: staffIds },
+          month,
+          year,
+          isLocked: true
+        }
+      })
+      return lockedPayrolls
+    })
+
+    const lockedResults = await Promise.all(lockedChecks)
+    if (lockedResults.some(r => r !== null)) {
+      return NextResponse.json({ error: 'Cannot modify punches for a locked payroll month for one or more selected staff' }, { status: 400 })
+    }
     
     // Parse the time (HH:MM)
     const [hours, minutes] = time.split(':').map(Number)

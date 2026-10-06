@@ -52,6 +52,29 @@ export async function POST(req: Request) {
 
     const date = new Date(timestamp)
 
+    // Guardrail: Cannot punch in the future
+    if (date > new Date()) {
+      return NextResponse.json({ error: 'Cannot add punches for future dates/times' }, { status: 400 })
+    }
+
+    // Guardrail: Check if payroll is locked for this month
+    const month = date.getMonth() + 1 // 1-12
+    const year = date.getFullYear()
+
+    const lockedPayroll = await prisma.monthlyPayroll.findUnique({
+      where: {
+        staffId_month_year: {
+          staffId,
+          month,
+          year
+        }
+      }
+    })
+
+    if (lockedPayroll?.isLocked) {
+      return NextResponse.json({ error: 'Cannot modify punches for a locked payroll month' }, { status: 400 })
+    }
+
     const log = await prisma.attendanceLog.create({
       data: {
         staffId,
@@ -92,6 +115,24 @@ export async function DELETE(req: Request) {
     }
 
     const date = log.timestamp
+
+    // Guardrail: Check if payroll is locked for this month before deleting
+    const month = date.getMonth() + 1
+    const year = date.getFullYear()
+
+    const lockedPayroll = await prisma.monthlyPayroll.findUnique({
+      where: {
+        staffId_month_year: {
+          staffId: log.staffId,
+          month,
+          year
+        }
+      }
+    })
+
+    if (lockedPayroll?.isLocked) {
+      return NextResponse.json({ error: 'Cannot delete punches for a locked payroll month' }, { status: 400 })
+    }
 
     await prisma.attendanceLog.delete({
       where: { id }
