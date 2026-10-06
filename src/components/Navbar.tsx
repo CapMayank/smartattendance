@@ -29,6 +29,7 @@ export default function Navbar() {
 
   // 3. Attendance
   const attendanceLinks = [
+    { name: 'Manual Punch', href: '/attendance/manual', icon: Clock },
     { name: 'Overall Reports', href: '/reports', icon: FileText },
     { name: 'Member Details', href: '/reports/member-attendance', icon: UserCheck },
   ]
