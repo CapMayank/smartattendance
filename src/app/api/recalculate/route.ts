@@ -66,6 +66,20 @@ export async function POST(request: Request) {
 
     // Deletion will happen safely at the end inside a transaction
 
+    const startYear = startD.getFullYear();
+    const endYear = endD.getFullYear();
+
+    // Fetch all locked payrolls within this range to prevent modifying their daily records
+    const lockedPayrolls = await prisma.monthlyPayroll.findMany({
+      where: {
+        isLocked: true,
+        year: { gte: startYear, lte: endYear }
+      },
+      select: { staffId: true, month: true, year: true }
+    });
+    
+    const lockedKeys = new Set(lockedPayrolls.map(p => `${p.staffId}-${p.month}-${p.year}`));
+
     const newRecords = [];
 
     for (const date of dateRange) {
@@ -156,72 +170,60 @@ export async function POST(request: Request) {
           }
         }
 
-        newRecords.push({
-          staffId: staff.id,
-          date: startOfDay(date),
-          status,
-          checkIn,
-          checkOut,
-          lateMinutes,
-          workMinutes,
-          overtimeMinutes: 0 // Simplification for now
-        });
+        if (!lockedKeys.has(`${staff.id}-${date.getMonth() + 1}-${date.getFullYear()}`)) {
+          newRecords.push({
+            staffId: staff.id,
+            date: startOfDay(date),
+            status,
+            checkIn,
+            checkOut,
+            lateMinutes,
+            workMinutes,
+            overtimeMinutes: 0 // Simplification for now
+          });
+        }
       }
     }
 
-    const startYear = startD.getFullYear();
-    const endYear = endD.getFullYear();
-
-    // Fetch all locked payrolls within this range to prevent modifying their daily records
-    const lockedPayrolls = await prisma.monthlyPayroll.findMany({
-      where: {
-        isLocked: true,
-        year: { gte: startYear, lte: endYear }
-      },
-      select: { staffId: true, month: true, year: true }
-    });
-    
-    const lockedKeys = new Set(lockedPayrolls.map(p => `${p.staffId}-${p.month}-${p.year}`));
-
-    const validNewRecords = newRecords.filter(r => {
-      const m = r.date.getMonth() + 1;
-      const y = r.date.getFullYear();
-      return !lockedKeys.has(`${r.staffId}-${m}-${y}`);
-    });
-
     // Use a transaction to safely delete and replace to prevent race conditions
     await prisma.$transaction(async (tx) => {
-      const existingRecords = await tx.dailyRecord.findMany({
-        where: {
-          date: {
-            gte: startOfDay(startD!),
-            lte: startOfDay(endD)
+      
+      // Fast path: if no locked payrolls, just delete all in range
+      if (lockedPayrolls.length === 0) {
+        await tx.dailyRecord.deleteMany({
+          where: {
+            date: {
+              gte: startOfDay(startD!),
+              lte: startOfDay(endD)
+            }
           }
-        },
-        select: { id: true, staffId: true, date: true }
-      });
+        });
+      } else {
+        // Build conditions to exclude locked staff/months from deletion
+        const lockedConditions = lockedPayrolls.map(p => {
+          const startOfMonth = new Date(Date.UTC(p.year, p.month - 1, 1));
+          const endOfMonth = new Date(Date.UTC(p.year, p.month, 0, 23, 59, 59, 999));
+          return {
+            staffId: p.staffId,
+            date: { gte: startOfMonth, lte: endOfMonth }
+          };
+        });
 
-      const idsToDelete = existingRecords.filter(r => {
-        const m = r.date.getMonth() + 1;
-        const y = r.date.getFullYear();
-        return !lockedKeys.has(`${r.staffId}-${m}-${y}`);
-      }).map(r => r.id);
-
-      // Delete existing unlocked records in the date range
-      if (idsToDelete.length > 0) {
-        // Chunk deletions if there are too many
-        const delChunkSize = 5000;
-        for (let i = 0; i < idsToDelete.length; i += delChunkSize) {
-          await tx.dailyRecord.deleteMany({
-            where: { id: { in: idsToDelete.slice(i, i + delChunkSize) } }
-          });
-        }
+        await tx.dailyRecord.deleteMany({
+          where: {
+            date: {
+              gte: startOfDay(startD!),
+              lte: startOfDay(endD)
+            },
+            NOT: { OR: lockedConditions }
+          }
+        });
       }
 
       // Batch insert valid new records
       const chunkSize = 100;
-      for (let i = 0; i < validNewRecords.length; i += chunkSize) {
-        const chunk = validNewRecords.slice(i, i + chunkSize);
+      for (let i = 0; i < newRecords.length; i += chunkSize) {
+        const chunk = newRecords.slice(i, i + chunkSize);
         await tx.dailyRecord.createMany({
           data: chunk,
         });
