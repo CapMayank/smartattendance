@@ -50,15 +50,15 @@ export default function DashboardCards({
         {/* Total Staff */}
         <div 
           onClick={() => openModal('Total Staff', allStaff)}
-          className="p-5 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-blue-500/[0.12] rounded-xl">
+            <div className="p-3 bg-blue-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Users className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Total Staff</p>
-              <h3 className="text-xl font-bold text-slate-100 mt-0.5">{staffCount}</h3>
+              <p className="text-xs font-medium text-slate-400">Total Staff</p>
+              <h3 className="text-xl font-bold text-white mt-0.5">{staffCount}</h3>
             </div>
           </div>
         </div>
@@ -66,15 +66,15 @@ export default function DashboardCards({
         {/* Currently In */}
         <div 
           onClick={() => openModal('Currently In', presentStaff)}
-          className="p-5 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-emerald-500/[0.12] rounded-xl">
+            <div className="p-3 bg-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Fingerprint className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Currently In</p>
-              <h3 className="text-xl font-bold text-slate-100 mt-0.5">{currentlyIn}</h3>
+              <p className="text-xs font-medium text-slate-400">Currently In</p>
+              <h3 className="text-xl font-bold text-white mt-0.5">{currentlyIn}</h3>
             </div>
           </div>
         </div>
@@ -82,42 +82,42 @@ export default function DashboardCards({
         {/* Absent Today */}
         <div 
           onClick={() => openModal('Absent Today', absentStaff)}
-          className="p-5 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-rose-500/30 hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-rose-500/[0.12] rounded-xl">
+            <div className="p-3 bg-rose-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <UserMinus className="w-5 h-5 text-rose-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Absent Today</p>
-              <h3 className="text-xl font-bold text-slate-100 mt-0.5">{absentCount}</h3>
+              <p className="text-xs font-medium text-slate-400">Absent Today</p>
+              <h3 className="text-xl font-bold text-white mt-0.5">{absentCount}</h3>
             </div>
           </div>
         </div>
 
         {/* Logs Today */}
-        <div className="p-5 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group">
+        <div className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 group">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-amber-500/[0.12] rounded-xl">
+            <div className="p-3 bg-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Clock className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Logs Today</p>
-              <h3 className="text-xl font-bold text-slate-100 mt-0.5">{logsCount}</h3>
+              <p className="text-xs font-medium text-slate-400">Logs Today</p>
+              <h3 className="text-xl font-bold text-white mt-0.5">{logsCount}</h3>
             </div>
           </div>
         </div>
 
         {/* Devices Online */}
-        <div className="p-5 rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group">
+        <div className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300 group">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-blue-500/[0.12] rounded-xl relative">
-              <Server className="w-5 h-5 text-blue-400" />
-              {onlineDevices > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse border border-[#080A10]"></span>}
+            <div className="p-3 bg-indigo-500/20 rounded-xl group-hover:scale-110 transition-transform relative">
+              <Server className="w-5 h-5 text-indigo-400" />
+              {onlineDevices > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse border border-slate-900"></span>}
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Devices Online</p>
-              <h3 className="text-xl font-bold text-slate-100 mt-0.5">{onlineDevices} <span className="text-xs font-normal text-slate-600">/ {devicesCount}</span></h3>
+              <p className="text-xs font-medium text-slate-400">Devices Online</p>
+              <h3 className="text-xl font-bold text-white mt-0.5">{onlineDevices} <span className="text-xs font-normal text-slate-500">/ {devicesCount}</span></h3>
             </div>
           </div>
         </div>
@@ -125,13 +125,13 @@ export default function DashboardCards({
 
       {/* Modal Overlay */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl animate-in fade-in duration-200">
-          <div className="bg-[#0d1017]/95 border border-white/[0.08] backdrop-blur-2xl rounded-2xl w-full max-w-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
-              <h3 className="text-lg font-bold text-slate-100">{modalTitle}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-300">
+          <div className="bg-black/60 border border-white/[0.08] backdrop-blur-3xl rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col max-h-[80vh] scale-in-95 duration-300">
+            <div className="flex items-center justify-between p-4 border-b border-white/[0.08]">
+              <h3 className="text-lg font-bold text-white">{modalTitle}</h3>
               <button 
                 onClick={() => setModalOpen(false)}
-                className="p-1 text-slate-500 hover:text-slate-200 hover:bg-white/[0.06] rounded-lg transition-colors"
+                className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -140,19 +140,19 @@ export default function DashboardCards({
               {modalData.length > 0 ? (
                 <div className="flex flex-col gap-1">
                   {modalData.map(staff => (
-                    <div key={staff.id} className="p-3 hover:bg-white/[0.04] rounded-xl flex items-center justify-between transition-colors">
+                    <div key={staff.id} className="p-3 hover:bg-white/5 rounded-lg flex items-center justify-between transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/[0.07] border border-white/[0.07] flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/[0.08] text-xs font-bold text-white shrink-0">
                           {staff.name.substring(0,2).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex flex-col">
                           <span className="font-medium text-slate-200 truncate">{staff.name}</span>
-                          <span className="text-xs text-slate-500 truncate">Machine ID: {staff.machineId}</span>
+                          <span className="text-xs text-slate-400 truncate">Machine ID: {staff.machineId}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                         {staff.department && (
-                          <span className="text-xs px-2 py-0.5 bg-white/[0.04] border border-white/[0.06] rounded text-slate-400 truncate max-w-[120px]">
+                          <span className="text-xs px-2 py-0.5 bg-white/5 rounded text-slate-300 truncate max-w-[120px]">
                             {staff.department.name}
                           </span>
                         )}
@@ -161,13 +161,13 @@ export default function DashboardCards({
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center text-slate-500">
+                <div className="p-8 text-center text-slate-400">
                   <p>No staff found for this category.</p>
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-white/[0.06] bg-white/[0.01]">
-              <p className="text-sm text-slate-500 text-center">Total count: {modalData.length}</p>
+            <div className="p-4 border-t border-white/[0.08] bg-black/20">
+              <p className="text-sm text-slate-400 text-center">Total count: {modalData.length}</p>
             </div>
           </div>
         </div>

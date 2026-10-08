@@ -20,13 +20,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.className} bg-[#080A10] text-slate-200 min-h-screen antialiased`}
+        className={`${inter.className} bg-black/50 text-slate-100 min-h-screen antialiased`}
       >
         <Providers>
           <div className="relative min-h-screen">
-            {/* Subtle background — single faint radial bloom */}
-            <div className="fixed inset-0 pointer-events-none -z-10 bg-[#080A10]">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[50%] rounded-full bg-blue-950/30 blur-[200px] opacity-40" />
+            {/* Liquid Glass Background Effects */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-[#020205]">
+              <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-blue-900/20 blur-[140px]"></div>
+              <div className="absolute top-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-purple-900/20 blur-[140px]"></div>
+              <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-cyan-900/15 blur-[140px]"></div>
+              <div className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] rounded-full bg-indigo-900/20 blur-[140px]"></div>
             </div>
             
             <Navbar />
@@ -36,7 +39,7 @@ export default function RootLayout({
             <Toaster 
               theme="dark" 
               toastOptions={{ 
-                className: 'bg-[#0d1017]/90 backdrop-blur-xl border border-white/[0.08] text-slate-200 shadow-2xl',
+                className: 'bg-black/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl',
               }} 
             />
           </div>

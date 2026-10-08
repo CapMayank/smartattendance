@@ -211,22 +211,24 @@ export default function StaffPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-white/[0.05] rounded-2xl border border-white/[0.06]">
+          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-blue-500/10">
             <Users className="w-8 h-8 text-blue-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-100">
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
               Staff Management
             </h1>
-            <p className="text-slate-500 mt-1 font-medium">Manage staff details, machine IDs, and shifts</p>
+            <p className="text-slate-400 mt-1 font-medium">Manage staff details, machine IDs, and shifts</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Create Form Container */}
-        <div className="bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex flex-col h-full">
-          <h2 className="text-xl font-bold text-slate-100 mb-6 relative z-10 flex items-center gap-2">
+        <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col h-full">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <h2 className="text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-2">
             <Plus className="w-5 h-5 text-blue-400" />
             Add New Staff
           </h2>
@@ -235,36 +237,36 @@ export default function StaffPage() {
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Full Name</label>
-                  <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all" placeholder="e.g. John Doe" required />
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Full Name</label>
+                  <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" placeholder="e.g. John Doe" required />
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Machine ID</label>
-                  <input type="text" value={formData.machineId} onChange={e => setFormData({...formData, machineId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all" placeholder="e.g. 101" required />
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Machine ID</label>
+                  <input type="text" value={formData.machineId} onChange={e => setFormData({...formData, machineId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" placeholder="e.g. 101" required />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Department</label>
-                  <select value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all appearance-none cursor-pointer">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Department</label>
+                  <select value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none cursor-pointer">
                     <option value="">No Dept...</option>
                     {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Designation</label>
-                  <select value={formData.designationId} onChange={e => setFormData({...formData, designationId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all appearance-none cursor-pointer">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Designation</label>
+                  <select value={formData.designationId} onChange={e => setFormData({...formData, designationId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none cursor-pointer">
                     <option value="">No Role...</option>
                     {desigs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Shift</label>
-                  <select value={formData.shiftId} onChange={e => setFormData({...formData, shiftId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all appearance-none cursor-pointer">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Shift</label>
+                  <select value={formData.shiftId} onChange={e => setFormData({...formData, shiftId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none cursor-pointer">
                     <option value="">No Shift...</option>
                     {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -272,21 +274,23 @@ export default function StaffPage() {
               </div>
             </div>
 
-            <button type="submit" className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all duration-200">
+            <button type="submit" className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5">
               <Plus className="w-5 h-5" /> Add Staff Member
             </button>
           </form>
         </div>
 
         {/* Bulk Upload Widget */}
-        <div className="bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex flex-col justify-center gap-8 h-full">
+        <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col justify-center gap-8 h-full">
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+          
           <div className="flex flex-col sm:flex-row sm:items-center gap-6 relative z-10">
             <div className="p-4 bg-emerald-500/20 rounded-3xl border border-emerald-500/20 shadow-inner shrink-0">
               <FileSpreadsheet className="w-10 h-10 text-emerald-400" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">Bulk Master Sheet Upload</h3>
-              <p className="text-slate-500 mt-1 font-medium">Import multiple staff members instantly via CSV format.</p>
+              <p className="text-slate-400 mt-1 font-medium">Import multiple staff members instantly via CSV format.</p>
             </div>
           </div>
 
@@ -313,7 +317,7 @@ export default function StaffPage() {
       </div>
 
       {/* Staff List Table */}
-      <div className="bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] rounded-2xl overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex flex-col">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col">
         
         {/* Bulk Actions Header */}
         {selectedIds.length > 0 && (
@@ -398,7 +402,7 @@ export default function StaffPage() {
                 </>
               ) : staffList.length > 0 ? (
                 staffList.map((staff) => (
-                  <tr key={staff.id} className="hover:bg-white/[0.04] transition-colors group">
+                  <tr key={staff.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4 text-center">
                       <input 
                         type="checkbox" 
@@ -409,7 +413,7 @@ export default function StaffPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white/[0.08] text-slate-300 border border-white/[0.08] flex items-center justify-center text-sm font-bold text-white shadow-lg border border-white/[0.08] shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-lg border border-white/[0.08] shrink-0">
                           {staff.name.substring(0, 2).toUpperCase()}
                         </div>
                         <span className="font-semibold text-slate-200 text-base">{staff.name}</span>
@@ -491,11 +495,13 @@ export default function StaffPage() {
             </>
           ) : staffList.length > 0 ? (
             staffList.map((staff) => (
-              <div key={staff.id} className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
+              <div key={staff.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
                 {/* Decorative background glow */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
+                
                 <div className="flex items-start justify-between relative z-10">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white/[0.08] text-slate-300 border border-white/[0.08] flex items-center justify-center text-lg font-black shadow-lg shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg font-black text-white shadow-lg border border-white/[0.08] shrink-0">
                       {staff.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex flex-col">
@@ -512,14 +518,14 @@ export default function StaffPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-2 relative z-10">
-                  <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05]">
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Machine ID</span>
                     <div className="inline-flex items-center gap-1.5 font-bold text-slate-300">
                       <Hash className="w-3.5 h-3.5 text-blue-400" />
                       {staff.machineId}
                     </div>
                   </div>
-                  <div className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.05]">
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Department</span>
                     <span className="font-bold text-slate-300 truncate block">
                       {staff.department?.name || 'None'}
@@ -527,7 +533,7 @@ export default function StaffPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.06] relative z-10">
+                <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.08] relative z-10">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Shift</span>
                     {staff.shift ? (
@@ -539,13 +545,13 @@ export default function StaffPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} className="p-2.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-400/10 bg-white/[0.03] border border-white/[0.06] rounded-lg transition-all" title="View Attendance">
+                    <button onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} className="p-2.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm" title="View Attendance">
                       <Calendar className="w-4 h-4" />
                     </button>
-                    <button onClick={() => startEditing(staff)} className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 bg-white/[0.03] border border-white/[0.06] rounded-lg transition-all" title="Edit Staff">
+                    <button onClick={() => startEditing(staff)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm" title="Edit Staff">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(staff.id)} className="p-2.5 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 bg-white/[0.03] border border-white/[0.06] rounded-lg transition-all">
+                    <button onClick={() => handleDelete(staff.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -553,7 +559,7 @@ export default function StaffPage() {
               </div>
             ))
           ) : (
-            <div className="p-12 text-center bg-white/[0.03] rounded-2xl border border-white/[0.05]">
+            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
               <div className="flex flex-col items-center gap-3">
                 <Users className="w-12 h-12 text-slate-600 mb-2" />
                 <p className="text-slate-300 font-bold text-lg">No Staff Found</p>
@@ -566,10 +572,10 @@ export default function StaffPage() {
 
       {/* Modern Edit Modal */}
       {editingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl animate-in fade-in">
-          <div className="bg-[#0d1017]/95 backdrop-blur-2xl border border-white/[0.07] rounded-2xl w-full max-w-lg shadow-[0_4px_24px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col">
-            <div className="px-6 py-5 border-b border-white/[0.06] flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in">
+          <div className="bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-3xl w-full max-w-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col">
+            <div className="px-6 py-5 border-b border-white/[0.08] flex justify-between items-center bg-black/50">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-blue-400" /> Edit Staff Member
               </h3>
               <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
@@ -579,27 +585,27 @@ export default function StaffPage() {
             
             <div className="p-6 space-y-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Full Name</label>
-                <input type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all" />
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Full Name</label>
+                <input type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" />
               </div>
               
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Machine ID</label>
-                <input type="text" value={editData.machineId} onChange={e => setEditData({...editData, machineId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all" />
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Machine ID</label>
+                <input type="text" value={editData.machineId} onChange={e => setEditData({...editData, machineId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Department</label>
-                  <select value={editData.departmentId} onChange={e => setEditData({...editData, departmentId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all appearance-none">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Department</label>
+                  <select value={editData.departmentId} onChange={e => setEditData({...editData, departmentId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none">
                     <option value="">No Dept</option>
                     {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Designation</label>
-                  <select value={editData.designationId} onChange={e => setEditData({...editData, designationId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all appearance-none">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Designation</label>
+                  <select value={editData.designationId} onChange={e => setEditData({...editData, designationId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none">
                     <option value="">No Role</option>
                     {desigs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
@@ -607,19 +613,19 @@ export default function StaffPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Assigned Shift</label>
-                <select value={editData.shiftId} onChange={e => setEditData({...editData, shiftId: e.target.value})} className="w-full bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/15 transition-all appearance-none">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Assigned Shift</label>
+                <select value={editData.shiftId} onChange={e => setEditData({...editData, shiftId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none">
                   <option value="">No Shift</option>
                   {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/[0.06] flex gap-3 bg-white/[0.01]">
-              <button onClick={() => setEditingId(null)} className="flex-1 px-4 py-3 bg-white/[0.04] hover:bg-white/[0.07] text-slate-300 font-bold rounded-xl transition-colors border border-white/[0.06]">
+            <div className="p-6 border-t border-white/[0.08] flex gap-3 bg-black/30">
+              <button onClick={() => setEditingId(null)} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-colors border border-white/[0.04]">
                 Cancel
               </button>
-              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all duration-200">
+              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5">
                 <Check className="w-5 h-5" /> Save Changes
               </button>
             </div>
