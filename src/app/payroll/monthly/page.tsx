@@ -155,12 +155,12 @@ export default function MonthlyPayrollPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
+          <div className="p-3 bg-white/[0.05] rounded-2xl border border-white/[0.06]">
             <FileText className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100">
                 Monthly Payroll
               </h1>
               {payrolls.length > 0 && (
@@ -173,15 +173,13 @@ export default function MonthlyPayrollPage() {
                 </span>
               )}
             </div>
-            <p className="text-slate-400 mt-1 font-medium">Follow the steps below to process and export payroll</p>
+            <p className="text-slate-500 mt-1 font-medium">Follow the steps below to process and export payroll</p>
           </div>
         </div>
       </div>
 
       {/* 5-Step Process Wizard */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-5 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        
+      <div className="bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-5 mb-8 shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative overflow-hidden">
         <div className="flex flex-col xl:flex-row gap-6 relative z-10 items-stretch">
           
           {/* Step 1 & 2: Setup & Sync */}
@@ -193,7 +191,7 @@ export default function MonthlyPayrollPage() {
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
+                  className="bg-white/[0.04] border border-white/[0.07] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                     <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
@@ -204,7 +202,7 @@ export default function MonthlyPayrollPage() {
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
+                  className="bg-white/[0.04] border border-white/[0.07] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
                 >
                   {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -318,7 +316,7 @@ export default function MonthlyPayrollPage() {
       </div>
 
       {/* Main Table Area */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
+      <div className="bg-white/[0.025] backdrop-blur-xl border border-white/[0.06] rounded-2xl overflow-hidden flex flex-col shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative">
         <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar px-4 pb-3">
           <table className="glass-table text-sm text-left whitespace-nowrap">
             <thead>
@@ -337,7 +335,7 @@ export default function MonthlyPayrollPage() {
                 <tr>
                   <td colSpan={7} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+                      <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin "></div>
                       <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
                     </div>
                   </td>
@@ -365,7 +363,7 @@ export default function MonthlyPayrollPage() {
                     <tr key={p.id} className="group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
+                          <div className="w-10 h-10 rounded-2xl bg-white/[0.08] text-slate-300 border border-white/[0.08] border border-white/[0.08] flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
                             {p.staff.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
@@ -446,7 +444,7 @@ export default function MonthlyPayrollPage() {
         <div className="md:hidden p-4 space-y-3">
           {loading && payrolls.length === 0 ? (
             <div className="py-16 flex flex-col items-center gap-4">
-              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin "></div>
               <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
             </div>
           ) : payrolls.length === 0 ? (

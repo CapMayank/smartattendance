@@ -36,48 +36,48 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-md p-8 rounded-3xl bg-black/20 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <div className="w-full max-w-md p-8 rounded-2xl bg-white/[0.025] backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
+          <h1 className="text-3xl font-bold text-slate-100">
             Welcome Back
           </h1>
-          <p className="text-slate-400 mt-2 text-sm">
+          <p className="text-slate-500 mt-2 text-sm">
             Sign in to access your Attendance Dashboard
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg text-center">
+            <div className="p-3 text-sm text-rose-400 bg-rose-400/[0.08] border border-rose-400/20 rounded-lg text-center">
               {error}
             </div>
           )}
           
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Email</label>
+            <label className="text-sm font-medium text-slate-400">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-black/40 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-200 transition-all placeholder:text-slate-600"
+              className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.07] rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 text-slate-200 transition-all placeholder:text-slate-600"
               placeholder="admin@example.com"
             />
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Password</label>
+            <label className="text-sm font-medium text-slate-400">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-black/40 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-200 transition-all placeholder:text-slate-600"
+              className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.07] rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 text-slate-200 transition-all placeholder:text-slate-600"
               placeholder="••••••••"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] active:scale-[0.98]"
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition-all duration-200 active:scale-[0.98]"
           >
             Sign In
           </button>

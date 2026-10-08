@@ -125,12 +125,12 @@ export default async function Dashboard() {
       <AutoRefresh />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Sarvodaya English Higher Secondary School Lakhnadon</h1>
-          <p className="text-slate-400 mt-1">Staff Attendance System Dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">Sarvodaya English Higher Secondary School Lakhnadon</h1>
+          <p className="text-slate-500 mt-1">Staff Attendance System Dashboard</p>
         </div>
-        <div className="px-4 py-2 bg-black/20 rounded-xl border border-white/[0.08] flex items-center gap-2 backdrop-blur-2xl shadow-[0_4px_15px_rgba(0,0,0,0.2)]">
+        <div className="px-4 py-2 bg-white/[0.03] rounded-xl border border-white/[0.06] flex items-center gap-2 backdrop-blur-xl">
           <CalendarDays className="w-4 h-4 text-blue-400" />
-          <span className="text-sm font-medium">{format(new Date(), 'EEEE, MMMM do yyyy')}</span>
+          <span className="text-sm font-medium text-slate-300">{format(new Date(), 'EEEE, MMMM do yyyy')}</span>
         </div>
       </div>
 
@@ -153,13 +153,13 @@ export default async function Dashboard() {
         <div className="lg:col-span-2 space-y-8">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              <h2 className="text-xl font-bold text-white mb-6">Weekly Attendance</h2>
+            <div className="rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+              <h2 className="text-xl font-bold text-slate-100 mb-6">Weekly Attendance</h2>
               <AttendanceChart data={chartData} />
             </div>
 
-            <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              <h2 className="text-xl font-bold text-white mb-6">Today by Department</h2>
+            <div className="rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+              <h2 className="text-xl font-bold text-slate-100 mb-6">Today by Department</h2>
               <DepartmentPieChart data={pieData} />
             </div>
           </div>
@@ -169,8 +169,8 @@ export default async function Dashboard() {
 
         {/* Right Column (Staff Status) */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white">Current Status</h2>
-          <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl overflow-hidden p-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+          <h2 className="text-xl font-bold text-slate-100">Current Status</h2>
+          <div className="rounded-2xl bg-white/[0.025] border border-white/[0.06] backdrop-blur-xl overflow-hidden p-1 shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
             {/* Scrollable Container */}
             <div className="flex flex-col gap-1 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
               {(() => {
@@ -197,12 +197,12 @@ export default async function Dashboard() {
                 })
 
                 return staffWithStatus.map(staff => (
-                  <div key={staff.id} className="p-3 rounded-xl hover:bg-white/5 flex items-center justify-between transition-colors">
+                  <div key={staff.id} className="p-3 rounded-xl hover:bg-white/[0.04] flex items-center justify-between transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/[0.08] text-xs font-bold text-white shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white/[0.07] border border-white/[0.07] flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
                         {staff.name.substring(0,2).toUpperCase()}
                       </div>
-                      <span className="font-medium text-slate-200 truncate">{staff.name}</span>
+                      <span className="font-medium text-slate-300 truncate">{staff.name}</span>
                     </div>
                     <span className="flex h-2.5 w-2.5 relative shrink-0">
                       <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${staff.isOut ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
@@ -212,7 +212,7 @@ export default async function Dashboard() {
                 ))
               })()}
               {staffStatus.length === 0 && (
-                <div className="p-8 text-center text-slate-400 text-sm">
+                <div className="p-8 text-center text-slate-500 text-sm">
                   No staff registered yet.
                 </div>
               )}
