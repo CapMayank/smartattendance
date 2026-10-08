@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { startOfMonth, endOfMonth, format, startOfDay, endOfDay } from 'date-fns'
+import { startOfMonth, endOfMonth, format, startOfDay, endOfDay, isAfter } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function GET(request: Request) {
@@ -75,7 +75,12 @@ export async function GET(request: Request) {
       logsByDate[dateStr].push(log);
     });
 
-    const dailyRecords = allDailyRecords.filter(r => r.date >= sOfMonth && r.date <= eOfMonth);
+    const today = startOfDay(new Date());
+    const dailyRecords = allDailyRecords.filter(r => 
+      r.date >= sOfMonth && 
+      r.date <= eOfMonth && 
+      (!isAfter(startOfDay(r.date), today) || (logsByDate[format(r.date, 'yyyy-MM-dd')] && logsByDate[format(r.date, 'yyyy-MM-dd')].length > 0))
+    );
     let totalPayrollEligibleDays = 0;
     
     const doj = staff.payrollInfo?.doj || staff.createdAt;
@@ -131,9 +136,9 @@ export async function GET(request: Request) {
       };
     });
 
-    // Calculate totals
+    // Calculate totals (only count absents for past and current days)
     const totalPresents = dailyRecords.filter(r => r.status === 'PRESENT').length;
-    const totalAbsents = dailyRecords.filter(r => r.status === 'ABSENT').length;
+    const totalAbsents = dailyRecords.filter(r => r.status === 'ABSENT' && !isAfter(startOfDay(r.date), today)).length;
     const totalHalfDays = dailyRecords.filter(r => r.status === 'HALF_DAY').length;
     const totalLateMinutes = dailyRecords.reduce((sum, r) => sum + r.lateMinutes, 0);
     const totalWorkMinutes = dailyRecords.reduce((sum, r) => sum + r.workMinutes, 0);

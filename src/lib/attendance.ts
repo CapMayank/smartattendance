@@ -82,8 +82,15 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
     const isHoliday = holidayMap.has(dateKey);
     const isWeekOff = weekOffDays.includes(dayOfWeek);
 
+    const isFutureDate = isAfter(startOfDay(date), startOfDay(new Date()));
+
     for (const staff of staffList) {
       const myLogs = staffLogs[staff.id] || [];
+
+      // If the date is strictly in the future and has no punches, skip creating any record
+      if (isFutureDate && myLogs.length === 0) {
+        continue;
+      }
 
       let status = 'ABSENT';
       let checkIn = null;

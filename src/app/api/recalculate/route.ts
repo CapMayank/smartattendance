@@ -106,9 +106,16 @@ export async function POST(request: Request) {
         staffLogs[log.staffId].push(log);
       }
 
+      const isFutureDate = isAfter(startOfDay(date), startOfDay(new Date()));
+
       for (const staff of staffList) {
         const myLogs = staffLogs[staff.id] || [];
         
+        // If the date is strictly in the future and has no punches, skip creating any record
+        if (isFutureDate && myLogs.length === 0) {
+          continue;
+        }
+
         let status = 'ABSENT';
         let checkIn = null;
         let checkOut = null;

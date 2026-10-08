@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { startOfDay, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns'
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, format, isAfter } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function GET(request: Request) {
@@ -108,8 +108,9 @@ export async function GET(request: Request) {
           workMinutes: record.workMinutes
         };
         
+        const today = startOfDay(new Date());
         if (record.status === 'PRESENT') stats.totalPresents++;
-        else if (record.status === 'ABSENT') stats.totalAbsents++;
+        else if (record.status === 'ABSENT' && !isAfter(startOfDay(record.date), today)) stats.totalAbsents++;
         else if (record.status === 'HALF_DAY') stats.totalHalfDays++;
         
         stats.totalLateMinutes += record.lateMinutes;
