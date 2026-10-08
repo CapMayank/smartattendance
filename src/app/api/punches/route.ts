@@ -31,7 +31,18 @@ export async function GET(req: Request) {
       orderBy: { timestamp: 'asc' }
     })
 
-    return NextResponse.json(logs)
+    const hasExplicitOut = logs.some(l => l.type === 'OUT');
+    const hasExplicitIn = logs.some(l => l.type === 'IN');
+    const resultLogs = (logs.length > 1 && (!hasExplicitIn || !hasExplicitOut))
+      ? logs.map((log, index) => ({
+          ...log,
+          type: (index === logs.length - 1 || index % 2 === 1) ? 'OUT' : 'IN'
+        }))
+      : (logs.length === 1 && logs[0].type !== 'OUT')
+      ? [{ ...logs[0], type: 'IN' }]
+      : logs;
+
+    return NextResponse.json(resultLogs)
   } catch (error: any) {
     console.error("GET Punches Error:", error)
     return NextResponse.json({ error: 'Failed to fetch punches' }, { status: 500 })

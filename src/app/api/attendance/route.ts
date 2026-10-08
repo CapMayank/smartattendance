@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { startOfDay, endOfDay } from 'date-fns'
 
 export async function POST(request: Request) {
   try {
@@ -37,12 +38,27 @@ export async function POST(request: Request) {
       })
     }
 
+    const punchDate = new Date(timestamp);
+    let punchType = type ? type.toUpperCase() : null;
+    if (!punchType || punchType === 'PUNCH') {
+      const existingCount = await prisma.attendanceLog.count({
+        where: {
+          staffId: staff.id,
+          timestamp: {
+            gte: startOfDay(punchDate),
+            lte: endOfDay(punchDate)
+          }
+        }
+      });
+      punchType = existingCount % 2 === 1 ? 'OUT' : 'IN';
+    }
+
     // Create attendance log
     const log = await prisma.attendanceLog.create({
       data: {
         staffId: staff.id,
-        timestamp: new Date(timestamp),
-        type: type ? type.toUpperCase() : "PUNCH",
+        timestamp: punchDate,
+        type: punchType,
       }
     })
 

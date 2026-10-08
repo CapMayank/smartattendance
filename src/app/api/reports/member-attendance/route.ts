@@ -75,6 +75,23 @@ export async function GET(request: Request) {
       logsByDate[dateStr].push(log);
     });
 
+    // Automatically infer IN/OUT for each day if logs do not differentiate (e.g. all IN from biometric machines)
+    Object.keys(logsByDate).forEach(dateStr => {
+      const dayLogs = logsByDate[dateStr];
+      if (dayLogs.length > 1) {
+        const hasExplicitOut = dayLogs.some(l => l.type === 'OUT');
+        const hasExplicitIn = dayLogs.some(l => l.type === 'IN');
+        if (!hasExplicitIn || !hasExplicitOut) {
+          logsByDate[dateStr] = dayLogs.map((log, index) => ({
+            ...log,
+            type: (index === dayLogs.length - 1 || index % 2 === 1) ? 'OUT' : 'IN'
+          }));
+        }
+      } else if (dayLogs.length === 1 && dayLogs[0].type !== 'OUT') {
+        logsByDate[dateStr] = [{ ...dayLogs[0], type: 'IN' }];
+      }
+    });
+
     const today = startOfDay(new Date());
     const dailyRecords = allDailyRecords.filter(r => 
       r.date >= sOfMonth && 

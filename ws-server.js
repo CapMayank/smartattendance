@@ -184,8 +184,26 @@ wss.on('connection', function connection(ws, req) {
           }
 
           // Create Attendance Log
-          // In some devices, logtype / status denotes IN or OUT. Defaulting to IN if unknown.
-          const type = (record.logtype === 1 || record.status === 1) ? 'OUT' : 'IN';
+          // In some devices, logtype / status denotes IN or OUT. If not explicitly set, infer based on existing punches today.
+          let type = (record.logtype === 1 || record.status === 1) ? 'OUT' : 'IN';
+
+          if (type !== 'OUT') {
+            const todayStart = new Date(punchTime);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(punchTime);
+            todayEnd.setHours(23, 59, 59, 999);
+
+            const existingCount = await prisma.attendanceLog.count({
+              where: {
+                staffId: staff.id,
+                timestamp: { gte: todayStart, lte: todayEnd }
+              }
+            });
+
+            if (existingCount % 2 === 1) {
+              type = 'OUT';
+            }
+          }
 
           await prisma.attendanceLog.create({
             data: {

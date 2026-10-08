@@ -31,6 +31,27 @@ type Staff = {
   designation: { name: string } | null
 }
 
+const formatLogsWithDirection = (logs: AttendanceLog[]): AttendanceLog[] => {
+  if (!logs || logs.length === 0) return []
+  if (logs.length === 1) {
+    return [{ ...logs[0], type: logs[0].type === 'OUT' ? 'OUT' : 'IN' }]
+  }
+
+  const hasExplicitOut = logs.some(l => l.type === 'OUT')
+  const hasExplicitIn = logs.some(l => l.type === 'IN')
+
+  if (hasExplicitIn && hasExplicitOut) {
+    return logs
+  }
+
+  // If logs don't distinguish IN and OUT (e.g. all IN or PUNCH), infer by sequence:
+  // First punch is IN, last punch is OUT, intermediate alternate
+  return logs.map((log, index) => ({
+    ...log,
+    type: (index === logs.length - 1 || index % 2 === 1) ? 'OUT' : 'IN'
+  }))
+}
+
 export default function MemberAttendancePage() {
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [selectedStaffId, setSelectedStaffId] = useState<string>('')
@@ -114,8 +135,9 @@ export default function MemberAttendancePage() {
     if (!staffData || dailyRecords.length === 0) return;
 
     const csvData = dailyRecords.map(r => {
-      // Format logs as a readable string
-      const logsStr = r.logs.map(log => 
+      // Format logs as a readable string with proper IN/OUT direction
+      const formattedLogs = formatLogsWithDirection(r.logs)
+      const logsStr = formattedLogs.map(log => 
         `${log.type}: ${new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`
       ).join(' | ');
 
@@ -343,19 +365,22 @@ export default function MemberAttendancePage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {record.logs.length > 0 ? (
-                          <div className="flex flex-wrap gap-2 max-w-xs">
-                            {record.logs.map((log) => (
-                              <span key={log.id} className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border flex items-center gap-1 ${
-                                log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                              }`}>
-                                {log.type === 'IN' ? '↓' : '↑'} {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 text-xs font-medium">No Punches</span>
-                        )}
+                        {(() => {
+                          const formattedLogs = formatLogsWithDirection(record.logs);
+                          return formattedLogs.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 max-w-xs">
+                              {formattedLogs.map((log) => (
+                                <span key={log.id} className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border flex items-center gap-1 ${
+                                  log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                }`}>
+                                  {log.type === 'IN' ? '↓' : '↑'} {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 text-xs font-medium">No Punches</span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );
@@ -452,15 +477,18 @@ export default function MemberAttendancePage() {
                       ) : (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">On time</span>
                       )}
-                      {record.logs.length > 0 ? record.logs.map((log) => (
-                        <span key={log.id} className={`px-1.5 py-0.5 text-[10px] font-bold rounded border ${
-                          log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                        }`}>
-                          {log.type === 'IN' ? '↓' : '↑'} {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                        </span>
-                      )) : (
-                        <span className="text-slate-600 text-[10px] font-medium">No punches</span>
-                      )}
+                      {(() => {
+                        const formattedLogs = formatLogsWithDirection(record.logs);
+                        return formattedLogs.length > 0 ? formattedLogs.map((log) => (
+                          <span key={log.id} className={`px-1.5 py-0.5 text-[10px] font-bold rounded border ${
+                            log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                          }`}>
+                            {log.type === 'IN' ? '↓' : '↑'} {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </span>
+                        )) : (
+                          <span className="text-slate-600 text-[10px] font-medium">No punches</span>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

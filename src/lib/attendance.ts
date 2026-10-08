@@ -113,7 +113,12 @@ export async function recalculateAttendance(startDate: Date, endDate: Date) {
           let totalMinutes = 0;
           let currentIn = null;
 
-          for (const log of myLogs) {
+          const hasExplicitOut = myLogs.some(l => l.type === 'OUT');
+          const effectiveLogs = (myLogs.length > 1 && !hasExplicitOut)
+            ? myLogs.map((l, idx) => ({ ...l, type: (idx === myLogs.length - 1 || idx % 2 === 1) ? 'OUT' : 'IN' }))
+            : myLogs;
+
+          for (const log of effectiveLogs) {
             if (log.type === 'IN') {
               currentIn = log.timestamp;
             } else if (log.type === 'OUT' && currentIn) {
