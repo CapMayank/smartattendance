@@ -186,8 +186,30 @@ export default function PayrollDetailPage() {
                 <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-4 bg-emerald-500/10 w-fit px-3 py-1 rounded-lg border border-emerald-500/20">Earnings</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
-                    <span className="text-sm text-slate-300 font-medium">Gross Wage (Prorated)</span>
-                    <span className="text-sm font-bold text-white">{formatCurrency(payroll.grossWage)}</span>
+                    <span className="text-sm text-slate-300 font-medium">Basic Wage (Prorated)</span>
+                    <span className="text-sm font-bold text-white">{formatCurrency(payroll.basicWage)}</span>
+                  </div>
+                  {payroll.bonusAmount > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-amber-300 font-medium">Performance / Festival Bonus</span>
+                        {payroll.bonusDays > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">
+                            {payroll.bonusDays} {payroll.bonusDays === 1 ? 'day' : 'days'}
+                          </span>
+                        )}
+                        {payroll.isBonusPfApplicable && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-400/20 text-indigo-300 font-bold">
+                            EPF Applicable
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm font-bold text-amber-400">+{formatCurrency(payroll.bonusAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
+                    <span className="text-sm text-slate-300 font-medium">Total Gross Wage</span>
+                    <span className="text-sm font-bold text-emerald-400">{formatCurrency(payroll.grossWage)}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl opacity-70">
                     <span className="text-sm text-slate-400 font-medium">Actual Cost To Company (CTC)</span>

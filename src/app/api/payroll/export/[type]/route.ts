@@ -234,17 +234,30 @@ export async function GET(
       let o = 2;
       for (const p of payrolls) {
         if (p.grossWage > 0) {
+          const epfW = Math.round(p.epfWages);
+          const epsW = Math.round(p.epsWages);
+          const edliW = Math.round(p.edliWages);
+          const eeEpf = Math.round(p.employeeEpf);
+
+          // Statutory EPFO ECR calculation for EPS & EPF:
+          // 8.33% base + 1.16% on wages > 15,000 for POHW cases (EPFO ECR rule RFE-25)
+          const baseEps = Math.round(epsW * 0.0833);
+          const excessEps = Math.max(0, epsW - 15000);
+          const pohw = Math.round(excessEps * 0.0116);
+          const erEps = (p.employerEps && p.employerEps === baseEps + pohw) ? Math.round(p.employerEps) : (baseEps + pohw);
+          const erEpf = Math.round(epfW * 0.12) - erEps;
+
           const row = sheet.getRow(o);
           row.values = [
             p.staff.payrollInfo?.uan || "", // removed the ' prefix
             p.staff.payrollInfo?.nameOnUan || p.staff.name,
-            p.grossWage,
-            p.epfWages,
-            p.epsWages,
-            p.edliWages,
-            p.employeeEpf,
-            p.employerEps,
-            p.employerEpf,
+            Math.round(p.grossWage),
+            epfW,
+            epsW,
+            edliW,
+            eeEpf,
+            erEps,
+            erEpf,
             p.ncpDays,
             p.refundOfAdvance
           ];
@@ -283,16 +296,29 @@ export async function GET(
         if (p.grossWage > 0) {
           const uan = p.staff.payrollInfo?.uan || "";
           const name = p.staff.payrollInfo?.nameOnUan || p.staff.name;
+          const epfW = Math.round(p.epfWages);
+          const epsW = Math.round(p.epsWages);
+          const edliW = Math.round(p.edliWages);
+          const eeEpf = Math.round(p.employeeEpf);
+
+          // Statutory EPFO ECR calculation for EPS & EPF:
+          // 8.33% base + 1.16% on wages > 15,000 for POHW cases (EPFO ECR rule RFE-25)
+          const baseEps = Math.round(epsW * 0.0833);
+          const excessEps = Math.max(0, epsW - 15000);
+          const pohw = Math.round(excessEps * 0.0116);
+          const erEps = (p.employerEps && p.employerEps === baseEps + pohw) ? Math.round(p.employerEps) : (baseEps + pohw);
+          const erEpf = Math.round(epfW * 0.12) - erEps;
+
           const line = [
             uan,
             name,
             Math.round(p.grossWage),
-            Math.round(p.epfWages),
-            Math.round(p.epsWages),
-            Math.round(p.edliWages),
-            Math.round(p.employeeEpf),
-            Math.round(p.employerEps),
-            Math.round(p.employerEpf),
+            epfW,
+            epsW,
+            edliW,
+            eeEpf,
+            erEps,
+            erEpf,
             p.ncpDays,
             p.refundOfAdvance
           ].join("#~#");

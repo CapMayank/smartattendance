@@ -7,7 +7,11 @@ function calculatePayroll(
   monthlyCtc: number,
   presentDays: number,
   totalDays: number,
-  refundOfAdvance: number = 0
+  refundOfAdvance: number = 0,
+  bonusAmount: number = 0,
+  bonusDays: number = 0,
+  bonusType: string = "CUSTOM",
+  isBonusPfApplicable: boolean = false
 ) {
   if (totalDays === 0) return null;
 
@@ -15,30 +19,55 @@ function calculatePayroll(
   const baseGrossWage = monthlyCtc / 1.12;
   const wagePerDay = Math.round(baseGrossWage / totalDays);
   
-  // Calculate Actual Basic Wage based on present days
+  // Cap presentDays to totalDays to keep attendance valid and prevent wage distortions
+  const validPresentDays = Math.min(presentDays, totalDays);
+  
+  // Calculate Actual Basic Wage based on valid present days
   let basicWage = 0;
-  if (presentDays === totalDays) {
+  if (validPresentDays === totalDays) {
     basicWage = baseGrossWage;
   } else {
-    basicWage = wagePerDay * presentDays;
+    basicWage = wagePerDay * validPresentDays;
   }
+
+  // Calculate bonus if bonusType is DAYS and bonusAmount is 0
+  let finalBonus = Number(bonusAmount) || 0;
+  if (bonusType === "DAYS" && bonusDays > 0 && finalBonus === 0) {
+    finalBonus = Math.round(wagePerDay * bonusDays);
+  }
+
+  const grossWage = Math.round(basicWage + finalBonus);
   
-  const epfWages = basicWage;
+  // EPF wage: basicWage (+ bonus only if isBonusPfApplicable is true)
+  const epfWages = Math.round(isBonusPfApplicable ? basicWage + finalBonus : basicWage);
   const epsWages = Math.min(epfWages, 25000);
   const edliWages = Math.min(epfWages, 25000);
   
   const employeeEpf = Math.round(epfWages * 0.12);
-  const employerEps = Math.round(epsWages * 0.0833);
-  const employerEpf = Math.round((epfWages * 0.12) - employerEps);
   
-  const ncpDays = Math.max(0, totalDays - presentDays);
+  // EPFO ECR calculation for EPS (Account 10):
+  // 8.33% on EPS wages (up to 25,000)
+  // PLUS 1.16% on wages exceeding 15,000 for POHW cases (EPFO ECR rule RFE-25)
+  const baseEps = Math.round(epsWages * 0.0833);
+  const excessEpsWage = Math.max(0, epsWages - 15000);
+  const pohwSurcharge = Math.round(excessEpsWage * 0.0116);
+  const employerEps = baseEps + pohwSurcharge;
   
-  const netPayment = Math.round(basicWage - employeeEpf - refundOfAdvance);
+  // Employer PF contribution (Account 1): strictly Due EPF - Due EPS (EPFO ECR rule RFE-37)
+  const employerEpf = Math.round(epfWages * 0.12) - employerEps;
+  
+  const ncpDays = Math.max(0, totalDays - validPresentDays);
+  
+  const netPayment = Math.round(grossWage - employeeEpf - refundOfAdvance);
 
   return {
-    actualCtc: Math.round(basicWage + employeeEpf), // Actual CTC consumed
-    grossWage: Math.round(basicWage),
+    actualCtc: Math.round(grossWage + employeeEpf), // Actual CTC consumed
+    grossWage,
     basicWage: Math.round(basicWage),
+    bonusAmount: Math.round(finalBonus),
+    bonusDays,
+    bonusType,
+    isBonusPfApplicable,
     epfWages: Math.round(epfWages),
     epsWages: Math.round(epsWages),
     edliWages: Math.round(edliWages),
@@ -221,7 +250,17 @@ export async function POST(request: Request) {
     }
 
     const updatedPayrolls = await Promise.all(payrolls.map(async (p: any) => {
-      const { id, presentDays, refundOfAdvance, monthlyCtc, totalDays } = p;
+      const {
+        id,
+        presentDays,
+        refundOfAdvance,
+        monthlyCtc,
+        totalDays,
+        bonusAmount = 0,
+        bonusDays = 0,
+        bonusType = "CUSTOM",
+        isBonusPfApplicable = false
+      } = p;
 
       // Check if the payroll is locked before updating
       const existing = await prisma.monthlyPayroll.findUnique({ where: { id } });
@@ -229,13 +268,22 @@ export async function POST(request: Request) {
         return null; // Skip updating locked payrolls
       }
       
-      const calc = calculatePayroll(monthlyCtc, presentDays, totalDays, refundOfAdvance);
+      const calc = calculatePayroll(
+        monthlyCtc,
+        presentDays,
+        totalDays,
+        refundOfAdvance,
+        bonusAmount,
+        bonusDays,
+        bonusType,
+        isBonusPfApplicable
+      );
 
       if (calc) {
         return prisma.monthlyPayroll.update({
           where: { id },
           data: {
-            presentDays,
+            presentDays: Math.min(presentDays, totalDays),
             refundOfAdvance,
             ...calc
           }

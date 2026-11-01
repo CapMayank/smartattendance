@@ -1,31 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck, Lock, Unlock, CheckCircle, ChevronRight } from 'lucide-react'
+import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck, Lock, Unlock, CheckCircle, ChevronRight, Gift, Sparkles, X } from 'lucide-react'
 import { format } from 'date-fns'
 
 function calculatePayroll(
   monthlyCtc: number,
   presentDays: number,
   totalDays: number,
-  refundOfAdvance: number = 0
+  refundOfAdvance: number = 0,
+  bonusAmount: number = 0,
+  isBonusPfApplicable: boolean = false
 ) {
   if (totalDays === 0) return null;
   const baseGrossWage = monthlyCtc / 1.12;
   const wagePerDay = Math.round(baseGrossWage / totalDays);
   
+  const validPresentDays = Math.min(presentDays, totalDays);
   let basicWage = 0;
-  if (presentDays === totalDays) {
+  if (validPresentDays === totalDays) {
     basicWage = baseGrossWage;
   } else {
-    basicWage = wagePerDay * presentDays;
+    basicWage = wagePerDay * validPresentDays;
   }
   
-  const employeeEpf = Math.round(basicWage * 0.12);
-  const netPayment = Math.round(basicWage - employeeEpf - refundOfAdvance);
+  const grossWage = Math.round(basicWage + (Number(bonusAmount) || 0));
+  const epfWages = Math.round(isBonusPfApplicable ? basicWage + (Number(bonusAmount) || 0) : basicWage);
+  const employeeEpf = Math.round(epfWages * 0.12);
+  const netPayment = Math.round(grossWage - employeeEpf - refundOfAdvance);
 
   return {
-    grossWage: Math.round(basicWage),
+    grossWage,
+    basicWage: Math.round(basicWage),
+    bonusAmount: Math.round(Number(bonusAmount) || 0),
     employeeEpf,
     netPayment
   };
@@ -41,7 +48,21 @@ export default function MonthlyPayrollPage() {
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   
-  const [edits, setEdits] = useState<Record<string, { presentDays: number, refundOfAdvance: number }>>({})
+  const [edits, setEdits] = useState<Record<string, {
+    presentDays: number;
+    refundOfAdvance: number;
+    bonusAmount: number;
+    bonusDays?: number;
+    bonusType?: string;
+    isBonusPfApplicable?: boolean;
+  }>>({})
+
+  // Bonus modal states
+  const [showBonusModal, setShowBonusModal] = useState(false)
+  const [bonusDistMode, setBonusDistMode] = useState<'DAYS' | 'FLAT'>('DAYS')
+  const [bonusDaysInput, setBonusDaysInput] = useState<number>(1)
+  const [bonusFlatInput, setBonusFlatInput] = useState<number>(1000)
+  const [bonusPfToggle, setBonusPfToggle] = useState<boolean>(false)
 
   useEffect(() => {
     fetchPayroll()
@@ -58,7 +79,11 @@ export default function MonthlyPayrollPage() {
       data.forEach((p: any) => {
         initialEdits[p.id] = {
           presentDays: p.presentDays,
-          refundOfAdvance: p.refundOfAdvance
+          refundOfAdvance: p.refundOfAdvance,
+          bonusAmount: p.bonusAmount || 0,
+          bonusDays: p.bonusDays || 0,
+          bonusType: p.bonusType || 'CUSTOM',
+          isBonusPfApplicable: p.isBonusPfApplicable || false
         }
       })
       setEdits(initialEdits)
@@ -78,7 +103,11 @@ export default function MonthlyPayrollPage() {
         totalDays: p.totalDays,
         monthlyCtc: p.staff.payrollInfo?.monthlyCtc || 0,
         presentDays: edits[p.id]?.presentDays ?? p.presentDays,
-        refundOfAdvance: edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
+        refundOfAdvance: edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance,
+        bonusAmount: edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0,
+        bonusDays: edits[p.id]?.bonusDays ?? p.bonusDays ?? 0,
+        bonusType: edits[p.id]?.bonusType ?? p.bonusType ?? 'CUSTOM',
+        isBonusPfApplicable: edits[p.id]?.isBonusPfApplicable ?? p.isBonusPfApplicable ?? false
       }))
 
       await fetch('/api/payroll/monthly', {
@@ -96,6 +125,50 @@ export default function MonthlyPayrollPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const applyBonusToAll = () => {
+    const newEdits = { ...edits }
+    payrolls.forEach(p => {
+      const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
+      const baseGrossWage = monthlyCtc / 1.12
+      const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
+      
+      let amount = 0
+      let days = 0
+      if (bonusDistMode === 'DAYS') {
+        days = bonusDaysInput
+        amount = Math.round(wagePerDay * bonusDaysInput)
+      } else {
+        amount = bonusFlatInput
+        days = 0
+      }
+      
+      newEdits[p.id] = {
+        ...(newEdits[p.id] || { presentDays: p.presentDays, refundOfAdvance: p.refundOfAdvance }),
+        bonusAmount: amount,
+        bonusDays: days,
+        bonusType: bonusDistMode,
+        isBonusPfApplicable: bonusPfToggle
+      }
+    })
+    setEdits(newEdits)
+    setShowBonusModal(false)
+  }
+
+  const clearAllBonuses = () => {
+    const newEdits = { ...edits }
+    payrolls.forEach(p => {
+      newEdits[p.id] = {
+        ...(newEdits[p.id] || { presentDays: p.presentDays, refundOfAdvance: p.refundOfAdvance }),
+        bonusAmount: 0,
+        bonusDays: 0,
+        bonusType: 'CUSTOM',
+        isBonusPfApplicable: false
+      }
+    })
+    setEdits(newEdits)
+    setShowBonusModal(false)
   }
 
   const [syncing, setSyncing] = useState(false)
@@ -133,7 +206,12 @@ export default function MonthlyPayrollPage() {
   const hasUnsavedEdits = Object.keys(edits).some(id => {
     const p = payrolls.find(p => p.id === id)
     if (!p) return false
-    return edits[id].presentDays !== p.presentDays || edits[id].refundOfAdvance !== p.refundOfAdvance
+    return (
+      edits[id].presentDays !== p.presentDays ||
+      edits[id].refundOfAdvance !== p.refundOfAdvance ||
+      (edits[id].bonusAmount ?? 0) !== (p.bonusAmount ?? 0) ||
+      (edits[id].isBonusPfApplicable ?? false) !== (p.isBonusPfApplicable ?? false)
+    )
   })
 
   const handleToggleLock = async () => {
@@ -243,9 +321,18 @@ export default function MonthlyPayrollPage() {
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">3</div>
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
-              <p className="text-xs text-slate-400 max-w-xs">
-                Review the table below. Manually adjust <strong className="text-indigo-400">Present Days</strong> or <strong className="text-rose-400">Advances</strong> if needed.
+              <p className="text-xs text-slate-400 max-w-xs mb-3">
+                Review table. Manually adjust <strong className="text-indigo-400">Present Days</strong>, <strong className="text-amber-400">Bonus</strong>, or <strong className="text-rose-400">Advances</strong>.
               </p>
+              <button
+                type="button"
+                onClick={() => setShowBonusModal(true)}
+                disabled={payrolls.length === 0 || isMonthLocked}
+                className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-all border border-amber-500/30 disabled:opacity-50 shadow-sm"
+              >
+                <Gift className="w-3.5 h-3.5 text-amber-400" />
+                Distribute Bonus
+              </button>
             </div>
 
             <div className="mt-6 ml-3">
@@ -326,6 +413,7 @@ export default function MonthlyPayrollPage() {
                 <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-center">Total / Present</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Fixed CTC</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-amber-400/90">Bonus (₹)</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Gross Wage</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Employee PF</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Adv. Refund</th>
@@ -335,7 +423,7 @@ export default function MonthlyPayrollPage() {
             <tbody>
               {loading && payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-24 text-center">
+                  <td colSpan={8} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
                       <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
@@ -344,7 +432,7 @@ export default function MonthlyPayrollPage() {
                 </tr>
               ) : payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-24 text-center">
+                  <td colSpan={8} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <ShieldCheck className="w-12 h-12 text-slate-600 mb-2" />
                       <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
@@ -356,10 +444,11 @@ export default function MonthlyPayrollPage() {
                 payrolls.map((p) => {
                   const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays;
                   const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance;
-                  const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance;
+                  const currentBonus = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0;
+                  const currentBonusPf = edits[p.id]?.isBonusPfApplicable ?? p.isBonusPfApplicable ?? false;
                   
                   const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0;
-                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p;
+                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonus, currentBonusPf) || p;
 
                   return (
                     <tr key={p.id} className="group">
@@ -384,12 +473,16 @@ export default function MonthlyPayrollPage() {
                             step="0.5"
                             min="0"
                             max={p.totalDays}
-                            value={edits[p.id]?.presentDays ?? p.presentDays}
+                            value={currentPresentDays}
                             disabled={isMonthLocked}
-                            onChange={(e) => setEdits({
-                              ...edits, 
-                              [p.id]: { ...edits[p.id], presentDays: parseFloat(e.target.value) || 0 }
-                            })}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              const clamped = Math.max(0, Math.min(val, p.totalDays));
+                              setEdits({
+                                ...edits, 
+                                [p.id]: { ...edits[p.id], presentDays: clamped }
+                              });
+                            }}
                             className={`w-16 bg-black/40 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
                               isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
                               edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)] focus:ring-2 focus:ring-indigo-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-indigo-500/50'
@@ -400,6 +493,35 @@ export default function MonthlyPayrollPage() {
                       
                       <td className="px-4 py-4 text-right">
                         <span className="text-slate-500 font-medium">₹{p.staff.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
+                      </td>
+
+                      {/* Bonus (INR) */}
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end">
+                          <input
+                            type="number"
+                            min="0"
+                            value={currentBonus}
+                            disabled={isMonthLocked}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setEdits({
+                                ...edits,
+                                [p.id]: {
+                                  ...edits[p.id],
+                                  bonusAmount: val,
+                                  bonusType: 'CUSTOM'
+                                }
+                              });
+                            }}
+                            className={`w-24 bg-black/40 border rounded-lg px-2.5 py-1.5 text-right font-medium text-amber-300 focus:outline-none transition-all ${
+                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
+                              (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) !== (p.bonusAmount ?? 0)
+                                ? 'border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)] focus:ring-2 focus:ring-amber-500/50'
+                                : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50'
+                            }`}
+                          />
+                        </div>
                       </td>
                       
                       <td className="px-4 py-4 text-right">
@@ -415,7 +537,7 @@ export default function MonthlyPayrollPage() {
                           <input
                             type="number"
                             min="0"
-                            value={edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance}
+                            value={currentRefund}
                             disabled={isMonthLocked}
                             onChange={(e) => setEdits({
                               ...edits, 
@@ -459,9 +581,11 @@ export default function MonthlyPayrollPage() {
             payrolls.map((p) => {
               const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
               const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
-              const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance
+              const currentBonus = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0
+              const currentBonusPf = edits[p.id]?.isBonusPfApplicable ?? p.isBonusPfApplicable ?? false
+              const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance || currentBonus !== (p.bonusAmount ?? 0)
               const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund) || p
+              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonus, currentBonusPf) || p
               const setPresent = (v: number) => {
                 const clamped = Math.max(0, Math.min(p.totalDays, v))
                 setEdits({ ...edits, [p.id]: { ...edits[p.id], refundOfAdvance: currentRefund, presentDays: clamped } })
@@ -485,29 +609,33 @@ export default function MonthlyPayrollPage() {
                     <p className="text-2xl font-black text-emerald-400 mt-0.5">₹{calc.netPayment.toLocaleString()}</p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2.5">
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fixed CTC</p>
-                      <p className="text-[13px] font-bold text-slate-400 mt-1">₹{monthlyCtc.toLocaleString()}</p>
+                      <p className="text-[12px] font-bold text-slate-400 mt-1 truncate">₹{monthlyCtc.toLocaleString()}</p>
                     </div>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2.5">
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">Bonus</p>
+                      <p className="text-[12px] font-bold text-amber-300 mt-1 truncate">₹{calc.bonusAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Gross</p>
-                      <p className="text-[13px] font-bold text-slate-200 mt-1">₹{calc.grossWage.toLocaleString()}</p>
+                      <p className="text-[12px] font-bold text-slate-200 mt-1 truncate">₹{calc.grossWage.toLocaleString()}</p>
                     </div>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2.5">
+                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-rose-400/70">PF</p>
-                      <p className="text-[13px] font-bold text-rose-400 mt-1">-₹{calc.employeeEpf.toLocaleString()}</p>
+                      <p className="text-[12px] font-bold text-rose-400 mt-1 truncate">-₹{calc.employeeEpf.toLocaleString()}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="grid grid-cols-3 gap-2 mt-4">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Present Days <span className="text-slate-600">/ {p.totalDays}</span></p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Days <span className="text-slate-600">/{p.totalDays}</span></p>
                       <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
                         <button
                           disabled={isMonthLocked}
                           onClick={() => setPresent(currentPresentDays - 0.5)}
-                          className="w-10 h-11 text-lg font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
                           aria-label="Decrease present days"
                         >−</button>
                         <input
@@ -519,18 +647,33 @@ export default function MonthlyPayrollPage() {
                           value={currentPresentDays}
                           disabled={isMonthLocked}
                           onChange={(e) => setPresent(parseFloat(e.target.value) || 0)}
-                          className="flex-1 min-w-0 w-full h-11 bg-transparent text-center font-bold text-white focus:outline-none disabled:opacity-50"
+                          className="flex-1 min-w-0 w-full h-10 bg-transparent text-center font-bold text-white focus:outline-none disabled:opacity-50 text-xs"
                         />
                         <button
                           disabled={isMonthLocked}
                           onClick={() => setPresent(currentPresentDays + 0.5)}
-                          className="w-10 h-11 text-lg font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
                           aria-label="Increase present days"
                         >+</button>
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80 mb-1.5">Adv. Refund (₹)</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus (₹)</p>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={currentBonus}
+                        disabled={isMonthLocked}
+                        onChange={(e) => setEdits({
+                          ...edits,
+                          [p.id]: { ...edits[p.id], bonusAmount: parseFloat(e.target.value) || 0, bonusType: 'CUSTOM' }
+                        })}
+                        className="w-full h-10 rounded-xl border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 disabled:opacity-50 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80 mb-1.5">Refund (₹)</p>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -539,9 +682,9 @@ export default function MonthlyPayrollPage() {
                         disabled={isMonthLocked}
                         onChange={(e) => setEdits({
                           ...edits,
-                          [p.id]: { ...edits[p.id], presentDays: currentPresentDays, refundOfAdvance: parseFloat(e.target.value) || 0 }
+                          [p.id]: { ...edits[p.id], refundOfAdvance: parseFloat(e.target.value) || 0 }
                         })}
-                        className="w-full h-11 rounded-xl border border-white/[0.08] bg-black/50 px-3 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50"
+                        className="w-full h-10 rounded-xl border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50 text-xs"
                       />
                     </div>
                   </div>
@@ -555,11 +698,192 @@ export default function MonthlyPayrollPage() {
         <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-slate-500 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-indigo-400/70" />
-            <span>Changes to <strong className="text-indigo-400">Present Days</strong> or <strong className="text-rose-400">Refunds</strong> require recalculation.</span>
+            <span>Adjust <strong className="text-indigo-400">Present Days</strong>, <strong className="text-amber-400">Bonus</strong> or <strong className="text-rose-400">Refunds</strong> and click Save Changes.</span>
           </div>
           <span>Showing {payrolls.length} active staff records</span>
         </div>
       </div>
+
+      {/* Bonus Distribution Modal */}
+      {showBonusModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/[0.12] rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-400">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Distribute Bonus</h3>
+                  <p className="text-xs text-slate-400">Reward staff based on performance or festival</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBonusModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode selection */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 border border-white/[0.08] rounded-2xl mb-5">
+              <button
+                type="button"
+                onClick={() => setBonusDistMode('DAYS')}
+                className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  bonusDistMode === 'DAYS'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Days of Pay (0-3d)
+              </button>
+              <button
+                type="button"
+                onClick={() => setBonusDistMode('FLAT')}
+                className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  bonusDistMode === 'FLAT'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <IndianRupee className="w-3.5 h-3.5" />
+                Equal Flat (₹)
+              </button>
+            </div>
+
+            {/* Mode 1: Days of Wage */}
+            {bonusDistMode === 'DAYS' ? (
+              <div className="space-y-4 mb-5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-2">
+                    Performance Extra Days (0 to 3 days)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setBonusDaysInput(d)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                          bonusDaysInput === d
+                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
+                            : 'bg-black/30 border-white/[0.08] text-slate-400 hover:border-white/20'
+                        }`}
+                      >
+                        +{d} {d === 1 ? 'Day' : 'Days'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Custom Days:</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="15"
+                      value={bonusDaysInput}
+                      onChange={(e) => setBonusDaysInput(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-20 bg-black/40 border border-white/[0.12] rounded-xl px-2.5 py-1.5 text-center text-sm font-bold text-white focus:outline-none focus:border-amber-500"
+                    />
+                    <span className="text-xs text-slate-500">days of daily rate</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300/90 leading-relaxed">
+                  💡 Each employee will automatically receive <strong>(Monthly Wage ÷ Total Month Days) × {bonusDaysInput}</strong>. Attendance days remain accurate and within the calendar limit.
+                </div>
+              </div>
+            ) : (
+              /* Mode 2: Equal Flat Amount */
+              <div className="space-y-4 mb-5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-2">
+                    Flat Rupee Amount per Staff
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="100"
+                      min="0"
+                      value={bonusFlatInput}
+                      onChange={(e) => setBonusFlatInput(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-full bg-black/40 border border-white/[0.12] rounded-xl pl-8 pr-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
+                      placeholder="e.g. 1000"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {[500, 1000, 2000, 5000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setBonusFlatInput(amt)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        bonusFlatInput === amt
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                          : 'bg-black/30 border-white/[0.08] text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      ₹{amt.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* PF Applicability Toggle */}
+            <div className="p-3 bg-black/40 border border-white/[0.08] rounded-2xl mb-5">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bonusPfToggle}
+                  onChange={(e) => setBonusPfToggle(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded text-amber-500 focus:ring-0 bg-black/50 border-white/20"
+                />
+                <div className="text-xs">
+                  <span className="font-semibold text-white">Include Bonus in EPF Wage (Deduct 12% PF)</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-normal">
+                    {bonusPfToggle 
+                      ? 'PF will be deducted from the bonus amount (subject to ₹25,000 ceiling).'
+                      : 'Recommended (EPFO Standard): Bonus is exempt from PF and paid in full to the employee.'}
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={clearAllBonuses}
+                className="px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+              >
+                Clear Bonuses
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBonusModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={applyBonusToAll}
+                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl shadow-lg transition-all"
+                >
+                  Apply to All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Danger Zone */}
       {isMonthLocked && (
