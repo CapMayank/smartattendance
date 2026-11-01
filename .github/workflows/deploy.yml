@@ -17,6 +17,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 30m
           script: |
             set -e
             cd /home/ubuntu/smartattendance
@@ -26,7 +27,7 @@ jobs:
             git pull origin main
             
             echo "Installing dependencies..."
-            npm install
+            npm install --prefer-offline --no-audit
             
             echo "Updating Database Schema..."
             npx prisma generate
