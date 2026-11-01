@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck, Lock, Unlock, CheckCircle, ChevronRight, Gift, Sparkles, X } from 'lucide-react'
+import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck, Lock, Unlock, CheckCircle, ChevronRight, Gift, Sparkles, X, Check } from 'lucide-react'
 import { format } from 'date-fns'
 
 function calculatePayroll(
@@ -32,6 +32,7 @@ function calculatePayroll(
   return {
     grossWage,
     basicWage: Math.round(basicWage),
+    wagePerDay,
     bonusAmount: Math.round(Number(bonusAmount) || 0),
     employeeEpf,
     netPayment
@@ -51,18 +52,19 @@ export default function MonthlyPayrollPage() {
   const [edits, setEdits] = useState<Record<string, {
     presentDays: number;
     refundOfAdvance: number;
+    bonusDays: number;
     bonusAmount: number;
-    bonusDays?: number;
-    bonusType?: string;
-    isBonusPfApplicable?: boolean;
+    bonusType: 'DAYS' | 'FLAT' | 'CUSTOM';
   }>>({})
+
+  // Page-level bonus PF toggle
+  const [isBonusPfApplicable, setIsBonusPfApplicable] = useState<boolean>(false)
 
   // Bonus modal states
   const [showBonusModal, setShowBonusModal] = useState(false)
   const [bonusDistMode, setBonusDistMode] = useState<'DAYS' | 'FLAT'>('DAYS')
   const [bonusDaysInput, setBonusDaysInput] = useState<number>(1)
   const [bonusFlatInput, setBonusFlatInput] = useState<number>(1000)
-  const [bonusPfToggle, setBonusPfToggle] = useState<boolean>(false)
 
   useEffect(() => {
     fetchPayroll()
@@ -76,17 +78,33 @@ export default function MonthlyPayrollPage() {
       setPayrolls(data || [])
       
       const initialEdits: Record<string, any> = {}
+      let initialPfApplicable = false
       data.forEach((p: any) => {
+        const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
+        const baseGrossWage = monthlyCtc / 1.12
+        const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
+
+        let bDays = p.bonusDays ?? 0
+        let bAmount = p.bonusAmount ?? 0
+        let bType = p.bonusType || (bDays > 0 ? 'DAYS' : 'CUSTOM')
+
+        // If bonusAmount exists but bonusDays is 0, infer days if wagePerDay > 0
+        if (bAmount > 0 && bDays === 0 && wagePerDay > 0) {
+          bDays = Math.round((bAmount / wagePerDay) * 10) / 10
+        }
+
+        if (p.isBonusPfApplicable) initialPfApplicable = true
+
         initialEdits[p.id] = {
           presentDays: p.presentDays,
           refundOfAdvance: p.refundOfAdvance,
-          bonusAmount: p.bonusAmount || 0,
-          bonusDays: p.bonusDays || 0,
-          bonusType: p.bonusType || 'CUSTOM',
-          isBonusPfApplicable: p.isBonusPfApplicable || false
+          bonusDays: bDays,
+          bonusAmount: bAmount,
+          bonusType: bType
         }
       })
       setEdits(initialEdits)
+      setIsBonusPfApplicable(initialPfApplicable)
     } catch (error) {
       console.error('Failed to fetch payroll:', error)
     } finally {
@@ -94,21 +112,55 @@ export default function MonthlyPayrollPage() {
     }
   }
 
+  // Handle changing bonus days for an individual employee
+  const handleBonusDaysChange = (p: any, days: number) => {
+    const safeDays = Math.max(0, days)
+    const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
+    const baseGrossWage = monthlyCtc / 1.12
+    const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
+    const computedAmount = Math.round(wagePerDay * safeDays)
+
+    setEdits(prev => ({
+      ...prev,
+      [p.id]: {
+        ...(prev[p.id] || { presentDays: p.presentDays, refundOfAdvance: p.refundOfAdvance }),
+        bonusDays: safeDays,
+        bonusAmount: computedAmount,
+        bonusType: 'DAYS'
+      }
+    }))
+  }
+
   const handleSave = async () => {
     setSaving(true)
     setSaveSuccess(false)
     try {
-      const updates = payrolls.map(p => ({
-        id: p.id,
-        totalDays: p.totalDays,
-        monthlyCtc: p.staff.payrollInfo?.monthlyCtc || 0,
-        presentDays: edits[p.id]?.presentDays ?? p.presentDays,
-        refundOfAdvance: edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance,
-        bonusAmount: edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0,
-        bonusDays: edits[p.id]?.bonusDays ?? p.bonusDays ?? 0,
-        bonusType: edits[p.id]?.bonusType ?? p.bonusType ?? 'CUSTOM',
-        isBonusPfApplicable: edits[p.id]?.isBonusPfApplicable ?? p.isBonusPfApplicable ?? false
-      }))
+      const updates = payrolls.map(p => {
+        const itemEdit = edits[p.id]
+        const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
+        const baseGrossWage = monthlyCtc / 1.12
+        const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
+
+        const bDays = itemEdit?.bonusDays ?? p.bonusDays ?? 0
+        let bAmount = itemEdit?.bonusAmount ?? p.bonusAmount ?? 0
+        const bType = itemEdit?.bonusType ?? p.bonusType ?? 'DAYS'
+
+        if (bType === 'DAYS' && bDays > 0 && bAmount === 0 && wagePerDay > 0) {
+          bAmount = Math.round(wagePerDay * bDays)
+        }
+
+        return {
+          id: p.id,
+          totalDays: p.totalDays,
+          monthlyCtc,
+          presentDays: itemEdit?.presentDays ?? p.presentDays,
+          refundOfAdvance: itemEdit?.refundOfAdvance ?? p.refundOfAdvance,
+          bonusAmount: bAmount,
+          bonusDays: bDays,
+          bonusType: bType,
+          isBonusPfApplicable
+        }
+      })
 
       await fetch('/api/payroll/monthly', {
         method: 'POST',
@@ -148,8 +200,7 @@ export default function MonthlyPayrollPage() {
         ...(newEdits[p.id] || { presentDays: p.presentDays, refundOfAdvance: p.refundOfAdvance }),
         bonusAmount: amount,
         bonusDays: days,
-        bonusType: bonusDistMode,
-        isBonusPfApplicable: bonusPfToggle
+        bonusType: bonusDistMode
       }
     })
     setEdits(newEdits)
@@ -163,8 +214,7 @@ export default function MonthlyPayrollPage() {
         ...(newEdits[p.id] || { presentDays: p.presentDays, refundOfAdvance: p.refundOfAdvance }),
         bonusAmount: 0,
         bonusDays: 0,
-        bonusType: 'CUSTOM',
-        isBonusPfApplicable: false
+        bonusType: 'DAYS'
       }
     })
     setEdits(newEdits)
@@ -210,9 +260,9 @@ export default function MonthlyPayrollPage() {
       edits[id].presentDays !== p.presentDays ||
       edits[id].refundOfAdvance !== p.refundOfAdvance ||
       (edits[id].bonusAmount ?? 0) !== (p.bonusAmount ?? 0) ||
-      (edits[id].isBonusPfApplicable ?? false) !== (p.isBonusPfApplicable ?? false)
+      (edits[id].bonusDays ?? 0) !== (p.bonusDays ?? 0)
     )
-  })
+  }) || (payrolls.length > 0 && isBonusPfApplicable !== (payrolls[0]?.isBonusPfApplicable ?? false))
 
   const handleToggleLock = async () => {
     if (!confirm(isMonthLocked ? 'Are you sure you want to unlock this month?' : 'Are you sure you want to lock this month? Locked payrolls cannot be edited or synced.')) return;
@@ -229,9 +279,9 @@ export default function MonthlyPayrollPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
             <FileText className="w-8 h-8 text-indigo-400" />
@@ -251,13 +301,13 @@ export default function MonthlyPayrollPage() {
                 </span>
               )}
             </div>
-            <p className="text-slate-400 mt-1 font-medium">Follow the steps below to process and export payroll</p>
+            <p className="text-slate-400 mt-1 font-medium">Follow the steps below to process, adjust bonuses, and export payroll</p>
           </div>
         </div>
       </div>
 
       {/* 5-Step Process Wizard */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-5 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         <div className="flex flex-col xl:flex-row gap-6 relative z-10 items-stretch">
@@ -322,7 +372,7 @@ export default function MonthlyPayrollPage() {
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
               <p className="text-xs text-slate-400 max-w-xs mb-3">
-                Review table. Manually adjust <strong className="text-indigo-400">Present Days</strong>, <strong className="text-amber-400">Bonus</strong>, or <strong className="text-rose-400">Advances</strong>.
+                Directly enter <strong className="text-amber-400">Bonus Days</strong> per staff in the table below, or apply bulk baseline bonuses.
               </p>
               <button
                 type="button"
@@ -331,7 +381,7 @@ export default function MonthlyPayrollPage() {
                 className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-all border border-amber-500/30 disabled:opacity-50 shadow-sm"
               >
                 <Gift className="w-3.5 h-3.5 text-amber-400" />
-                Distribute Bonus
+                Distribute Baseline Bonus
               </button>
             </div>
 
@@ -404,6 +454,56 @@ export default function MonthlyPayrollPage() {
         </div>
       </div>
 
+      {/* Dedicated EPF Compliance & Bonus Configuration Banner */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
+            isBonusPfApplicable 
+              ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+              : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+          }`}>
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-sm font-bold text-white">EPF on Bonus Setting:</span>
+              {isBonusPfApplicable ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <Check className="w-3 h-3" /> PF Applicable (12% Deducted)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <Check className="w-3 h-3" /> PF-Exempt (Standard EPFO Rule)
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              {isBonusPfApplicable 
+                ? 'Bonus is added into EPF Wages and attracts 12% employee PF contribution (subject to the revised ₹25,000 ceiling).'
+                : 'Standard EPFO rule: Bonuses are paid in full to employees in Net Payment without PF deduction, avoiding wage ceiling violations.'}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
+          <span className="text-xs font-semibold text-slate-300">Deduct 12% PF:</span>
+          <button
+            type="button"
+            disabled={isMonthLocked}
+            onClick={() => setIsBonusPfApplicable(!isBonusPfApplicable)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+              isBonusPfApplicable ? 'bg-indigo-600' : 'bg-slate-700'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                isBonusPfApplicable ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       {/* Main Table Area */}
       <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
         <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar px-4 pb-3">
@@ -413,7 +513,7 @@ export default function MonthlyPayrollPage() {
                 <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-center">Total / Present</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Fixed CTC</th>
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-amber-400/90">Bonus (₹)</th>
+                <th className="px-4 py-3.5 font-semibold tracking-wider text-center text-amber-400">Bonus Days & Pay</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Gross Wage</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Employee PF</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Adv. Refund</th>
@@ -444,11 +544,11 @@ export default function MonthlyPayrollPage() {
                 payrolls.map((p) => {
                   const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays;
                   const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance;
-                  const currentBonus = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0;
-                  const currentBonusPf = edits[p.id]?.isBonusPfApplicable ?? p.isBonusPfApplicable ?? false;
+                  const currentBonusDays = edits[p.id]?.bonusDays ?? p.bonusDays ?? 0;
+                  const currentBonusAmount = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0;
                   
                   const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0;
-                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonus, currentBonusPf) || p;
+                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p;
 
                   return (
                     <tr key={p.id} className="group">
@@ -464,6 +564,7 @@ export default function MonthlyPayrollPage() {
                         </div>
                       </td>
                       
+                      {/* Total / Present Days */}
                       <td className="px-4 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <span className="text-slate-500 font-medium">{p.totalDays}</span>
@@ -480,7 +581,10 @@ export default function MonthlyPayrollPage() {
                               const clamped = Math.max(0, Math.min(val, p.totalDays));
                               setEdits({
                                 ...edits, 
-                                [p.id]: { ...edits[p.id], presentDays: clamped }
+                                [p.id]: { 
+                                  ...(edits[p.id] || { refundOfAdvance: currentRefund, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
+                                  presentDays: clamped 
+                                }
                               });
                             }}
                             className={`w-16 bg-black/40 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
@@ -491,47 +595,55 @@ export default function MonthlyPayrollPage() {
                         </div>
                       </td>
                       
+                      {/* Fixed CTC */}
                       <td className="px-4 py-4 text-right">
                         <span className="text-slate-500 font-medium">₹{p.staff.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
                       </td>
 
-                      {/* Bonus (INR) */}
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end">
-                          <input
-                            type="number"
-                            min="0"
-                            value={currentBonus}
-                            disabled={isMonthLocked}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              setEdits({
-                                ...edits,
-                                [p.id]: {
-                                  ...edits[p.id],
-                                  bonusAmount: val,
-                                  bonusType: 'CUSTOM'
-                                }
-                              });
-                            }}
-                            className={`w-24 bg-black/40 border rounded-lg px-2.5 py-1.5 text-right font-medium text-amber-300 focus:outline-none transition-all ${
-                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                              (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) !== (p.bonusAmount ?? 0)
-                                ? 'border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)] focus:ring-2 focus:ring-amber-500/50'
-                                : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50'
-                            }`}
-                          />
+                      {/* Bonus Days & Live Computed Rupee Value */}
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              max="15"
+                              value={currentBonusDays === 0 ? '' : currentBonusDays}
+                              placeholder="0"
+                              disabled={isMonthLocked}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                handleBonusDaysChange(p, val);
+                              }}
+                              className={`w-14 bg-black/50 border rounded-lg px-2 py-1.5 text-center font-bold text-amber-300 focus:outline-none transition-all ${
+                                isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
+                                currentBonusDays > 0
+                                  ? 'border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.25)] focus:ring-2 focus:ring-amber-500/50 text-amber-300'
+                                  : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50 text-slate-400'
+                              }`}
+                            />
+                            <span className="text-xs font-semibold text-slate-500">days</span>
+                          </div>
+                          {currentBonusAmount > 0 && (
+                            <span className="text-[11px] font-bold text-amber-400 tracking-tight">
+                              +₹{currentBonusAmount.toLocaleString()}
+                            </span>
+                          )}
                         </div>
                       </td>
                       
+                      {/* Gross Wage */}
                       <td className="px-4 py-4 text-right">
                         <span className="text-slate-200 font-semibold">₹{calc.grossWage.toLocaleString()}</span>
                       </td>
                       
+                      {/* Employee PF */}
                       <td className="px-4 py-4 text-right">
                         <span className="text-rose-400/90 font-medium">-₹{calc.employeeEpf.toLocaleString()}</span>
                       </td>
                       
+                      {/* Advance Refund */}
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end">
                           <input
@@ -541,7 +653,10 @@ export default function MonthlyPayrollPage() {
                             disabled={isMonthLocked}
                             onChange={(e) => setEdits({
                               ...edits, 
-                              [p.id]: { ...edits[p.id], refundOfAdvance: parseFloat(e.target.value) || 0 }
+                              [p.id]: { 
+                                ...(edits[p.id] || { presentDays: currentPresentDays, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
+                                refundOfAdvance: parseFloat(e.target.value) || 0 
+                              }
                             })}
                             className={`w-24 bg-black/40 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none transition-all ${
                               isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
@@ -551,6 +666,7 @@ export default function MonthlyPayrollPage() {
                         </div>
                       </td>
                       
+                      {/* Net Payment */}
                       <td className="px-6 py-4 text-right">
                         <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shadow-inner">
                           <span className="text-emerald-400 font-bold tracking-tight text-base">₹{calc.netPayment.toLocaleString()}</span>
@@ -581,14 +697,20 @@ export default function MonthlyPayrollPage() {
             payrolls.map((p) => {
               const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
               const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
-              const currentBonus = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0
-              const currentBonusPf = edits[p.id]?.isBonusPfApplicable ?? p.isBonusPfApplicable ?? false
-              const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance || currentBonus !== (p.bonusAmount ?? 0)
+              const currentBonusDays = edits[p.id]?.bonusDays ?? p.bonusDays ?? 0
+              const currentBonusAmount = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0
+              const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance || currentBonusAmount !== (p.bonusAmount ?? 0) || currentBonusDays !== (p.bonusDays ?? 0)
               const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonus, currentBonusPf) || p
+              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p
               const setPresent = (v: number) => {
                 const clamped = Math.max(0, Math.min(p.totalDays, v))
-                setEdits({ ...edits, [p.id]: { ...edits[p.id], refundOfAdvance: currentRefund, presentDays: clamped } })
+                setEdits({ 
+                  ...edits, 
+                  [p.id]: { 
+                    ...(edits[p.id] || { refundOfAdvance: currentRefund, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
+                    presentDays: clamped 
+                  } 
+                })
               }
 
               return (
@@ -658,19 +780,34 @@ export default function MonthlyPayrollPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus (₹)</p>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min="0"
-                        value={currentBonus}
-                        disabled={isMonthLocked}
-                        onChange={(e) => setEdits({
-                          ...edits,
-                          [p.id]: { ...edits[p.id], bonusAmount: parseFloat(e.target.value) || 0, bonusType: 'CUSTOM' }
-                        })}
-                        className="w-full h-10 rounded-xl border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 disabled:opacity-50 text-xs"
-                      />
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus Days</p>
+                      <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                        <button
+                          disabled={isMonthLocked}
+                          onClick={() => handleBonusDaysChange(p, Math.max(0, currentBonusDays - 0.5))}
+                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                        >−</button>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.5"
+                          min="0"
+                          max="15"
+                          value={currentBonusDays === 0 ? '' : currentBonusDays}
+                          placeholder="0"
+                          disabled={isMonthLocked}
+                          onChange={(e) => handleBonusDaysChange(p, parseFloat(e.target.value) || 0)}
+                          className="flex-1 min-w-0 w-full h-10 bg-transparent text-center font-bold text-amber-300 focus:outline-none disabled:opacity-50 text-xs"
+                        />
+                        <button
+                          disabled={isMonthLocked}
+                          onClick={() => handleBonusDaysChange(p, currentBonusDays + 0.5)}
+                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                        >+</button>
+                      </div>
+                      {currentBonusAmount > 0 && (
+                        <p className="text-[10px] font-bold text-amber-400 mt-1 text-center">+₹{currentBonusAmount.toLocaleString()}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80 mb-1.5">Refund (₹)</p>
@@ -682,7 +819,10 @@ export default function MonthlyPayrollPage() {
                         disabled={isMonthLocked}
                         onChange={(e) => setEdits({
                           ...edits,
-                          [p.id]: { ...edits[p.id], refundOfAdvance: parseFloat(e.target.value) || 0 }
+                          [p.id]: { 
+                            ...(edits[p.id] || { presentDays: currentPresentDays, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
+                            refundOfAdvance: parseFloat(e.target.value) || 0 
+                          }
                         })}
                         className="w-full h-10 rounded-xl border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50 text-xs"
                       />
@@ -698,13 +838,13 @@ export default function MonthlyPayrollPage() {
         <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-slate-500 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-indigo-400/70" />
-            <span>Adjust <strong className="text-indigo-400">Present Days</strong>, <strong className="text-amber-400">Bonus</strong> or <strong className="text-rose-400">Refunds</strong> and click Save Changes.</span>
+            <span>Directly adjust <strong className="text-amber-400">Bonus Days</strong> (0-3d) per staff, and the system automatically computes exact rupees. Click Save Changes when done.</span>
           </div>
           <span>Showing {payrolls.length} active staff records</span>
         </div>
       </div>
 
-      {/* Bonus Distribution Modal */}
+      {/* Bonus Baseline Modal */}
       {showBonusModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-white/[0.12] rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -714,8 +854,8 @@ export default function MonthlyPayrollPage() {
                   <Gift className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Distribute Bonus</h3>
-                  <p className="text-xs text-slate-400">Reward staff based on performance or festival</p>
+                  <h3 className="text-lg font-bold text-white">Distribute Baseline Bonus</h3>
+                  <p className="text-xs text-slate-400">Batch-apply a starting bonus to all staff, then tweak individually</p>
                 </div>
               </div>
               <button
@@ -760,7 +900,7 @@ export default function MonthlyPayrollPage() {
               <div className="space-y-4 mb-5">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    Performance Extra Days (0 to 3 days)
+                    Default Bonus Days for All Members
                   </label>
                   <div className="flex items-center gap-2">
                     {[1, 2, 3].map((d) => (
@@ -793,7 +933,7 @@ export default function MonthlyPayrollPage() {
                   </div>
                 </div>
                 <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300/90 leading-relaxed">
-                  💡 Each employee will automatically receive <strong>(Monthly Wage ÷ Total Month Days) × {bonusDaysInput}</strong>. Attendance days remain accurate and within the calendar limit.
+                  💡 Sets each employee's Bonus Days to <strong>{bonusDaysInput} days</strong> and auto-multiplies by their daily wage. You can still adjust each person's days in the table afterwards.
                 </div>
               </div>
             ) : (
@@ -835,26 +975,6 @@ export default function MonthlyPayrollPage() {
               </div>
             )}
 
-            {/* PF Applicability Toggle */}
-            <div className="p-3 bg-black/40 border border-white/[0.08] rounded-2xl mb-5">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={bonusPfToggle}
-                  onChange={(e) => setBonusPfToggle(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded text-amber-500 focus:ring-0 bg-black/50 border-white/20"
-                />
-                <div className="text-xs">
-                  <span className="font-semibold text-white">Include Bonus in EPF Wage (Deduct 12% PF)</span>
-                  <p className="text-[11px] text-slate-400 mt-0.5 leading-normal">
-                    {bonusPfToggle 
-                      ? 'PF will be deducted from the bonus amount (subject to ₹25,000 ceiling).'
-                      : 'Recommended (EPFO Standard): Bonus is exempt from PF and paid in full to the employee.'}
-                  </p>
-                </div>
-              </label>
-            </div>
-
             {/* Action Buttons */}
             <div className="flex items-center justify-between gap-3 pt-2">
               <button
@@ -862,7 +982,7 @@ export default function MonthlyPayrollPage() {
                 onClick={clearAllBonuses}
                 className="px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
               >
-                Clear Bonuses
+                Clear All Bonuses
               </button>
               <div className="flex items-center gap-2">
                 <button
