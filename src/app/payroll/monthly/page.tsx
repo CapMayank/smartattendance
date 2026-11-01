@@ -60,6 +60,9 @@ export default function MonthlyPayrollPage() {
   // Page-level bonus PF toggle
   const [isBonusPfApplicable, setIsBonusPfApplicable] = useState<boolean>(false)
 
+  // Master bonus mode toggle
+  const [isBonusModeEnabled, setIsBonusModeEnabled] = useState<boolean>(false)
+
   // Bonus modal states
   const [showBonusModal, setShowBonusModal] = useState(false)
   const [bonusDistMode, setBonusDistMode] = useState<'DAYS' | 'FLAT'>('DAYS')
@@ -79,6 +82,9 @@ export default function MonthlyPayrollPage() {
       
       const initialEdits: Record<string, any> = {}
       let initialPfApplicable = false
+      const hasExistingBonuses = (data || []).some((p: any) => (p.bonusAmount || 0) > 0 || (p.bonusDays || 0) > 0)
+      setIsBonusModeEnabled(hasExistingBonuses)
+
       data.forEach((p: any) => {
         const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
         const baseGrossWage = monthlyCtc / 1.12
@@ -112,6 +118,33 @@ export default function MonthlyPayrollPage() {
     }
   }
 
+  // Handle toggling Master Bonus Mode
+  const handleToggleBonusMode = () => {
+    if (isBonusModeEnabled) {
+      const hasBonuses = Object.values(edits).some(e => (e.bonusAmount || 0) > 0 || (e.bonusDays || 0) > 0) ||
+                         payrolls.some(p => (p.bonusAmount || 0) > 0 || (p.bonusDays || 0) > 0)
+      
+      if (hasBonuses) {
+        if (!confirm('Disable bonus mode? This will reset all entered bonuses for this month to ₹0.')) {
+          return
+        }
+        const newEdits = { ...edits }
+        payrolls.forEach(p => {
+          newEdits[p.id] = {
+            ...(newEdits[p.id] || { presentDays: p.presentDays, refundOfAdvance: p.refundOfAdvance }),
+            bonusAmount: 0,
+            bonusDays: 0,
+            bonusType: 'DAYS'
+          }
+        })
+        setEdits(newEdits)
+      }
+      setIsBonusModeEnabled(false)
+    } else {
+      setIsBonusModeEnabled(true)
+    }
+  }
+
   // Handle changing bonus days for an individual employee
   const handleBonusDaysChange = (p: any, days: number) => {
     const safeDays = Math.max(0, days)
@@ -141,11 +174,11 @@ export default function MonthlyPayrollPage() {
         const baseGrossWage = monthlyCtc / 1.12
         const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
 
-        const bDays = itemEdit?.bonusDays ?? p.bonusDays ?? 0
-        let bAmount = itemEdit?.bonusAmount ?? p.bonusAmount ?? 0
-        const bType = itemEdit?.bonusType ?? p.bonusType ?? 'DAYS'
+        const bDays = isBonusModeEnabled ? (itemEdit?.bonusDays ?? p.bonusDays ?? 0) : 0
+        let bAmount = isBonusModeEnabled ? (itemEdit?.bonusAmount ?? p.bonusAmount ?? 0) : 0
+        const bType = isBonusModeEnabled ? (itemEdit?.bonusType ?? p.bonusType ?? 'DAYS') : 'DAYS'
 
-        if (bType === 'DAYS' && bDays > 0 && bAmount === 0 && wagePerDay > 0) {
+        if (isBonusModeEnabled && bType === 'DAYS' && bDays > 0 && bAmount === 0 && wagePerDay > 0) {
           bAmount = Math.round(wagePerDay * bDays)
         }
 
@@ -158,7 +191,7 @@ export default function MonthlyPayrollPage() {
           bonusAmount: bAmount,
           bonusDays: bDays,
           bonusType: bType,
-          isBonusPfApplicable
+          isBonusPfApplicable: isBonusModeEnabled ? isBonusPfApplicable : false
         }
       })
 
@@ -256,13 +289,15 @@ export default function MonthlyPayrollPage() {
   const hasUnsavedEdits = Object.keys(edits).some(id => {
     const p = payrolls.find(p => p.id === id)
     if (!p) return false
+    const bonusDaysVal = isBonusModeEnabled ? (edits[id].bonusDays ?? 0) : 0
+    const bonusAmountVal = isBonusModeEnabled ? (edits[id].bonusAmount ?? 0) : 0
     return (
       edits[id].presentDays !== p.presentDays ||
       edits[id].refundOfAdvance !== p.refundOfAdvance ||
-      (edits[id].bonusAmount ?? 0) !== (p.bonusAmount ?? 0) ||
-      (edits[id].bonusDays ?? 0) !== (p.bonusDays ?? 0)
+      bonusAmountVal !== (p.bonusAmount ?? 0) ||
+      bonusDaysVal !== (p.bonusDays ?? 0)
     )
-  }) || (payrolls.length > 0 && isBonusPfApplicable !== (payrolls[0]?.isBonusPfApplicable ?? false))
+  }) || (isBonusModeEnabled && payrolls.length > 0 && isBonusPfApplicable !== (payrolls[0]?.isBonusPfApplicable ?? false))
 
   const handleToggleLock = async () => {
     if (!confirm(isMonthLocked ? 'Are you sure you want to unlock this month?' : 'Are you sure you want to lock this month? Locked payrolls cannot be edited or synced.')) return;
@@ -372,17 +407,23 @@ export default function MonthlyPayrollPage() {
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
               <p className="text-xs text-slate-400 max-w-xs mb-3">
-                Directly enter <strong className="text-amber-400">Bonus Days</strong> per staff in the table below, or apply bulk baseline bonuses.
+                {isBonusModeEnabled ? (
+                  <>Directly enter <strong className="text-amber-400">Bonus Days</strong> per staff in the table below, or apply bulk baseline bonuses.</>
+                ) : (
+                  <>Review present days and advance refunds below. Toggle Bonus Mode ON if awarding bonuses this month.</>
+                )}
               </p>
-              <button
-                type="button"
-                onClick={() => setShowBonusModal(true)}
-                disabled={payrolls.length === 0 || isMonthLocked}
-                className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-all border border-amber-500/30 disabled:opacity-50 shadow-sm"
-              >
-                <Gift className="w-3.5 h-3.5 text-amber-400" />
-                Distribute Baseline Bonus
-              </button>
+              {isBonusModeEnabled && (
+                <button
+                  type="button"
+                  onClick={() => setShowBonusModal(true)}
+                  disabled={payrolls.length === 0 || isMonthLocked}
+                  className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-all border border-amber-500/30 disabled:opacity-50 shadow-sm"
+                >
+                  <Gift className="w-3.5 h-3.5 text-amber-400" />
+                  Distribute Baseline Bonus
+                </button>
+              )}
             </div>
 
             <div className="mt-6 ml-3">
@@ -454,55 +495,109 @@ export default function MonthlyPayrollPage() {
         </div>
       </div>
 
-      {/* Dedicated EPF Compliance & Bonus Configuration Banner */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Master Performance / Festival Bonus Mode Switch */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5">
           <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
-            isBonusPfApplicable 
-              ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
-              : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+            isBonusModeEnabled 
+              ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
+              : 'bg-white/[0.04] border-white/[0.08] text-slate-400'
           }`}>
-            <ShieldCheck className="w-5 h-5" />
+            <Gift className="w-5 h-5" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-sm font-bold text-white">EPF on Bonus Setting:</span>
-              {isBonusPfApplicable ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  <Check className="w-3 h-3" /> PF Applicable (12% Deducted)
+              <span className="text-sm font-bold text-white">Performance / Festival Bonus:</span>
+              {isBonusModeEnabled ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Sparkles className="w-3 h-3" /> Enabled for this Month
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <Check className="w-3 h-3" /> PF-Exempt (Standard EPFO Rule)
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/[0.04] text-slate-400 border border-white/[0.08]">
+                  Standard Payroll (Bonus Off)
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-              {isBonusPfApplicable 
-                ? 'Bonus is added into EPF Wages and attracts 12% employee PF contribution (subject to the revised ₹25,000 ceiling).'
-                : 'Standard EPFO rule: Bonuses are paid in full to employees in Net Payment without PF deduction, avoiding wage ceiling violations.'}
+              {isBonusModeEnabled
+                ? 'Bonus columns and EPF configuration are visible. You can assign performance bonus days or flat bonuses per staff member.'
+                : 'Turn on to reward performance days or festive bonuses to your team for this month. Bonus controls and columns stay hidden when off.'}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
-          <span className="text-xs font-semibold text-slate-300">Deduct 12% PF:</span>
+        <div className="flex items-center gap-3 self-end sm:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
+          <span className="text-xs font-semibold text-slate-300">
+            {isBonusModeEnabled ? 'Bonus Active' : 'Include Bonus'}
+          </span>
           <button
             type="button"
             disabled={isMonthLocked}
-            onClick={() => setIsBonusPfApplicable(!isBonusPfApplicable)}
+            onClick={handleToggleBonusMode}
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
-              isBonusPfApplicable ? 'bg-indigo-600' : 'bg-slate-700'
+              isBonusModeEnabled ? 'bg-amber-500' : 'bg-slate-700'
             }`}
           >
             <span
               className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                isBonusPfApplicable ? 'translate-x-5' : 'translate-x-0'
+                isBonusModeEnabled ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>
         </div>
       </div>
+
+      {/* Dedicated EPF Compliance & Bonus Configuration Banner (Visible only when Bonus Mode is Enabled) */}
+      {isBonusModeEnabled && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-200">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
+              isBonusPfApplicable 
+                ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+            }`}>
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-sm font-bold text-white">EPF on Bonus Setting:</span>
+                {isBonusPfApplicable ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    <Check className="w-3 h-3" /> PF Applicable (12% Deducted)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <Check className="w-3 h-3" /> PF-Exempt (Standard EPFO Rule)
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                {isBonusPfApplicable 
+                  ? 'Bonus is added into EPF Wages and attracts 12% employee PF contribution (subject to the revised ₹25,000 ceiling).'
+                  : 'Standard EPFO rule: Bonuses are paid in full to employees in Net Payment without PF deduction, avoiding wage ceiling violations.'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
+            <span className="text-xs font-semibold text-slate-300">Deduct 12% PF:</span>
+            <button
+              type="button"
+              disabled={isMonthLocked}
+              onClick={() => setIsBonusPfApplicable(!isBonusPfApplicable)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+                isBonusPfApplicable ? 'bg-indigo-600' : 'bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  isBonusPfApplicable ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Table Area */}
       <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
@@ -513,7 +608,9 @@ export default function MonthlyPayrollPage() {
                 <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-center">Total / Present</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Fixed CTC</th>
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-center text-amber-400">Bonus Days & Pay</th>
+                {isBonusModeEnabled && (
+                  <th className="px-4 py-3.5 font-semibold tracking-wider text-center text-amber-400">Bonus Days & Pay</th>
+                )}
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Gross Wage</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Employee PF</th>
                 <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Adv. Refund</th>
@@ -523,7 +620,7 @@ export default function MonthlyPayrollPage() {
             <tbody>
               {loading && payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-24 text-center">
+                  <td colSpan={isBonusModeEnabled ? 8 : 7} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
                       <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
@@ -532,7 +629,7 @@ export default function MonthlyPayrollPage() {
                 </tr>
               ) : payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-24 text-center">
+                  <td colSpan={isBonusModeEnabled ? 8 : 7} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <ShieldCheck className="w-12 h-12 text-slate-600 mb-2" />
                       <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
@@ -544,8 +641,8 @@ export default function MonthlyPayrollPage() {
                 payrolls.map((p) => {
                   const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays;
                   const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance;
-                  const currentBonusDays = edits[p.id]?.bonusDays ?? p.bonusDays ?? 0;
-                  const currentBonusAmount = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0;
+                  const currentBonusDays = isBonusModeEnabled ? (edits[p.id]?.bonusDays ?? p.bonusDays ?? 0) : 0;
+                  const currentBonusAmount = isBonusModeEnabled ? (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) : 0;
                   
                   const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0;
                   const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p;
@@ -601,37 +698,39 @@ export default function MonthlyPayrollPage() {
                       </td>
 
                       {/* Bonus Days & Live Computed Rupee Value */}
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col items-center justify-center gap-1">
-                          <div className="flex items-center justify-center gap-1">
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0"
-                              max="15"
-                              value={currentBonusDays === 0 ? '' : currentBonusDays}
-                              placeholder="0"
-                              disabled={isMonthLocked}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                handleBonusDaysChange(p, val);
-                              }}
-                              className={`w-14 bg-black/50 border rounded-lg px-2 py-1.5 text-center font-bold text-amber-300 focus:outline-none transition-all ${
-                                isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                                currentBonusDays > 0
-                                  ? 'border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.25)] focus:ring-2 focus:ring-amber-500/50 text-amber-300'
-                                  : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50 text-slate-400'
-                              }`}
-                            />
-                            <span className="text-xs font-semibold text-slate-500">days</span>
+                      {isBonusModeEnabled && (
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-1">
+                              <input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                max="15"
+                                value={currentBonusDays === 0 ? '' : currentBonusDays}
+                                placeholder="0"
+                                disabled={isMonthLocked}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  handleBonusDaysChange(p, val);
+                                }}
+                                className={`w-14 bg-black/50 border rounded-lg px-2 py-1.5 text-center font-bold text-amber-300 focus:outline-none transition-all ${
+                                  isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
+                                  currentBonusDays > 0
+                                    ? 'border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.25)] focus:ring-2 focus:ring-amber-500/50 text-amber-300'
+                                    : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50 text-slate-400'
+                                }`}
+                              />
+                              <span className="text-xs font-semibold text-slate-500">days</span>
+                            </div>
+                            {currentBonusAmount > 0 && (
+                              <span className="text-[11px] font-bold text-amber-400 tracking-tight">
+                                +₹{currentBonusAmount.toLocaleString()}
+                              </span>
+                            )}
                           </div>
-                          {currentBonusAmount > 0 && (
-                            <span className="text-[11px] font-bold text-amber-400 tracking-tight">
-                              +₹{currentBonusAmount.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                        </td>
+                      )}
                       
                       {/* Gross Wage */}
                       <td className="px-4 py-4 text-right">
@@ -697,9 +796,11 @@ export default function MonthlyPayrollPage() {
             payrolls.map((p) => {
               const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
               const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
-              const currentBonusDays = edits[p.id]?.bonusDays ?? p.bonusDays ?? 0
-              const currentBonusAmount = edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0
-              const isEdited = currentPresentDays !== p.presentDays || currentRefund !== p.refundOfAdvance || currentBonusAmount !== (p.bonusAmount ?? 0) || currentBonusDays !== (p.bonusDays ?? 0)
+              const currentBonusDays = isBonusModeEnabled ? (edits[p.id]?.bonusDays ?? p.bonusDays ?? 0) : 0
+              const currentBonusAmount = isBonusModeEnabled ? (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) : 0
+              const isEdited = currentPresentDays !== p.presentDays || 
+                               currentRefund !== p.refundOfAdvance || 
+                               (isBonusModeEnabled && (currentBonusAmount !== (p.bonusAmount ?? 0) || currentBonusDays !== (p.bonusDays ?? 0)))
               const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
               const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p
               const setPresent = (v: number) => {
@@ -731,15 +832,17 @@ export default function MonthlyPayrollPage() {
                     <p className="text-2xl font-black text-emerald-400 mt-0.5">₹{calc.netPayment.toLocaleString()}</p>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 mt-3">
+                  <div className={`grid ${isBonusModeEnabled ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mt-3`}>
                     <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fixed CTC</p>
                       <p className="text-[12px] font-bold text-slate-400 mt-1 truncate">₹{monthlyCtc.toLocaleString()}</p>
                     </div>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">Bonus</p>
-                      <p className="text-[12px] font-bold text-amber-300 mt-1 truncate">₹{calc.bonusAmount.toLocaleString()}</p>
-                    </div>
+                    {isBonusModeEnabled && (
+                      <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">Bonus</p>
+                        <p className="text-[12px] font-bold text-amber-300 mt-1 truncate">₹{calc.bonusAmount.toLocaleString()}</p>
+                      </div>
+                    )}
                     <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Gross</p>
                       <p className="text-[12px] font-bold text-slate-200 mt-1 truncate">₹{calc.grossWage.toLocaleString()}</p>
@@ -750,7 +853,7 @@ export default function MonthlyPayrollPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className={`grid ${isBonusModeEnabled ? 'grid-cols-3' : 'grid-cols-2'} gap-2 mt-4`}>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Days <span className="text-slate-600">/{p.totalDays}</span></p>
                       <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
@@ -779,36 +882,38 @@ export default function MonthlyPayrollPage() {
                         >+</button>
                       </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus Days</p>
-                      <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
-                        <button
-                          disabled={isMonthLocked}
-                          onClick={() => handleBonusDaysChange(p, Math.max(0, currentBonusDays - 0.5))}
-                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
-                        >−</button>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          step="0.5"
-                          min="0"
-                          max="15"
-                          value={currentBonusDays === 0 ? '' : currentBonusDays}
-                          placeholder="0"
-                          disabled={isMonthLocked}
-                          onChange={(e) => handleBonusDaysChange(p, parseFloat(e.target.value) || 0)}
-                          className="flex-1 min-w-0 w-full h-10 bg-transparent text-center font-bold text-amber-300 focus:outline-none disabled:opacity-50 text-xs"
-                        />
-                        <button
-                          disabled={isMonthLocked}
-                          onClick={() => handleBonusDaysChange(p, currentBonusDays + 0.5)}
-                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
-                        >+</button>
+                    {isBonusModeEnabled && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus Days</p>
+                        <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                          <button
+                            disabled={isMonthLocked}
+                            onClick={() => handleBonusDaysChange(p, Math.max(0, currentBonusDays - 0.5))}
+                            className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          >−</button>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.5"
+                            min="0"
+                            max="15"
+                            value={currentBonusDays === 0 ? '' : currentBonusDays}
+                            placeholder="0"
+                            disabled={isMonthLocked}
+                            onChange={(e) => handleBonusDaysChange(p, parseFloat(e.target.value) || 0)}
+                            className="flex-1 min-w-0 w-full h-10 bg-transparent text-center font-bold text-amber-300 focus:outline-none disabled:opacity-50 text-xs"
+                          />
+                          <button
+                            disabled={isMonthLocked}
+                            onClick={() => handleBonusDaysChange(p, currentBonusDays + 0.5)}
+                            className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          >+</button>
+                        </div>
+                        {currentBonusAmount > 0 && (
+                          <p className="text-[10px] font-bold text-amber-400 mt-1 text-center">+₹{currentBonusAmount.toLocaleString()}</p>
+                        )}
                       </div>
-                      {currentBonusAmount > 0 && (
-                        <p className="text-[10px] font-bold text-amber-400 mt-1 text-center">+₹{currentBonusAmount.toLocaleString()}</p>
-                      )}
-                    </div>
+                    )}
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80 mb-1.5">Refund (₹)</p>
                       <input
@@ -838,7 +943,11 @@ export default function MonthlyPayrollPage() {
         <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-slate-500 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-indigo-400/70" />
-            <span>Directly adjust <strong className="text-amber-400">Bonus Days</strong> (0-3d) per staff, and the system automatically computes exact rupees. Click Save Changes when done.</span>
+            {isBonusModeEnabled ? (
+              <span>Directly adjust <strong className="text-amber-400">Bonus Days</strong> (0-3d) per staff, and the system automatically computes exact rupees. Click Save Changes when done.</span>
+            ) : (
+              <span>Standard payroll mode. Adjust present days or advance refunds if needed. Click Save Changes when done.</span>
+            )}
           </div>
           <span>Showing {payrolls.length} active staff records</span>
         </div>
