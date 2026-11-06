@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatINR, formatTime, formatDateLong } from "./format";
+import { formatINR, formatTime, formatDateLong, formatPing } from "./format";
 
 describe("format helpers", () => {
   it("formats INR with en-IN grouping", () => {
@@ -22,5 +22,11 @@ describe("format helpers", () => {
   });
   it("formats long date in IST", () => {
     expect(formatDateLong(new Date("2026-11-05T19:00:00Z"))).toBe("Friday, 6 November 2026");
+  });
+  it("formats a ping from the same IST day as time only", () => {
+    expect(formatPing(new Date("2026-11-06T04:12:00Z"), new Date("2026-11-06T10:00:00Z"))).toBe("09:42");
+  });
+  it("formats a ping from an earlier IST day with date and time", () => {
+    expect(formatPing(new Date("2026-11-03T12:42:00Z"), new Date("2026-11-06T10:00:00Z"))).toBe("3 Nov 18:12");
   });
 });

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Server, Trash2, Pencil, RefreshCw } from 'lucide-react'
 import { Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, Skeleton, StatusBadge } from '@/components/ui'
 import { isDeviceOnline } from '@/lib/dashboard-calc'
-import { formatDateLong, formatTime } from '@/lib/format'
+import { formatDateLong, formatPing } from '@/lib/format'
 
 type Device = {
   id: string
@@ -140,7 +140,7 @@ export default function DevicesPage() {
                           {device.ipAddress ? `${device.ipAddress}${device.port ? `:${device.port}` : ''}` : <span className="font-sans text-subtle">No IP</span>}
                         </td>
                         <td><StatusBadge status={isOnline ? 'online' : 'offline'} /></td>
-                        <td className="num text-muted" title={formatDateLong(lastPing)}>{formatTime(lastPing)}</td>
+                        <td className="num text-muted" title={formatDateLong(lastPing)}>{formatPing(lastPing, new Date())}</td>
                         <td>
                           <div className="flex items-center justify-end gap-2">
                             <IconButton icon={Pencil} label="Edit device" className="size-8" onClick={() => startEditing(device)} />

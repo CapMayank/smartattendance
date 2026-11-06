@@ -19,6 +19,7 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const downOnBackdrop = useRef(false);
   const returnTo = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
@@ -48,8 +49,12 @@ export function Modal({
         returnTo.current = null;
         onClose();
       }}
+      onPointerDown={(e) => {
+        downOnBackdrop.current = e.target === ref.current;
+      }}
       onClick={(e) => {
-        if (e.target === ref.current) ref.current?.close();
+        if (downOnBackdrop.current && e.target === ref.current) ref.current?.close();
+        downOnBackdrop.current = false;
       }}
       className="ui-dialog m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-card p-0 text-text"
     >

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { ChevronDown, HelpCircle, LogOut, Plus } from "lucide-react";
-import { Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/format";
 import type { ShellData } from "@/lib/shell-data";
@@ -84,10 +83,12 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
         ) : null}
       </div>
 
-      <Link href="/attendance/manual" className="block rounded-[10px]">
-        <Button variant="primary" icon={Plus} tabIndex={-1} className="h-[42px] w-full">
-          Manual punch
-        </Button>
+      <Link
+        href="/attendance/manual"
+        className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-[10px] bg-text text-[13.5px] font-medium text-ground transition-colors duration-150 hover:bg-white"
+      >
+        <Plus size={16} aria-hidden="true" />
+        Manual punch
       </Link>
 
       <nav aria-label="Main navigation" className="flex min-h-0 flex-col gap-0.5 overflow-y-auto">
@@ -106,7 +107,7 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
                   className={cn(
                     "flex h-[38px] items-center gap-3 rounded-[9px] px-3 transition-colors duration-150",
                     isActive
-                      ? "bg-card-hi text-text shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]"
+                      ? "bg-card-hi text-text shadow-[inset_0_1px_0_color-mix(in_srgb,var(--color-text)_5%,transparent)]"
                       : "text-muted hover:bg-card hover:text-text",
                   )}
                 >
@@ -147,10 +148,8 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "mr-2 size-[7px] flex-none rounded-full",
-                      d.online
-                        ? "bg-present shadow-[0_0_0_3px_rgb(52_211_153/0.15)]"
-                        : "bg-absent shadow-[0_0_0_3px_rgb(247_96_108/0.15)]",
+                      "status-dot mr-2 size-[7px] flex-none rounded-full",
+                      d.online ? "tone-present" : "tone-absent",
                     )}
                   />
                   <span className="truncate">{d.name}</span>

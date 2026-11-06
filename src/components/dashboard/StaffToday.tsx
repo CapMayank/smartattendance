@@ -147,7 +147,7 @@ export function StaffToday({
             ))}
           </ChipGroup>
         ) : null}
-        <label className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-line px-3 text-subtle sm:ml-auto sm:w-[300px]">
+        <label className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-line px-3 text-subtle focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-acc-2 sm:ml-auto sm:w-[300px]">
           <Search size={16} aria-hidden="true" />
           <span className="sr-only">Search staff</span>
           <input
@@ -311,11 +311,12 @@ export function StaffToday({
                                   <span>
                                     On duty so far <b className="num font-medium text-text">{formatDuration(s.dutyMinutes)}</b>
                                   </span>
-                                  {s.punches.length > 6 ? (
-                                    <span className="num">
-                                      {s.punches.map((p) => `${formatTime(new Date(p.at))} ${p.type}`).join(" · ")}
-                                    </span>
-                                  ) : null}
+                                  <span className={cn("num", s.punches.length <= 6 && "sr-only")}>
+                                    <span className="sr-only">Punches: </span>
+                                    {s.punches
+                                      .map((p) => `${formatTime(new Date(p.at))} ${p.type}${p.device ? ` (${p.device})` : ""}`)
+                                      .join(s.punches.length <= 6 ? ", " : " · ")}
+                                  </span>
                                 </div>
                               </>
                             ) : (

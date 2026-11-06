@@ -178,6 +178,8 @@ input[type="number"] {
     outline-offset: 2px;
   }
 
+  .status-dot { background: var(--h); box-shadow: 0 0 0 3px color-mix(in srgb, var(--h) 15%, transparent); }
+
   .tone-present { --h: var(--color-present); }
   .tone-late { --h: var(--color-late); }
   .tone-absent { --h: var(--color-absent); }

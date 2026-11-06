@@ -1,6 +1,6 @@
 // Server only: Prisma reads for the Dashboard page.
 import { prisma } from "@/lib/prisma";
-import { SCHOOL_TZ, formatTime } from "@/lib/format";
+import { SCHOOL_TZ, formatPing } from "@/lib/format";
 import {
   absenceStreak,
   binArrivals,
@@ -351,7 +351,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
 
   const offlineDevices = devices.filter((d) => !isDeviceOnline(d.lastPing, now));
   const lastPingText = (d: Date) =>
-    `${istDateKey(d) === todayKey ? "today" : labelFmt.format(keyNoon(istDateKey(d)))} ${formatTime(d)}`;
+    `${istDateKey(d) === todayKey ? "today " : ""}${formatPing(d, now)}`;
   const offline: DashboardData["attention"] =
     offlineDevices.length === 0
       ? []

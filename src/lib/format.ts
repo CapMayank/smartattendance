@@ -41,3 +41,12 @@ export function formatDateLong(d: Date): string {
   );
   return `${parts.weekday}, ${parts.day} ${parts.month} ${parts.year}`;
 }
+
+const dayKeyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: SCHOOL_TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+const dayMonthFmt = new Intl.DateTimeFormat("en-GB", { timeZone: SCHOOL_TZ, day: "numeric", month: "short" });
+
+/** Last-ping text in IST: "HH:mm" when on the same IST day as `now`, otherwise "d MMM HH:mm". */
+export function formatPing(d: Date, now: Date): string {
+  if (dayKeyFmt.format(d) === dayKeyFmt.format(now)) return formatTime(d);
+  return `${dayMonthFmt.format(d)} ${formatTime(d)}`;
+}
