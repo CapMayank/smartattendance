@@ -1,11 +1,15 @@
 // Server only: Prisma reads for the Dashboard page.
 import { prisma } from "@/lib/prisma";
-import { SCHOOL_TZ, formatPing } from "@/lib/format";
+import { formatPing } from "@/lib/format";
 import {
   absenceStreak,
+  arrivalsWindow,
   binArrivals,
   dutyMinutes,
+  formatHHMM,
+  hasMissingOut,
   inferPunchTypes,
+  istDateKey,
   isDeviceOnline,
   isLate,
   istDayStart,
@@ -33,6 +37,8 @@ export type DashboardData = {
   };
   /** binArrivals bins; an extra leading/trailing bin collects arrivals outside the window (`overflow`). */
   arrivals: (ReturnType<typeof binArrivals>[number] & { overflow?: "before" | "after" })[];
+  /** Most common (start, end) shift among staff; header text and grace both derive from it. */
+  commonShift: { start: string; end: string } | null;
   graceLabel: string | null;
   ring: { onTime: number; late: number; absent: number };
   departments: { name: string; present: number; total: number }[];
@@ -66,29 +72,17 @@ export type DashboardData = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const LOG_WINDOW_DAYS = 21;
+const LOG_WINDOW_DAYS = 30;
 const TREND_DAYS = 15;
 const SPARK_DAYS = 7;
 const MAX_ATTENTION = 5;
-/** Arrivals window around the common shift start (mockup: 08:30 shift → 07:45–09:45). */
-const ARRIVALS_BEFORE = 45;
-const ARRIVALS_AFTER = 75;
 const ARRIVAL_SLOT = 15;
 
-const keyFmt = new Intl.DateTimeFormat("en-CA", {
-  timeZone: SCHOOL_TZ,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
 const labelFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short" });
 const weekdayFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short" });
 const weekdayLongFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "long" });
 
-/** yyyy-MM-dd of d's IST date. */
-export function istDateKey(d: Date): string {
-  return keyFmt.format(d);
-}
+export { istDateKey };
 
 /** Weekday (0 = Sunday) of an IST date key. */
 function keyWeekday(key: string): number {
@@ -97,11 +91,6 @@ function keyWeekday(key: string): number {
 
 function keyNoon(key: string): Date {
   return new Date(`${key}T12:00:00Z`);
-}
-
-function formatHHMM(mins: number): string {
-  const m = ((mins % 1440) + 1440) % 1440;
-  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
 function shiftStartOf(shift: { startTime: string } | null): string | null {
@@ -188,7 +177,11 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     byDay: logsByStaffDay.get(s.id) ?? new Map<string, { timestamp: Date; type: string }[]>(),
   }));
 
-  /** present / late counts for one IST day; roster = staff created on or before that day. */
+  /**
+   * present / late counts for one IST day. Roster rule: a staff member only counts from their
+   * createdAt date onward, so staff added after their earliest imported punches drop out of earlier
+   * days in the trend and in the same-weekday comparison.
+   */
   /** `cutoff` limits the day to punches at or before that instant (same time-of-day comparisons). */
   function dayStats(key: string, cutoff?: Date) {
     let roster = 0;
@@ -255,8 +248,12 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   const sparkKeys = workingDayKeys.slice(0, SPARK_DAYS).reverse();
   const sparkStats = sparkKeys.map((k) => dayStats(k));
 
-  // ---- Grace: most common shift start + allow ----
-  const commonStart = mostCommon(staffInfo.map((s) => s.shiftStart).filter((s): s is string => s !== null));
+  // ---- Grace: most common (start, end) shift, plus allow ----
+  const commonKey = mostCommon(
+    staff.filter((s) => s.shift).map((s) => `${s.shift!.start}|${s.shift!.end}`),
+  );
+  const commonShift = commonKey ? { start: commonKey.split("|")[0], end: commonKey.split("|")[1] } : null;
+  const commonStart = commonShift?.start ?? null;
   const graceLabel = commonStart ? formatHHMM(parseHHMM(commonStart) + parseHHMM(allow)) : null;
 
   // ---- Departments ----
@@ -273,7 +270,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     return b.total - a.total || a.name.localeCompare(b.name);
   });
 
-  // ---- Trend: 15 working days, oldest first ----
+  // ---- Trend: 15 working days (30-day log window leaves room for holidays), oldest first ----
   const trend = workingDayKeys
     .slice(0, TREND_DAYS)
     .reverse()
@@ -376,20 +373,16 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
             },
           ];
 
-  // Missing OUT on the previous working day (DailyRecord.date is a server-local midnight inside that IST day)
+  // Missing OUT on the previous working day, derived from the punch logs (DailyRecord is only
+  // written when a recalculation runs).
   const prevKey = pastWorking[0] ?? null;
   const missing: DashboardData["attention"] = [];
   if (prevKey) {
-    const prevStart = days.find((d) => d.key === prevKey)!.start;
-    const records = await prisma.dailyRecord.findMany({
-      where: { date: { gte: prevStart, lt: new Date(prevStart.getTime() + DAY_MS) }, checkIn: { not: null } },
-      select: { staffId: true, checkIn: true, checkOut: true, staff: { select: { name: true } } },
-    });
-    const open = records.filter((r) => !r.checkOut || r.checkOut.getTime() === r.checkIn!.getTime());
+    const open = staffInfo.filter((s) => hasMissingOut(s.byDay.get(prevKey) ?? []));
     if (open.length > 0) {
       const yesterdayKey = istDateKey(new Date(todayStart.getTime() - DAY_MS / 2));
       const when = prevKey === yesterdayKey ? "yesterday" : `on ${weekdayFmt.format(keyNoon(prevKey))} ${labelFmt.format(keyNoon(prevKey))}`;
-      const names = open.map((r) => r.staff.name);
+      const names = open.map((s) => s.row.name);
       missing.push({
         kind: "missing-out",
         title: open.length === 1 ? `${names[0]} missing OUT punch ${when}` : `${open.length} missing OUT punches ${when}`,
@@ -397,7 +390,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
           open.length === 1
             ? "Add the OUT punch before payroll is locked"
             : `${names.slice(0, 3).join(", ")}${names.length > 3 ? ` +${names.length - 3}` : ""}`,
-        href: open.length === 1 ? `/attendance/manual?staffId=${encodeURIComponent(open[0].staffId)}` : "/attendance/manual",
+        href: "/attendance/manual",
       });
     }
   }
@@ -431,14 +424,13 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
 
   // Arrivals: the window around the common shift start, plus an overflow bin on each side
   // only when some first punch falls outside it (binArrivals clamps into its end bins).
-  const arrFrom = commonStart ? parseHHMM(commonStart) - ARRIVALS_BEFORE : parseHHMM("07:45");
-  const arrTo = commonStart ? parseHHMM(commonStart) + ARRIVALS_AFTER : parseHHMM("09:45");
+  const { from: arrFrom, to: arrTo } = arrivalsWindow(commonStart);
   const early = firstPunches.some((p) => istMinutes(p.at) < arrFrom);
   const lateOver = firstPunches.some((p) => istMinutes(p.at) >= arrTo);
   const arrivals: DashboardData["arrivals"] = binArrivals(
     firstPunches,
-    formatHHMM(arrFrom - (early ? ARRIVAL_SLOT : 0)),
-    formatHHMM(arrTo + (lateOver ? ARRIVAL_SLOT : 0)),
+    formatHHMM(Math.max(0, arrFrom - (early ? ARRIVAL_SLOT : 0))),
+    formatHHMM(Math.min(1439, arrTo + (lateOver ? ARRIVAL_SLOT : 0))),
     ARRIVAL_SLOT,
   );
   if (early) arrivals[0] = { ...arrivals[0], label: `<${formatHHMM(arrFrom)}`, overflow: "before" };
@@ -468,6 +460,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
       },
     },
     arrivals,
+    commonShift,
     graceLabel,
     ring: { onTime: inToday - lateToday, late: lateToday, absent: absentToday },
     departments,

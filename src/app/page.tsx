@@ -31,21 +31,6 @@ function greeting(now: Date) {
   return "Good evening";
 }
 
-/** Most common shift among staff (for the header), or null. */
-function commonShift(staff: DashboardData["staff"]) {
-  const counts = new Map<string, { shift: { start: string; end: string }; n: number }>();
-  for (const s of staff) {
-    if (!s.shift) continue;
-    const key = `${s.shift.start}-${s.shift.end}`;
-    const c = counts.get(key) ?? { shift: s.shift, n: 0 };
-    c.n++;
-    counts.set(key, c);
-  }
-  let best: { shift: { start: string; end: string }; n: number } | null = null;
-  for (const c of counts.values()) if (!best || c.n > best.n) best = c;
-  return best?.shift ?? null;
-}
-
 function medianArrival(staff: DashboardData["staff"]): string | null {
   const firsts = staff
     .filter((s) => s.punches.length > 0)
@@ -90,7 +75,7 @@ export default async function Dashboard({
   }
 
   const { kpis, workingDay } = data;
-  const shift = commonShift(data.staff);
+  const shift = data.commonShift;
   const subtitle = [
     formatDateLong(now),
     formatTime(now),

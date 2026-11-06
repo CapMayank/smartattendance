@@ -21,6 +21,12 @@ function istParts(d: Date) {
   return o as { year: number; month: number; day: number; hour: number; minute: number; second: number }
 }
 
+/** yyyy-MM-dd of d's IST date, built from parts so it does not depend on a locale's format string. */
+export function istDateKey(d: Date): string {
+  const p = istParts(d)
+  return `${String(p.year).padStart(4, "0")}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`
+}
+
 /** Offset of SCHOOL_TZ from UTC, in ms, at instant d. */
 function tzOffsetMs(d: Date): number {
   const p = istParts(d)
@@ -46,7 +52,12 @@ export function parseHHMM(s: string): number {
   return h * 60 + (m || 0)
 }
 
-function formatHHMM(mins: number): string {
+/** The allowance when the policy value is missing or malformed (policy default). */
+export function normalizeAllow(allow: string | null | undefined): string {
+  return typeof allow === "string" && /^\d{1,2}:\d{2}$/.test(allow) ? allow : "00:15"
+}
+
+export function formatHHMM(mins: number): string {
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
@@ -57,7 +68,7 @@ export function isLate(firstPunch: Date, shiftStart: string | null, allow: strin
   if (!shiftStart) return false
   const p = istParts(firstPunch)
   const exact = p.hour * 60 + p.minute + p.second / 60
-  return exact > parseHHMM(shiftStart) + parseHHMM(allow)
+  return exact > parseHHMM(shiftStart) + parseHHMM(normalizeAllow(allow))
 }
 
 /** Minutes late measured from shift start (not from the grace limit); 0 when no shift or early. */
@@ -70,8 +81,9 @@ export function binArrivals(
   firstPunches: { at: Date; late: boolean }[],
   fromHHMM = "07:45",
   toHHMM = "09:45",
-  slot = 15,
+  slotMinutes = 15,
 ): { label: string; onTime: number; late: number }[] {
+  const slot = slotMinutes > 0 ? slotMinutes : 15
   const from = parseHHMM(fromHHMM)
   const to = parseHHMM(toHHMM)
   const bins: { label: string; onTime: number; late: number }[] = []
@@ -129,18 +141,34 @@ export function inferPunchTypes(logs: { type: string; timestamp: Date }[]): ("IN
   })
 }
 
-/** Sums IN->OUT pairs; an open IN runs until now. */
+/** Arrivals window in minutes since midnight around a shift start, clamped to 00:00-23:59 (no wrap). */
+export function arrivalsWindow(commonStart: string | null, before = 45, after = 75): { from: number; to: number } {
+  const start = commonStart ? parseHHMM(commonStart) : parseHHMM("08:30")
+  return { from: Math.max(0, start - before), to: Math.min(1439, start + after) }
+}
+
+/** True when the day's punches end on an IN (the person has not punched out). */
+export function hasMissingOut(logs: { type: string; timestamp: Date }[]): boolean {
+  if (logs.length === 0) return false
+  const types = inferPunchTypes(logs)
+  return types[types.length - 1] === "IN"
+}
+
+/**
+ * Sums IN->OUT pairs like the recalculate route: the latest IN replaces an open IN, an OUT with
+ * no open IN is ignored, each pair is floored to whole minutes, and an open IN runs until now.
+ */
 export function dutyMinutes(punches: { at: Date; type: "IN" | "OUT" }[], now: Date): number {
-  let ms = 0
+  let total = 0
   let openIn: Date | null = null
   for (const p of punches) {
     if (p.type === "IN") {
-      if (!openIn) openIn = p.at
+      openIn = p.at
     } else if (openIn) {
-      ms += p.at.getTime() - openIn.getTime()
+      total += Math.floor((p.at.getTime() - openIn.getTime()) / 60000)
       openIn = null
     }
   }
-  if (openIn) ms += Math.max(0, now.getTime() - openIn.getTime())
-  return Math.floor(ms / 60000)
+  if (openIn) total += Math.floor(Math.max(0, now.getTime() - openIn.getTime()) / 60000)
+  return total
 }
