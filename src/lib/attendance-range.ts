@@ -1,6 +1,8 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { startOfDay, endOfDay, eachDayOfInterval, isAfter } from 'date-fns'
+import { istDateKey } from '@/lib/dashboard-calc'
+import { shiftOn, type AssignmentLite, type ShiftLite } from '@/lib/shift-lookup'
 import { evaluateDay, type DayLog, type DayPolicy, type DayResult } from '@/lib/attendance-day'
 
 export type DailyRecordRow = DayResult & { staffId: string; date: Date }
@@ -9,6 +11,10 @@ export type RangeInputs = {
   startDate: Date
   endDate: Date
   staffList: { id: string; shiftId: string | null; shift: { startTime: string } | null }[]
+  /** Every shift by id; evaluation resolves each day's shift from these plus the assignments. */
+  shiftsById: Map<string, ShiftLite>
+  /** Per staff, their dated shift assignments (absent key = none, fall back to `shiftId`). */
+  assignmentsByStaff: Map<string, AssignmentLite[]>
   policy: DayPolicy & { weekOffDays?: string }
   holidayKeys: Set<number>
   weekOffDays: number[]
@@ -41,6 +47,17 @@ export async function loadRangeInputs(opts: { startDate: Date; endDate: Date; st
     ...(staffId ? { where: { id: staffId } } : {}),
     include: { shift: true },
   })
+
+  const shifts = await prisma.shift.findMany()
+  const shiftsById = new Map<string, ShiftLite>(shifts.map(sh => [sh.id, sh]))
+  const assignments = await prisma.shiftAssignment.findMany({ ...(staffId ? { where: { staffId } } : {}) })
+  const assignmentsByStaff = new Map<string, AssignmentLite[]>()
+  for (const a of assignments) {
+    const list = assignmentsByStaff.get(a.staffId)
+    const item = { effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }
+    if (list) list.push(item)
+    else assignmentsByStaff.set(a.staffId, [item])
+  }
 
   const policy: DayPolicy & { weekOffDays?: string } = (await prisma.policy.findFirst()) || FALLBACK_POLICY
 
@@ -89,6 +106,8 @@ export async function loadRangeInputs(opts: { startDate: Date; endDate: Date; st
     startDate,
     endDate,
     staffList,
+    shiftsById,
+    assignmentsByStaff,
     policy,
     holidayKeys,
     weekOffDays,
@@ -101,7 +120,7 @@ export async function loadRangeInputs(opts: { startDate: Date; endDate: Date; st
 
 /** Pure: evaluates every staff on every day of the range. Skips future days with no punches and locked staff-months. */
 export function computeRangeRecords(inputs: RangeInputs, now: Date): DailyRecordRow[] {
-  const { staffList, policy, holidayKeys, weekOffDays, lockedKeys, logsByStaffDay } = inputs
+  const { staffList, shiftsById, assignmentsByStaff, policy, holidayKeys, weekOffDays, lockedKeys, logsByStaffDay } = inputs
   const today = startOfDay(now)
   const records: DailyRecordRow[] = []
 
@@ -120,7 +139,8 @@ export function computeRangeRecords(inputs: RangeInputs, now: Date): DailyRecord
 
       if (lockedKeys.has(lockedKey(staff.id, date.getMonth() + 1, date.getFullYear()))) continue
 
-      const result = evaluateDay({ date, logs: myLogs, shift: staff.shift, policy, isHoliday, isWeekOff })
+      const shift = shiftOn(assignmentsByStaff.get(staff.id) ?? [], staff.shiftId, shiftsById, istDateKey(date))
+      const result = evaluateDay({ date, logs: myLogs, shift, policy, isHoliday, isWeekOff })
       records.push({ staffId: staff.id, date: day, ...result })
     }
   }

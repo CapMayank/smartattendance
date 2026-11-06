@@ -10,6 +10,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }))
 
+import { ALWAYS } from "@/lib/shift-lookup"
 import { computeRangeRecords, recalculateRange, type RangeInputs } from "@/lib/attendance-range"
 
 beforeAll(() => {
@@ -145,6 +146,33 @@ describe("recalculateRange", () => {
   })
 })
 
+describe("shift history", () => {
+  const TUE = "2026-11-03"
+  const WED = "2026-11-04"
+  const LATE_SHIFT = { id: "s2", name: "Late", startTime: "10:00", endTime: "16:00" }
+
+  it("judges each day by the shift that applied that day", async () => {
+    const f = fake({
+      staff: [staffA],
+      shifts: [SHIFT, LATE_SHIFT],
+      assignments: [
+        { staffId: "A", effectiveFrom: ALWAYS, shiftId: "s1" },
+        { staffId: "A", effectiveFrom: WED, shiftId: "s2" },
+      ],
+      logs: [...punches("A", TUE, ["09:40", "15:30"]), ...punches("A", WED, ["09:40", "15:30"])],
+    })
+    await recalculateRange({ startDate: dayStart(TUE), endDate: dayStart(WED) })
+    expect(f.created[0]).toMatchObject({ date: dayStart(TUE), lateMinutes: 40 })
+    expect(f.created[1]).toMatchObject({ date: dayStart(WED), lateMinutes: 0 })
+  })
+
+  it("a staff with no assignments falls back to Staff.shiftId", async () => {
+    const f = fake({ staff: [staffA], logs: punches("A", MON, ["09:20", "15:30"]) })
+    await recalculateRange({ startDate: dayStart(MON), endDate: dayStart(MON) })
+    expect(f.created[0]).toMatchObject({ staffId: "A", lateMinutes: 20 })
+  })
+})
+
 describe("computeRangeRecords", () => {
   const FUTURE = "2026-11-09"
   function inputs(logs: Map<string, { timestamp: Date; type: string }[]>): RangeInputs {
@@ -161,6 +189,8 @@ describe("computeRangeRecords", () => {
       lockedKeys: new Set(),
       lockedPayrolls: [],
       logsByStaffDay: logs,
+      shiftsById: new Map([["s1", SHIFT]]),
+      assignmentsByStaff: new Map(),
     }
   }
 

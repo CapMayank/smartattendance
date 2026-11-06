@@ -10,6 +10,10 @@ export type Fixtures = {
   holidays: { date: Date; name: string }[]
   lockedPayrolls: { staffId: string; month: number; year: number }[]
   logs: { id: string; staffId: string; timestamp: Date; type: string }[]
+  /** Optional; defaults to the distinct shifts carried by `staff[].shift`. */
+  shifts?: { id: string; name: string; startTime: string; endTime: string }[]
+  /** Optional; defaults to no assignments. */
+  assignments?: { staffId: string; effectiveFrom: string; shiftId: string | null }[]
 }
 
 type TimeFilter = { gte?: Date; lte?: Date }
@@ -36,6 +40,18 @@ export function createFakePrisma(fixtures: Fixtures): {
     staff: {
       findMany: async (args?: { where?: { id?: string } }) =>
         fixtures.staff.filter((s) => !args?.where?.id || s.id === args.where.id),
+    },
+    shift: {
+      findMany: async () => {
+        if (fixtures.shifts) return fixtures.shifts
+        const byId = new Map<string, NonNullable<Fixtures['staff'][number]['shift']>>()
+        for (const s of fixtures.staff) if (s.shift) byId.set(s.shift.id, s.shift)
+        return [...byId.values()]
+      },
+    },
+    shiftAssignment: {
+      findMany: async (args?: { where?: { staffId?: string } }) =>
+        (fixtures.assignments ?? []).filter((a) => !args?.where?.staffId || a.staffId === args.where.staffId),
     },
     policy: { findFirst: async () => fixtures.policy },
     holiday: {

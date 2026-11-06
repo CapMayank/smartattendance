@@ -19,6 +19,7 @@ import {
   parseHHMM,
   weekdayDelta,
 } from "@/lib/dashboard-calc";
+import { shiftOn, shiftStartForDay, type AssignmentLite, type ShiftLite } from "@/lib/shift-lookup";
 
 type Delta = ReturnType<typeof weekdayDelta>;
 export type StaffStatus = "on-duty" | "left" | "late" | "absent";
@@ -94,11 +95,6 @@ function keyNoon(key: string): Date {
   return new Date(`${key}T12:00:00Z`);
 }
 
-function shiftStartOf(shift: { startTime: string } | null): string | null {
-  const s = shift?.startTime?.trim();
-  return s ? s : null;
-}
-
 function mostCommon<T>(values: T[]): T | null {
   const counts = new Map<T, number>();
   let best: T | null = null;
@@ -118,7 +114,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   const todayStart = istDayStart(now);
   const windowStart = istDayStart(new Date(todayStart.getTime() - LOG_WINDOW_DAYS * DAY_MS + DAY_MS / 2));
 
-  const [staffRows, logs, devices, holidays, policy] = await Promise.all([
+  const [staffRows, logs, devices, holidays, policy, assignmentRows, shiftRows] = await Promise.all([
     prisma.staff.findMany({
       include: { department: true, designation: true, shift: true },
       orderBy: { name: "asc" },
@@ -133,7 +129,18 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
       where: { date: { gte: new Date(windowStart.getTime() - DAY_MS), lte: new Date(now.getTime() + DAY_MS) } },
     }),
     prisma.policy.findFirst(),
+    prisma.shiftAssignment.findMany(),
+    prisma.shift.findMany(),
   ]);
+
+  const shiftsById = new Map<string, ShiftLite>(shiftRows.map((sh) => [sh.id, sh]));
+  const assignmentsByStaff = new Map<string, AssignmentLite[]>();
+  for (const a of assignmentRows) {
+    const list = assignmentsByStaff.get(a.staffId);
+    const item = { effectiveFrom: a.effectiveFrom, shiftId: a.shiftId };
+    if (list) list.push(item);
+    else assignmentsByStaff.set(a.staffId, [item]);
+  }
 
   const allow = policy?.lateArrivalAllow ?? "00:15";
   const weekOff = new Set(
@@ -173,7 +180,10 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
 
   const staffInfo = staffRows.map((s) => ({
     row: s,
-    shiftStart: shiftStartOf(s.shift),
+    assignments: assignmentsByStaff.get(s.id) ?? [],
+    /** Shift start applying on an IST day key (blank start counts as none). */
+    startOn: (key: string): string | null =>
+      shiftStartForDay(assignmentsByStaff.get(s.id) ?? [], s.shiftId, shiftsById, key)?.trim() || null,
     joinedKey: istDateKey(s.createdAt),
     byDay: logsByStaffDay.get(s.id) ?? new Map<string, { timestamp: Date; type: string }[]>(),
   }));
@@ -195,7 +205,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
       if (!dayLogs || dayLogs.length === 0) continue;
       if (cutoff && dayLogs[0].timestamp.getTime() > cutoff.getTime()) continue;
       present++;
-      if (isLate(dayLogs[0].timestamp, s.shiftStart, allow)) late++;
+      if (isLate(dayLogs[0].timestamp, s.startOn(key), allow)) late++;
     }
     return { roster, present, late, absent: isWorking(key) ? roster - present : 0 };
   }
@@ -204,7 +214,8 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   const nowIso = now.toISOString();
   const firstPunches: { at: Date; late: boolean }[] = [];
   const punchLog: DashboardData["punchLog"] = [];
-  const staff: DashboardData["staff"] = staffInfo.map(({ row, shiftStart, byDay }) => {
+  const staff: DashboardData["staff"] = staffInfo.map(({ row, assignments, startOn, byDay }) => {
+    const shiftStart = startOn(todayKey);
     const todayLogs = byDay.get(todayKey) ?? [];
     const types = inferPunchTypes(todayLogs);
     const punches = todayLogs.map((l, i) => ({ at: l.timestamp, type: types[i] }));
@@ -219,7 +230,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     if (!first) status = "absent";
     else if (late) status = "late";
     else status = types[types.length - 1] === "OUT" ? "left" : "on-duty";
-    const shiftEnd = row.shift?.endTime?.trim();
+    const shiftEnd = shiftOn(assignments, row.shiftId, shiftsById, todayKey)?.endTime?.trim();
     return {
       id: row.id,
       name: row.name,
@@ -329,9 +340,10 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     for (const [key, dayLogs] of s.byDay) {
       if (key < weekStartKey || key > todayKey || !isWorking(key) || dayLogs.length === 0) continue;
       const first = dayLogs[0].timestamp;
-      if (isLate(first, s.shiftStart, allow)) {
+      const startKey = s.startOn(key);
+      if (isLate(first, startKey, allow)) {
         lateCount++;
-        lateSum += lateMinutes(first, s.shiftStart);
+        lateSum += lateMinutes(first, startKey);
       }
     }
     if (lateCount >= 3) {
