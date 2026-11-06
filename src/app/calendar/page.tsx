@@ -165,14 +165,14 @@ export default function CalendarPage() {
                   className={cn(
                     'group relative min-h-[72px] cursor-pointer rounded-xl border p-2 transition-colors duration-150 sm:min-h-[104px] sm:p-3',
                     !isCurrentMonth ? 'border-transparent bg-transparent opacity-40' : 'border-line bg-ground hover:border-subtle',
-                    holiday && 'border-leave/40 bg-leave/10',
+                    holiday && 'border-line bg-card-hi',
                     isTodayDate && 'ring-2 ring-acc-2 ring-offset-0',
                   )}
                 >
                   <div className="flex items-start justify-between">
                     <span className={cn(
                       'num flex size-7 items-center justify-center rounded-full text-sm',
-                      isTodayDate ? 'bg-acc-2 font-medium text-ground' : holiday ? 'text-leave' : 'text-muted',
+                      isTodayDate ? 'bg-acc-2 font-medium text-ground' : holiday ? 'text-muted' : 'text-muted',
                     )}>
                       {format(day, dateFormat)}
                     </span>
@@ -188,7 +188,7 @@ export default function CalendarPage() {
 
                   {holiday && (
                     <div className="mt-2">
-                      <p className="line-clamp-2 text-xs leading-snug text-leave">
+                      <p className="line-clamp-2 text-xs leading-snug text-muted">
                         {holiday.name}
                       </p>
                     </div>
@@ -223,7 +223,7 @@ export default function CalendarPage() {
               </p>
             )}
 
-            <div className="mb-4 flex items-center gap-3 rounded-[10px] border border-leave/30 bg-leave/10 px-3 py-3 text-leave">
+            <div className="mb-4 flex items-center gap-3 rounded-[10px] border border-line bg-card-hi px-3 py-3 text-muted">
               <CalendarIcon size={18} aria-hidden="true" />
               <span className="num text-sm font-medium">{format(selectedDate, 'EEEE, MMMM do, yyyy')}</span>
             </div>

@@ -111,7 +111,7 @@ export default function SettingsPage() {
           <Field
             label="Weekly off days"
             htmlFor="weekOffDays"
-            helper="Comma separated day numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday). These days are marked WEEKOFF instead of ABSENT if no punch is found."
+            helper={<>Comma separated day numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday). These days are marked <b className="font-medium text-text">WEEKOFF</b> instead of <b className="font-medium text-text">ABSENT</b> if no punch is found.</>}
           >
             <Input id="weekOffDays" type="text" className="num" placeholder="e.g. 0 for Sunday, 0,6 for Sun & Sat" value={policy.weekOffDays || ''} onChange={e => handleChange('weekOffDays', e.target.value)} />
           </Field>

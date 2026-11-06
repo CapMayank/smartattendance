@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Download, Calendar as CalendarIcon, BarChart3, Plus, Trash2, Settings2, ChevronDown, LogIn, LogOut, Timer, CheckCircle2, XCircle, CalendarDays, Moon, CircleDashed, type LucideIcon } from 'lucide-react'
+import { FileText, Download, Calendar as CalendarIcon, BarChart3, Plus, Trash2, Settings2, ChevronDown, LogIn, LogOut, Timer } from 'lucide-react'
 import Papa from 'papaparse'
 import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Skeleton, Tabs } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { StatusPill } from '@/components/attendance/StatusPill'
 
 type DailyRecord = {
   id: string
@@ -67,34 +68,9 @@ const dayKindStyle: Record<DayKind, { cell: string; label: string; name: string 
   present: { cell: 'bg-present/10 border-present/30 text-present', label: 'P', name: 'Present' },
   absent: { cell: 'bg-absent/10 border-absent/30 text-absent', label: 'A', name: 'Absent' },
   half: { cell: 'bg-late/10 border-late/30 text-late', label: 'HD', name: 'Half Day' },
-  holiday: { cell: 'bg-leave/10 border-leave/30 text-leave', label: 'H', name: 'Holiday' },
+  holiday: { cell: 'bg-card-hi border-line text-muted', label: 'H', name: 'Holiday' },
   weekoff: { cell: 'bg-card-hi border-line text-muted', label: 'W', name: 'Week Off' },
   none: { cell: 'bg-transparent border-line-soft text-subtle', label: '', name: 'No data' },
-}
-
-// Daily status pill: icon + word + tint (never colour alone).
-const statusMeta: Record<string, { tone: string; icon: LucideIcon }> = {
-  PRESENT: { tone: 'tone-present', icon: CheckCircle2 },
-  ABSENT: { tone: 'tone-absent', icon: XCircle },
-  HOLIDAY: { tone: 'tone-leave', icon: CalendarDays },
-  WEEKOFF: { tone: 'tone-muted', icon: Moon },
-}
-
-function StatusPill({ status, label }: { status: string; label: string }) {
-  const meta = statusMeta[status] ?? { tone: 'tone-late', icon: CircleDashed }
-  const Icon = meta.icon
-  return (
-    <span
-      className={cn(
-        'inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs',
-        meta.tone,
-        meta.tone === 'tone-muted' ? 'border border-line bg-card-hi text-muted' : 'tint-badge',
-      )}
-    >
-      <Icon size={13} aria-hidden="true" />
-      {label}
-    </span>
-  )
 }
 
 // IN / OUT punch pill: LogIn/LogOut icon + word (present tone for IN, muted for OUT).
@@ -561,7 +537,7 @@ export default function ReportsPage() {
                         </div>
                       </td>
                       <td>
-                        <StatusPill status={record.status} label={record.status} />
+                        <StatusPill status={record.status} />
                       </td>
                       <td className="num text-text">
                         {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
@@ -641,8 +617,8 @@ export default function ReportsPage() {
                             bgClass = "bg-absent/10";
                             statusLabel = <span className="mt-1 text-[10px] font-semibold text-absent">A</span>;
                           } else if (dayData.status === 'HOLIDAY') {
-                            bgClass = "bg-leave/10";
-                            statusLabel = <span className="mt-1 text-[10px] font-semibold text-leave">H</span>;
+                            bgClass = "bg-card-hi";
+                            statusLabel = <span className="mt-1 text-[10px] font-semibold text-muted">H</span>;
                           } else if (dayData.status === 'WEEKOFF') {
                             bgClass = "bg-card-hi";
                             statusLabel = <span className="mt-1 text-[10px] font-semibold text-muted">W</span>;
@@ -677,8 +653,8 @@ export default function ReportsPage() {
 
                         if (dayData.status === 'HOLIDAY') {
                           return (
-                            <td key={day} className="bg-leave/10">
-                              <span className="font-semibold text-leave">H</span>
+                            <td key={day} className="bg-card-hi">
+                              <span className="font-semibold text-muted">H</span>
                             </td>
                           );
                         }
@@ -757,7 +733,7 @@ export default function ReportsPage() {
                             {record.staff.designation?.name || 'No Role'} • {record.staff.department?.name || 'No Dept'}
                           </p>
                         </div>
-                        <StatusPill status={record.status} label={record.status.replace('_', ' ')} />
+                        <StatusPill status={record.status} />
                       </div>
 
                       <div className="mt-4 grid grid-cols-3 gap-2">

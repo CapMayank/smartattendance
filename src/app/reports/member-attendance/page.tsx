@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Download, Calendar as CalendarIcon, Search, UserCheck, LogIn, LogOut, CheckCircle2, XCircle, CalendarDays, Moon, CircleDashed, AlertTriangle, type LucideIcon } from 'lucide-react'
+import { Download, Calendar as CalendarIcon, Search, UserCheck, LogIn, LogOut, AlertTriangle } from 'lucide-react'
 import Papa from 'papaparse'
 import { Button, Card, EmptyState, Field, Input, PageHeader, Select, Skeleton } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { StatusPill } from '@/components/attendance/StatusPill'
 
 type AttendanceLog = {
   id: string
@@ -52,31 +53,6 @@ const formatLogsWithDirection = (logs: AttendanceLog[]): AttendanceLog[] => {
     ...log,
     type: (index === logs.length - 1 || index % 2 === 1) ? 'OUT' : 'IN'
   }))
-}
-
-// Status pill: icon + word + tint (never colour alone).
-const statusMeta: Record<string, { tone: string; icon: LucideIcon }> = {
-  PRESENT: { tone: 'tone-present', icon: CheckCircle2 },
-  ABSENT: { tone: 'tone-absent', icon: XCircle },
-  HOLIDAY: { tone: 'tone-leave', icon: CalendarDays },
-  WEEKOFF: { tone: 'tone-muted', icon: Moon },
-}
-
-function StatusPill({ status, label }: { status: string; label: string }) {
-  const meta = statusMeta[status] ?? { tone: 'tone-late', icon: CircleDashed }
-  const Icon = meta.icon
-  return (
-    <span
-      className={cn(
-        'inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs',
-        meta.tone,
-        meta.tone === 'tone-muted' ? 'border border-line bg-card-hi text-muted' : 'tint-badge',
-      )}
-    >
-      <Icon size={13} aria-hidden="true" />
-      {label}
-    </span>
-  )
 }
 
 // Punch log pill: LogIn/LogOut icon + IN/OUT word + time (present tone for IN, muted for OUT).
@@ -366,7 +342,7 @@ export default function MemberAttendancePage() {
                         </div>
                       </td>
                       <td>
-                        <StatusPill status={record.status} label={record.status} />
+                        <StatusPill status={record.status} />
                         {record.isSandwiched && (
                           <span className="mt-1 block text-[10px] uppercase tracking-wider text-absent">Sandwiched (Unpaid)</span>
                         )}
@@ -447,7 +423,7 @@ export default function MemberAttendancePage() {
               const accent =
                 record.status === 'PRESENT' ? 'border-l-present' :
                 record.status === 'ABSENT' ? 'border-l-absent' :
-                record.status === 'HOLIDAY' ? 'border-l-leave' :
+                record.status === 'HOLIDAY' ? 'border-l-line' :
                 record.status === 'WEEKOFF' ? 'border-l-muted' :
                 'border-l-late'
 
@@ -460,7 +436,7 @@ export default function MemberAttendancePage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <StatusPill status={record.status} label={record.status.replace('_', ' ')} />
+                        <StatusPill status={record.status} />
                         <span className="text-[10px] uppercase tracking-widest text-subtle">{dayName}</span>
                       </div>
                       {record.isSandwiched && (
