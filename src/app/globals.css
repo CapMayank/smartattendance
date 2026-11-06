@@ -245,3 +245,93 @@ input[type="number"] {
     border-color: rgba(255, 255, 255, 0.14);
   }
 }
+
+/* ============================================================
+   Space Black UI primitives (src/components/ui)
+   Tone is set through the --h custom property.
+   ============================================================ */
+@layer components {
+  :focus-visible {
+    outline: 2px solid var(--color-acc-2);
+    outline-offset: 2px;
+  }
+
+  .tone-present { --h: var(--color-present); }
+  .tone-late { --h: var(--color-late); }
+  .tone-absent { --h: var(--color-absent); }
+  .tone-leave { --h: var(--color-leave); }
+  .tone-accent { --h: var(--color-acc-2); }
+  .tone-muted { --h: var(--color-muted); }
+
+  .kpi-tile {
+    --h: var(--color-present);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    padding: 16px 18px 0;
+    background:
+      radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--h) 9%, transparent), transparent 55%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 50%),
+      var(--color-card);
+    transition: border-color 0.15s ease;
+  }
+  .kpi-tile:hover {
+    border-color: color-mix(in srgb, var(--h) 40%, var(--color-line));
+  }
+  .kpi-tile::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--h) 70%, transparent), transparent);
+  }
+  .kpi-ico {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: var(--h);
+    background: color-mix(in srgb, var(--h) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--h) 28%, transparent);
+  }
+
+  .tint-badge {
+    color: var(--h);
+    background: color-mix(in srgb, var(--h) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--h) 28%, transparent);
+  }
+  .tint-pill {
+    color: var(--h);
+    background: color-mix(in srgb, var(--h) 12%, transparent);
+  }
+
+  .ui-tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--color-acc-2), var(--color-acc-1));
+  }
+
+  .ui-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .skeleton {
+    background: var(--color-card-hi);
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes skeleton-pulse {
+    50% { opacity: 0.55; }
+  }
+}
