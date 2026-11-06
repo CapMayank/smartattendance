@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Download, FileText, Calendar as CalendarIcon, UserCheck, Wallet, IndianRupee, AlertTriangle, ExternalLink } from 'lucide-react'
+import { ArrowLeft, FileText, Calendar as CalendarIcon, Wallet, AlertTriangle, ExternalLink, Loader2, PencilLine } from 'lucide-react'
+import { Button, Card, CardHeader, EmptyState, IconButton, PageHeader, SectionLabel, StatusBadge } from '@/components/ui'
+import { cn } from '@/lib/cn'
 
 type PayrollDetail = {
   payroll: any;
@@ -45,21 +47,20 @@ export default function PayrollDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-        <p className="text-slate-400 font-medium animate-pulse">Loading payroll details...</p>
+      <div className="flex min-h-[60vh] items-center justify-center gap-2 text-muted">
+        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+        Loading payroll details...
       </div>
     )
   }
 
   if (!data || !data.payroll) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <FileText className="w-12 h-12 text-slate-600" />
-        <h2 className="text-xl font-bold text-white">Payroll Record Not Found</h2>
-        <button onClick={() => router.back()} className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2">
+        <EmptyState icon={FileText} title="Payroll Record Not Found" />
+        <Button variant="secondary" onClick={() => router.back()}>
           Go Back
-        </button>
+        </Button>
       </div>
     )
   }
@@ -69,207 +70,204 @@ export default function PayrollDetailPage() {
   const isMismatch = systemPresentDays !== payroll.presentDays
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
-      
+    <div className="space-y-5">
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push('/reports/member-payroll')}
-            className="p-2.5 bg-black/40 hover:bg-white/10 border border-white/[0.08] rounded-xl text-slate-300 transition-colors shadow-lg"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
-              Payroll Details
-            </h1>
-            <p className="text-slate-400 mt-1 font-medium">{monthName} {payroll.year} • {payroll.staff.name}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {payroll.isLocked ? (
-            <span className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider border bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10">Locked</span>
-          ) : (
-            <span className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10">Draft</span>
-          )}
+      <div className="flex items-center gap-3">
+        <IconButton
+          icon={ArrowLeft}
+          label="Back to member payroll"
+          onClick={() => router.push('/reports/member-payroll')}
+          className="flex-none"
+        />
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title="Payroll details"
+            subtitle={<>{monthName} <span className="num">{payroll.year}</span> • {payroll.staff.name}</>}
+            actions={payroll.isLocked ? (
+              <StatusBadge status="locked" />
+            ) : (
+              <span className="tone-late tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                <PencilLine size={13} aria-hidden="true" />
+                Draft
+              </span>
+            )}
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-        
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
         {/* Left Column: Days & Attendance */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-black/40 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-            <h3 className="text-lg font-bold text-white mb-6">Attendance Summary</h3>
-            
+        <div className="space-y-4 lg:col-span-1">
+          <Card>
+            <CardHeader title="Attendance Summary" />
+
             {isMismatch && (
-              <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 mb-6">
+              <div className="tone-absent tint-badge mb-4 rounded-xl p-4">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  <AlertTriangle size={18} className="mt-0.5 flex-none" aria-hidden="true" />
                   <div>
-                    <h4 className="text-sm font-bold text-rose-400">Manual Override Detected</h4>
-                    <p className="text-xs text-rose-300/70 mt-1 leading-relaxed">
-                      The paid days in this payroll do not match the system's recorded present days from the machine punches.
+                    <h4 className="text-sm font-medium">Manual Override Detected</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                      The paid days in this payroll do not match the system&apos;s recorded present days from the machine punches.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className={`p-4 rounded-2xl border ${isMismatch ? 'bg-rose-500/5 border-rose-500/20' : 'bg-white/5 border-white/[0.04]'}`}>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">System Present Days</p>
+            <div className="space-y-3">
+              <div className={cn('rounded-xl border p-4', isMismatch ? 'border-absent/30 bg-ground' : 'border-line-soft bg-ground')}>
+                <p className="mb-1 text-[12.5px] text-muted">System Present Days</p>
                 <div className="flex items-end gap-2">
-                  <span className={`text-3xl font-black ${isMismatch ? 'text-rose-400' : 'text-white'}`}>{systemPresentDays}</span>
-                  <span className="text-slate-500 font-medium mb-1.5">/ {payroll.totalDays}</span>
+                  <span className={cn('num text-3xl font-medium', isMismatch ? 'text-absent' : 'text-text')}>{systemPresentDays}</span>
+                  <span className="num mb-1 text-subtle">/ {payroll.totalDays}</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1 font-medium">Calculated directly from punches</p>
+                <p className="mt-1 text-[11px] text-subtle">Calculated directly from punches</p>
               </div>
 
-              <div className={`p-4 rounded-2xl border ${isMismatch ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-500/5 border-emerald-500/20'}`}>
-                <p className="text-xs font-bold text-emerald-300/70 uppercase tracking-wider mb-1">Paid Present Days</p>
+              <div className={cn('rounded-xl border p-4', isMismatch ? 'border-present/40 bg-ground' : 'border-present/20 bg-ground')}>
+                <p className="mb-1 text-[12.5px] text-muted">Paid Present Days</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-3xl font-black text-emerald-400">{payroll.presentDays}</span>
-                  <span className="text-slate-500 font-medium mb-1.5">/ {payroll.totalDays}</span>
+                  <span className="num text-3xl font-medium text-present">{payroll.presentDays}</span>
+                  <span className="num mb-1 text-subtle">/ {payroll.totalDays}</span>
                 </div>
-                <p className="text-[10px] text-emerald-400/50 mt-1 font-medium">Used for payroll generation</p>
+                <p className="mt-1 text-[11px] text-subtle">Used for payroll generation</p>
               </div>
             </div>
 
-            <button
+            <Button
+              variant="secondary"
+              icon={CalendarIcon}
               onClick={() => router.push(`/reports/member-attendance?staffId=${payroll.staffId}&month=${payroll.year}-${String(payroll.month).padStart(2, '0')}`)}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl transition-colors font-bold text-sm shadow-inner"
+              className="mt-4 w-full"
             >
-              <CalendarIcon className="w-4 h-4" /> View Daily Logs <ExternalLink className="w-3 h-3 ml-1" />
-            </button>
-          </div>
-          
-          <div className="bg-black/40 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-4">Staff Information</h3>
+              View Daily Logs <ExternalLink size={12} aria-hidden="true" />
+            </Button>
+          </Card>
+
+          <Card>
+            <CardHeader title="Staff Information" />
             <div className="space-y-4">
               <div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Employee ID / Machine ID</p>
-                <p className="text-sm font-medium text-slate-200 mt-0.5">{payroll.staff.machineId}</p>
+                <p className="text-[12px] text-subtle">Employee ID / Machine ID</p>
+                <p className="num mt-0.5 text-sm text-text">{payroll.staff.machineId}</p>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Department</p>
-                <p className="text-sm font-medium text-slate-200 mt-0.5">{payroll.staff.department?.name || '-'}</p>
+                <p className="text-[12px] text-subtle">Department</p>
+                <p className="mt-0.5 text-sm text-text">{payroll.staff.department?.name || '-'}</p>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Designation</p>
-                <p className="text-sm font-medium text-slate-200 mt-0.5">{payroll.staff.designation?.name || '-'}</p>
+                <p className="text-[12px] text-subtle">Designation</p>
+                <p className="mt-0.5 text-sm text-text">{payroll.staff.designation?.name || '-'}</p>
               </div>
-              <div className="pt-3 border-t border-white/[0.08]">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Bank Account</p>
-                <p className="text-sm font-medium text-slate-200 mt-0.5 break-all">{payroll.staff.payrollInfo?.bankAccount || 'Not provided'}</p>
-                <p className="text-[11px] font-medium text-slate-500 mt-0.5">IFSC: {payroll.staff.payrollInfo?.ifsc || 'N/A'}</p>
+              <div className="border-t border-line-soft pt-3">
+                <p className="text-[12px] text-subtle">Bank Account</p>
+                <p className="num mt-0.5 break-all text-sm text-text">{payroll.staff.payrollInfo?.bankAccount || 'Not provided'}</p>
+                <p className="mt-0.5 text-[12px] text-subtle">IFSC: <span className="num">{payroll.staff.payrollInfo?.ifsc || 'N/A'}</span></p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right Column: Financial Breakdown */}
         <div className="lg:col-span-2">
-          <div className="bg-black/40 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl relative">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <h3 className="text-xl font-bold text-white mb-8 border-b border-white/[0.08] pb-4 flex items-center gap-3">
-              <Wallet className="w-5 h-5 text-emerald-400" /> Financial Breakdown
+          <Card className="sm:px-6 sm:py-6">
+            <h3 className="mb-5 flex items-center gap-2.5 border-b border-line-soft pb-4 text-[15px] font-medium text-text">
+              <Wallet size={18} className="text-acc-1" aria-hidden="true" /> Financial Breakdown
             </h3>
 
             <div className="space-y-6">
-              
+
               {/* Earnings */}
-              <div>
-                <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-4 bg-emerald-500/10 w-fit px-3 py-1 rounded-lg border border-emerald-500/20">Earnings</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
-                    <span className="text-sm text-slate-300 font-medium">Basic Wage (Prorated)</span>
-                    <span className="text-sm font-bold text-white">{formatCurrency(payroll.basicWage)}</span>
+              <div className="space-y-3">
+                <SectionLabel>Earnings</SectionLabel>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
+                    <span className="text-sm text-muted">Basic Wage (Prorated)</span>
+                    <span className="num text-sm font-medium text-text">{formatCurrency(payroll.basicWage)}</span>
                   </div>
                   {payroll.bonusAmount > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-amber-300 font-medium">Performance / Festival Bonus</span>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-late/30 bg-ground p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-late">Performance / Festival Bonus</span>
                         {payroll.bonusDays > 0 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">
-                            {payroll.bonusDays} {payroll.bonusDays === 1 ? 'day' : 'days'}
+                          <span className="tone-late tint-pill rounded px-1.5 py-0.5 text-[11px]">
+                            <span className="num">{payroll.bonusDays}</span> {payroll.bonusDays === 1 ? 'day' : 'days'}
                           </span>
                         )}
                         {payroll.isBonusPfApplicable && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-400/20 text-indigo-300 font-bold">
+                          <span className="tone-accent tint-pill rounded px-1.5 py-0.5 text-[11px]">
                             EPF Applicable
                           </span>
                         )}
                       </div>
-                      <span className="text-sm font-bold text-amber-400">+{formatCurrency(payroll.bonusAmount)}</span>
+                      <span className="num text-sm font-medium text-late">+{formatCurrency(payroll.bonusAmount)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
-                    <span className="text-sm text-slate-300 font-medium">Total Gross Wage</span>
-                    <span className="text-sm font-bold text-emerald-400">{formatCurrency(payroll.grossWage)}</span>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
+                    <span className="text-sm text-muted">Total Gross Wage</span>
+                    <span className="num text-sm font-medium text-present">{formatCurrency(payroll.grossWage)}</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl opacity-70">
-                    <span className="text-sm text-slate-400 font-medium">Actual Cost To Company (CTC)</span>
-                    <span className="text-sm font-bold text-slate-300">{formatCurrency(payroll.actualCtc)}</span>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
+                    <span className="text-sm text-subtle">Actual Cost To Company (CTC)</span>
+                    <span className="num text-sm text-muted">{formatCurrency(payroll.actualCtc)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Deductions */}
-              <div>
-                <h4 className="text-sm font-bold text-rose-400 uppercase tracking-wider mb-4 bg-rose-500/10 w-fit px-3 py-1 rounded-lg border border-rose-500/20">Deductions</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
-                    <span className="text-sm text-slate-300 font-medium">Employee EPF (12%)</span>
-                    <span className="text-sm font-bold text-rose-400">-{formatCurrency(payroll.employeeEpf)}</span>
+              <div className="space-y-3">
+                <SectionLabel>Deductions</SectionLabel>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
+                    <span className="text-sm text-muted">Employee EPF (12%)</span>
+                    <span className="num text-sm font-medium text-absent">-{formatCurrency(payroll.employeeEpf)}</span>
                   </div>
                   {payroll.refundOfAdvance > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
-                      <span className="text-sm text-slate-300 font-medium">Advance Recovery</span>
-                      <span className="text-sm font-bold text-rose-400">-{formatCurrency(payroll.refundOfAdvance)}</span>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
+                      <span className="text-sm text-muted">Advance Recovery</span>
+                      <span className="num text-sm font-medium text-absent">-{formatCurrency(payroll.refundOfAdvance)}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Total Net */}
-              <div className="pt-6 mt-6 border-t border-white/[0.08]">
-                <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6 flex items-center justify-between shadow-[0_0_30px_rgba(16,185,129,0.15)] relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"></div>
+              <div className="border-t border-line-soft pt-6">
+                <div className="tone-present flex flex-wrap items-center justify-between gap-4 rounded-xl border border-present/30 bg-ground p-5">
                   <div>
-                    <h4 className="text-xs font-bold text-emerald-300/70 uppercase tracking-wider mb-1">Net Take Home</h4>
-                    <p className="text-slate-400 text-xs font-medium">Amount to be transferred to bank</p>
+                    <h4 className="mb-1 text-[12.5px] text-muted">Net Take Home</h4>
+                    <p className="text-xs text-subtle">Amount to be transferred to bank</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-4xl font-black text-emerald-400 tracking-tight flex items-center gap-1 relative z-10">
+                    <span className="num text-3xl font-medium tracking-tight text-present sm:text-4xl">
                       {formatCurrency(payroll.netPayment)}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Employer Contributions (Info Only) */}
-              <div className="mt-8 pt-6 border-t border-white/[0.04]">
-                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5" /> Employer Contributions (For Info)
+              <div className="space-y-3 border-t border-line-soft pt-6">
+                <h4 className="flex items-center gap-2 text-[12.5px] text-subtle">
+                  <FileText size={14} aria-hidden="true" /> Employer Contributions (For Info)
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 bg-black/50 border border-white/[0.04] rounded-xl flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Employer EPF</span>
-                    <span className="text-xs font-bold text-slate-300">{formatCurrency(payroll.employerEpf)}</span>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="flex items-center justify-between rounded-xl border border-line-soft bg-ground p-3">
+                    <span className="text-xs text-muted">Employer EPF</span>
+                    <span className="num text-xs text-text">{formatCurrency(payroll.employerEpf)}</span>
                   </div>
-                  <div className="p-3 bg-black/50 border border-white/[0.04] rounded-xl flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Employer EPS</span>
-                    <span className="text-xs font-bold text-slate-300">{formatCurrency(payroll.employerEps)}</span>
+                  <div className="flex items-center justify-between rounded-xl border border-line-soft bg-ground p-3">
+                    <span className="text-xs text-muted">Employer EPS</span>
+                    <span className="num text-xs text-text">{formatCurrency(payroll.employerEps)}</span>
                   </div>
                 </div>
               </div>
 
             </div>
-          </div>
+          </Card>
         </div>
 
       </div>

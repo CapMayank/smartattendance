@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wallet, Search, Edit2, X, Save, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Wallet, Search, Edit2, Save, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Skeleton } from '@/components/ui'
+import { formatINR } from '@/lib/format'
+import { cn } from '@/lib/cn'
 
 export default function StaffPayrollPage() {
   const [staff, setStaff] = useState<any[]>([])
@@ -79,145 +82,134 @@ export default function StaffPayrollPage() {
   const estNet = estGross - empPf;
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-blue-500/10">
-            <Wallet className="w-8 h-8 text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Staff Payroll Master
-            </h1>
-            <p className="text-slate-400 mt-1 font-medium">Configure fixed CTC and statutory banking details</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="Staff payroll master" subtitle="Configure fixed CTC and statutory banking details" />
 
       {/* Main Content Area */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col min-h-[500px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
-        {/* Decorative ambient light */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="p-5 border-b border-white/[0.08] relative z-10 flex items-center justify-between">
-          <div className="relative w-full max-w-md group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors" />
-            <input
+      <Card className="overflow-hidden !p-0">
+        <div className="flex flex-col gap-3 border-b border-line-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-md">
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
+            <Input
               type="text"
+              aria-label="Search staff"
               placeholder="Search by name or UAN..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-black/40 border border-white/[0.08] rounded-3xl pl-12 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
+              className="pl-9"
             />
           </div>
-          <div className="hidden md:flex text-sm text-slate-500 gap-6 px-4">
+          <div className="hidden gap-5 text-[12.5px] text-subtle md:flex">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+              <span className="size-[7px] rounded-full bg-present" aria-hidden="true"></span>
               Active
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></span>
+              <span className="size-[7px] rounded-full bg-absent" aria-hidden="true"></span>
               Excluded
             </div>
           </div>
         </div>
 
-        <div className="hidden md:block flex-1 overflow-auto relative z-10 px-4 pb-3">
-          <table className="glass-table text-sm text-left">
+        <div className="table-wrap hidden md:block">
+          <table className="data-table">
             <thead>
               <tr>
-                <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
-                <th className="px-6 py-3.5 font-semibold tracking-wider text-right">Monthly CTC (₹)</th>
-                <th className="px-6 py-3.5 font-semibold tracking-wider">Bank Details</th>
-                <th className="px-6 py-3.5 font-semibold tracking-wider">UAN</th>
-                <th className="px-6 py-3.5 font-semibold tracking-wider">Status</th>
-                <th className="px-6 py-3.5 font-semibold tracking-wider text-center">Actions</th>
+                <th>Staff Name</th>
+                <th className="text-right">Monthly CTC (₹)</th>
+                <th>Bank Details</th>
+                <th>UAN</th>
+                <th>Status</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-                      <p className="text-slate-400 font-medium animate-pulse">Loading personnel data...</p>
-                    </div>
-                  </td>
-                </tr>
+                <>
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="size-[38px] rounded-xl" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </td>
+                      <td><Skeleton className="ml-auto h-4 w-20" /></td>
+                      <td><Skeleton className="h-4 w-28" /></td>
+                      <td><Skeleton className="h-4 w-24" /></td>
+                      <td><Skeleton className="h-6 w-20 rounded-full" /></td>
+                      <td><Skeleton className="mx-auto size-8 rounded-full" /></td>
+                    </tr>
+                  ))}
+                </>
               ) : filteredStaff.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <AlertCircle className="w-12 h-12 text-slate-600" />
-                      <p className="text-slate-400 font-medium">No matching staff found in directory.</p>
-                    </div>
+                  <td colSpan={6} className="whitespace-normal">
+                    <EmptyState icon={AlertCircle} title="No matching staff found in directory." />
                   </td>
                 </tr>
               ) : (
                 filteredStaff.map((s) => (
-                  <tr key={s.id} className="group">
-                    <td className="px-6 py-4">
+                  <tr key={s.id}>
+                    <td>
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-sm text-white font-black shadow-lg shrink-0">
-                          {s.name.substring(0, 2).toUpperCase()}
-                        </div>
+                        <Avatar name={s.name} />
                         <div>
-                          <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">{s.name}</div>
-                          <div className="text-xs text-slate-500 font-medium">{s.department?.name || 'No Dept'}</div>
+                          <div className="font-medium text-text">{s.name}</div>
+                          <div className="text-xs text-subtle">{s.department?.name || 'No Dept'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="inline-block font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
-                        ₹{s.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}
+                    <td className="text-right">
+                      <div className="num font-medium text-text">
+                        {formatINR(s.payrollInfo?.monthlyCtc || 0)}
                       </div>
-                      <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Annual: ₹{((s.payrollInfo?.monthlyCtc || 0) * 12).toLocaleString()}</div>
+                      <div className="mt-0.5 text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12)}</span></div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-slate-300 font-medium font-mono">
+                    <td>
+                      <div className="num text-muted">
                         {s.payrollInfo?.bankAccount || 'Not Set'}
                       </div>
-                      <div className="flex flex-col gap-0.5 mt-0.5">
-                        <span className="text-xs text-slate-500 font-semibold">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
+                      <div className="mt-0.5 flex flex-col gap-0.5">
+                        <span className="num text-xs text-subtle">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
                         {s.payrollInfo?.nameAsPerBank && (
-                          <span className="text-[10px] text-blue-400 uppercase tracking-widest bg-blue-500/10 px-1.5 py-0.5 rounded w-fit">
+                          <span className="w-fit rounded bg-card-hi px-1.5 py-0.5 text-[11px] text-muted">
                             {s.payrollInfo.nameAsPerBank}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-slate-300 font-mono tracking-wider">
+                    <td>
+                      <div className="num text-muted">
                         {s.payrollInfo?.uan || 'Not Set'}
                       </div>
                       {s.payrollInfo?.nameOnUan && (
-                        <div className="text-[10px] text-purple-400 uppercase tracking-widest bg-purple-500/10 px-1.5 py-0.5 rounded w-fit mt-1">
+                        <div className="mt-1 w-fit rounded bg-card-hi px-1.5 py-0.5 text-[11px] text-muted">
                           {s.payrollInfo.nameOnUan}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       {s.payrollInfo?.isActiveForPayroll !== false ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span className="tone-present tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                          <CheckCircle2 size={13} aria-hidden="true" />
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        <span className="tone-absent tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                          <XCircle size={13} aria-hidden="true" />
                           Excluded
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
+                    <td className="text-center">
+                      <IconButton
+                        icon={Edit2}
+                        label="Edit Payroll Details"
                         onClick={() => handleEdit(s)}
-                        className="inline-flex items-center justify-center w-10 h-10 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 bg-black/40 border border-white/[0.08] rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
-                        title="Edit Payroll Details"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                        className="mx-auto size-8"
+                      />
                     </td>
                   </tr>
                 ))
@@ -227,284 +219,239 @@ export default function StaffPayrollPage() {
         </div>
 
         {/* Mobile Cards View */}
-        <div className="md:hidden flex flex-col p-4 gap-4">
+        <div className="flex flex-col gap-3 p-4 md:hidden">
           {loading ? (
-            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
-                <p className="text-slate-400 font-medium animate-pulse">Loading directory...</p>
-              </div>
-            </div>
+            <>
+              <Skeleton className="h-36 rounded-xl" />
+              <Skeleton className="h-36 rounded-xl" />
+            </>
           ) : filteredStaff.length === 0 ? (
-            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
-              <div className="flex flex-col items-center gap-3">
-                <AlertCircle className="w-12 h-12 text-slate-600 mb-2" />
-                <p className="text-slate-300 font-bold text-lg">No Staff Found</p>
-                <p className="text-slate-500 text-sm">No matching staff found in directory.</p>
-              </div>
-            </div>
+            <EmptyState icon={AlertCircle} title="No Staff Found" hint="No matching staff found in directory." />
           ) : (
             filteredStaff.map((s) => (
-              <div key={s.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
-                
-                <div className="flex items-start justify-between relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-lg font-black text-white shadow-lg border border-white/[0.08] shrink-0">
-                      {s.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white text-lg leading-tight">{s.name}</span>
-                      <span className="text-sm font-medium text-slate-400">{s.department?.name || 'No Dept'}</span>
+              <div key={s.id} className="flex flex-col gap-4 rounded-xl border border-line bg-canvas p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={s.name} />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium leading-tight text-text">{s.name}</span>
+                      <span className="text-[13px] text-subtle">{s.department?.name || 'No Dept'}</span>
                     </div>
                   </div>
                   {s.payrollInfo?.isActiveForPayroll !== false ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="tone-present tint-badge inline-flex h-[26px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                      <CheckCircle2 size={13} aria-hidden="true" />
                       Active
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                    <span className="tone-absent tint-badge inline-flex h-[26px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                      <XCircle size={13} aria-hidden="true" />
                       Excluded
                     </span>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mt-2 relative z-10">
-                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monthly CTC</span>
-                    <span className="font-bold text-slate-300">₹{s.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block mt-0.5">Annual: ₹{((s.payrollInfo?.monthlyCtc || 0) * 12).toLocaleString()}</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-line-soft bg-ground p-3">
+                    <span className="mb-1 block text-[11px] text-subtle">Monthly CTC</span>
+                    <span className="num font-medium text-text">{formatINR(s.payrollInfo?.monthlyCtc || 0)}</span>
+                    <span className="mt-0.5 block text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12)}</span></span>
                   </div>
-                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Bank</span>
-                    <span className="font-bold text-slate-300 font-mono text-sm block truncate">{s.payrollInfo?.bankAccount || 'Not Set'}</span>
-                    <span className="text-[10px] text-slate-500 font-semibold block">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
+                  <div className="rounded-lg border border-line-soft bg-ground p-3">
+                    <span className="mb-1 block text-[11px] text-subtle">Bank</span>
+                    <span className="num block truncate text-sm text-muted">{s.payrollInfo?.bankAccount || 'Not Set'}</span>
+                    <span className="num block text-[11px] text-subtle">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.08] relative z-10">
+                <div className="flex items-center justify-between border-t border-line-soft pt-3">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">UAN</span>
-                    <span className="text-slate-300 font-mono text-sm">{s.payrollInfo?.uan || 'Not Set'}</span>
+                    <span className="mb-1 text-[11px] text-subtle">UAN</span>
+                    <span className="num text-sm text-muted">{s.payrollInfo?.uan || 'Not Set'}</span>
                   </div>
-                  <button onClick={() => handleEdit(s)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  <IconButton icon={Edit2} label="Edit Payroll Details" onClick={() => handleEdit(s)} />
                 </div>
               </div>
             ))
           )}
         </div>
-      </div>
+      </Card>
 
-      {/* Modern Edit Modal */}
-      {editingStaff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => !saving && setEditingStaff(null)}></div>
-          
-          <div className="bg-black/40 border border-white/[0.08] rounded-3xl w-full max-w-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative z-10 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-white/[0.04] bg-black/20 flex items-center justify-between sticky top-0 z-20 backdrop-blur-2xl">
-              <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
-                  Edit Configuration
-                </h3>
-                <p className="text-sm text-slate-400 mt-1 ml-4">Updating details for <span className="text-slate-200 font-semibold">{editingStaff.name}</span></p>
-              </div>
+      {/* Edit Modal */}
+      <Modal
+        open={!!editingStaff}
+        onClose={() => setEditingStaff(null)}
+        title="Edit configuration"
+        footer={
+          <>
+            {saveSuccess && (
+              <span className="mr-auto flex items-center gap-1.5 text-sm text-present">
+                <CheckCircle2 size={16} aria-hidden="true" />
+                Saved Successfully
+              </span>
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => setEditingStaff(null)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={saving || saveSuccess}
+              loading={saving}
+              icon={saveSuccess ? CheckCircle2 : Save}
+              className={saveSuccess ? 'bg-present text-ground hover:bg-present' : undefined}
+            >
+              {saving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Configuration'}
+            </Button>
+          </>
+        }
+      >
+        {editingStaff && (
+          <div className="space-y-6">
+            <p className="text-[13px] text-subtle">Updating details for <span className="font-medium text-text">{editingStaff.name}</span></p>
+
+            {/* Financial Section */}
+            <section className="space-y-4">
+              <SectionLabel>Financial Basics</SectionLabel>
+
+              <Field label="Fixed Monthly CTC (₹)" htmlFor="payroll-monthly-ctc">
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-subtle" aria-hidden="true">₹</span>
+                  <Input
+                    id="payroll-monthly-ctc"
+                    type="number"
+                    value={editForm.monthlyCtc === 0 ? '' : editForm.monthlyCtc}
+                    onChange={(e) => setEditForm({...editForm, monthlyCtc: e.target.value === '' ? '' : parseFloat(e.target.value) || 0})}
+                    className="num pl-8"
+                  />
+                </div>
+              </Field>
+
               <button
-                onClick={() => setEditingStaff(null)}
-                className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                type="button"
+                role="switch"
+                aria-checked={!!editForm.isActiveForPayroll}
+                className="flex w-full items-center gap-3 rounded-xl border border-line bg-ground p-3.5 text-left transition-colors duration-150 hover:border-subtle"
+                onClick={() => setEditForm({...editForm, isActiveForPayroll: !editForm.isActiveForPayroll})}
               >
-                <X className="w-5 h-5" />
+                <span className={cn(
+                  'grid size-5 flex-none place-items-center rounded transition-colors duration-150',
+                  editForm.isActiveForPayroll ? 'bg-acc-2 text-text' : 'border border-line bg-card-hi'
+                )}>
+                  {editForm.isActiveForPayroll && <CheckCircle2 size={14} aria-hidden="true" />}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm text-text">Active for Payroll</span>
+                  <span className="block text-xs text-subtle">Include this staff in monthly generation</span>
+                </span>
               </button>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-8">
-              
-              {/* Financial Section */}
-              <section>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
-                  <span>Financial Basics</span>
-                  <div className="h-px bg-white/5 flex-1"></div>
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1.5 ml-1">
-                        Fixed Monthly CTC (₹)
-                      </label>
-                      <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium group-focus-within:text-blue-400 transition-colors">₹</span>
-                        <input
-                          type="number"
-                          value={editForm.monthlyCtc === 0 ? '' : editForm.monthlyCtc}
-                          onChange={(e) => setEditForm({...editForm, monthlyCtc: e.target.value === '' ? '' : parseFloat(e.target.value) || 0})}
-                          className="w-full bg-black/40 border border-white/[0.08] rounded-3xl pl-9 pr-4 py-3 text-lg font-medium text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 p-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer" onClick={() => setEditForm({...editForm, isActiveForPayroll: !editForm.isActiveForPayroll})}>
-                      <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${editForm.isActiveForPayroll ? 'bg-blue-500 text-white' : 'bg-black/40 border border-white/20'}`}>
-                        {editForm.isActiveForPayroll && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-200">Active for Payroll</p>
-                        <p className="text-xs text-slate-500">Include this staff in monthly generation</p>
-                      </div>
-                    </div>
+              {/* Dynamic Preview Receipt */}
+              <div className="rounded-xl border border-line-soft bg-ground p-4">
+                <p className="mb-3 flex items-center gap-1.5 text-[11.5px] uppercase tracking-[0.09em] text-acc-1">
+                  <Wallet size={12} aria-hidden="true" />
+                  31-Day Estimate
+                </p>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between text-muted">
+                    <span>Gross Wage</span>
+                    <span className="num text-text">{formatINR(estGross)}</span>
                   </div>
-
-                  {/* Dynamic Preview Receipt */}
-                  <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/[0.08] rounded-3xl p-5 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10"></div>
-                    
-                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                      <Wallet className="w-3 h-3" />
-                      31-Day Estimate
-                    </p>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between items-center text-slate-300">
-                        <span>Gross Wage</span>
-                        <span className="font-medium">₹{estGross.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-300">
-                        <span>Employee PF <span className="text-[10px] text-slate-500 uppercase">(12%)</span></span>
-                        <span className="text-rose-400 font-medium">-₹{empPf.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-300">
-                        <span>Employer Share <span className="text-[10px] text-slate-500 uppercase">(12%)</span></span>
-                        <span className="text-slate-500 font-medium">₹{empPf.toLocaleString()}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 pt-3 border-t border-white/[0.08] border-dashed flex justify-between items-end">
-                      <span className="text-sm font-medium text-slate-400">Net Payment</span>
-                      <span className="text-2xl font-bold text-emerald-400 tracking-tight">₹{estNet.toLocaleString()}</span>
-                    </div>
+                  <div className="flex items-center justify-between text-muted">
+                    <span>Employee PF <span className="text-[11px] text-subtle">(12%)</span></span>
+                    <span className="num text-absent">-{formatINR(empPf)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted">
+                    <span>Employer Share <span className="text-[11px] text-subtle">(12%)</span></span>
+                    <span className="num text-subtle">{formatINR(empPf)}</span>
                   </div>
                 </div>
-              </section>
 
-              {/* Bank & Statutory Section */}
-              <section>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
-                  <span>Bank & Statutory</span>
-                  <div className="h-px bg-white/5 flex-1"></div>
-                </h4>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Bank Account</label>
-                    <input
-                      type="text"
-                      value={editForm.bankAccount}
-                      onChange={(e) => setEditForm({...editForm, bankAccount: e.target.value})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">IFSC Code</label>
-                    <input
-                      type="text"
-                      value={editForm.ifsc}
-                      onChange={(e) => setEditForm({...editForm, ifsc: e.target.value.toUpperCase()})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Name as per Bank</label>
-                    <input
+                <div className="mt-4 flex items-end justify-between border-t border-dashed border-line pt-3">
+                  <span className="text-sm text-muted">Net Payment</span>
+                  <span className="num text-2xl font-medium text-present">{formatINR(estNet)}</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Bank & Statutory Section */}
+            <section className="space-y-4">
+              <SectionLabel>Bank & Statutory</SectionLabel>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Bank Account" htmlFor="payroll-bank-account">
+                  <Input
+                    id="payroll-bank-account"
+                    type="text"
+                    value={editForm.bankAccount}
+                    onChange={(e) => setEditForm({...editForm, bankAccount: e.target.value})}
+                    className="num"
+                  />
+                </Field>
+                <Field label="IFSC Code" htmlFor="payroll-ifsc">
+                  <Input
+                    id="payroll-ifsc"
+                    type="text"
+                    value={editForm.ifsc}
+                    onChange={(e) => setEditForm({...editForm, ifsc: e.target.value.toUpperCase()})}
+                    className="num uppercase"
+                  />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Name as per Bank" htmlFor="payroll-name-bank">
+                    <Input
+                      id="payroll-name-bank"
                       type="text"
                       value={editForm.nameAsPerBank}
                       onChange={(e) => setEditForm({...editForm, nameAsPerBank: e.target.value})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">UAN (EPFO)</label>
-                    <input
-                      type="text"
-                      value={editForm.uan}
-                      onChange={(e) => setEditForm({...editForm, uan: e.target.value})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono tracking-wider text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Name on UAN</label>
-                    <input
-                      type="text"
-                      value={editForm.nameOnUan}
-                      onChange={(e) => setEditForm({...editForm, nameOnUan: e.target.value})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">PAN Number</label>
-                    <input
-                      type="text"
-                      value={editForm.pan}
-                      onChange={(e) => setEditForm({...editForm, pan: e.target.value.toUpperCase()})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Aadhaar</label>
-                    <input
-                      type="text"
-                      value={editForm.aadhaar}
-                      onChange={(e) => setEditForm({...editForm, aadhaar: e.target.value})}
-                      className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm font-mono tracking-widest text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    />
-                  </div>
+                  </Field>
                 </div>
-              </section>
-
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-5 border-t border-white/[0.04] bg-black/40/80 backdrop-blur-xl flex justify-end gap-3 items-center">
-              {saveSuccess && (
-                <span className="text-sm text-emerald-400 font-medium flex items-center gap-1.5 mr-auto animate-in fade-in slide-in-from-left-2">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Saved Successfully
-                </span>
-              )}
-              <button
-                onClick={() => setEditingStaff(null)}
-                className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || saveSuccess}
-                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all shadow-lg ${
-                  saveSuccess 
-                    ? 'bg-emerald-500 shadow-emerald-500/20' 
-                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5'
-                } disabled:opacity-50 disabled:hover:-translate-y-0 disabled:hover:shadow-lg`}
-              >
-                {saving ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : saveSuccess ? (
-                  <CheckCircle2 className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {saving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Configuration'}
-              </button>
-            </div>
+                <Field label="UAN (EPFO)" htmlFor="payroll-uan">
+                  <Input
+                    id="payroll-uan"
+                    type="text"
+                    value={editForm.uan}
+                    onChange={(e) => setEditForm({...editForm, uan: e.target.value})}
+                    className="num"
+                  />
+                </Field>
+                <Field label="Name on UAN" htmlFor="payroll-name-uan">
+                  <Input
+                    id="payroll-name-uan"
+                    type="text"
+                    value={editForm.nameOnUan}
+                    onChange={(e) => setEditForm({...editForm, nameOnUan: e.target.value})}
+                  />
+                </Field>
+                <Field label="PAN Number" htmlFor="payroll-pan">
+                  <Input
+                    id="payroll-pan"
+                    type="text"
+                    value={editForm.pan}
+                    onChange={(e) => setEditForm({...editForm, pan: e.target.value.toUpperCase()})}
+                    className="num uppercase"
+                  />
+                </Field>
+                <Field label="Aadhaar" htmlFor="payroll-aadhaar">
+                  <Input
+                    id="payroll-aadhaar"
+                    type="text"
+                    value={editForm.aadhaar}
+                    onChange={(e) => setEditForm({...editForm, aadhaar: e.target.value})}
+                    className="num"
+                  />
+                </Field>
+              </div>
+            </section>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }
