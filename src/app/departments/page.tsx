@@ -91,7 +91,7 @@ export default function DepartmentsPage() {
                 <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Engineering" className="w-full bg-black/40 border border-white/[0.08] rounded-md px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all" required />
               </div>
               
-              <button type="submit" className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-accent hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5">
+              <button type="submit" className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-accent text-white font-bold rounded-md transition-all">
                 <Plus className="w-5 h-5" /> Create Department
               </button>
             </form>
@@ -162,7 +162,7 @@ export default function DepartmentsPage() {
               <button onClick={() => setEditingId(null)} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-md transition-colors border border-white/[0.04]">
                 Cancel
               </button>
-              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5">
+              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent text-white font-bold rounded-md transition-all">
                 <Check className="w-5 h-5" /> Save Changes
               </button>
             </div>

@@ -270,7 +270,7 @@ export default function ManualPunchPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-accent hover:from-blue-500 hover:to-blue-500 text-white rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 bg-accent text-white rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Saving...' : 'Add Punch'}
             </button>
@@ -407,7 +407,7 @@ export default function ManualPunchPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-accent hover:from-blue-500 hover:to-blue-500 text-white rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 bg-accent text-white rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Saving Bulk Punches...' : 'Add Bulk Punches'}
                 </button>

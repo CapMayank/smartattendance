@@ -185,7 +185,7 @@ export default function MemberAttendancePage() {
           <button
             onClick={exportCSV}
             disabled={!staffData || dailyRecords.length === 0}
-            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-md transition-all hover:-translate-y-0.5"
+            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-md transition-all"
           >
             <Download className="w-5 h-5" /> Export CSV
           </button>

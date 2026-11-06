@@ -88,7 +88,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-3.5 bg-accent hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+          className="flex items-center gap-2 px-6 py-3.5 bg-accent text-white font-bold rounded-md transition-all disabled:opacity-50 disabled:hover:translate-y-0"
         >
           <Save className="w-5 h-5" />
           {saving ? 'Saving...' : 'Save Settings'}
@@ -137,23 +137,23 @@ export default function SettingsPage() {
         {/* General Allowances */}
         <section className="relative z-10">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-8 w-1 bg-teal-500 rounded-full"></div>
+            <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
             <h2 className="text-xl font-bold text-white">Allowances & Grace Periods</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-black/50/30 p-6 rounded-lg border border-white/[0.04]">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Early Arrival Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyArrivalAllow} onChange={e => handleChange('earlyArrivalAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-md px-4 py-3.5 text-white font-medium focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all font-mono text-center tracking-wider text-lg" />
+              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyArrivalAllow} onChange={e => handleChange('earlyArrivalAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-md px-4 py-3.5 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-center tracking-wider text-lg" />
               <p className="text-xs text-subtle ml-1 font-medium text-center">Time before shift start.</p>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Late Arrival Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.lateArrivalAllow} onChange={e => handleChange('lateArrivalAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-md px-4 py-3.5 text-white font-medium focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all font-mono text-center tracking-wider text-lg" />
+              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.lateArrivalAllow} onChange={e => handleChange('lateArrivalAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-md px-4 py-3.5 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-center tracking-wider text-lg" />
               <p className="text-xs text-subtle ml-1 font-medium text-center">Grace period for late entry.</p>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Early Departure Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyDepartureAllow} onChange={e => handleChange('earlyDepartureAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-md px-4 py-3.5 text-white font-medium focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all font-mono text-center tracking-wider text-lg" />
+              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyDepartureAllow} onChange={e => handleChange('earlyDepartureAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-md px-4 py-3.5 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-center tracking-wider text-lg" />
               <p className="text-xs text-subtle ml-1 font-medium text-center">Grace period for leaving early.</p>
             </div>
           </div>

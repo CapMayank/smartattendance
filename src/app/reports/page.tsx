@@ -408,7 +408,7 @@ export default function ReportsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={exportCSV}
-            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5"
+            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-accent text-white font-bold rounded-md transition-all"
           >
             <Download className="w-5 h-5" /> Export CSV
           </button>
@@ -862,7 +862,7 @@ export default function ReportsPage() {
                   <button
                     onClick={handleAddPunch}
                     disabled={!newPunchTime || isPunchLoading}
-                    className="px-5 py-3 bg-accent hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold rounded-md transition-all flex items-center justify-center"
+                    className="px-5 py-3 bg-accent disabled:opacity-50 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold rounded-md transition-all flex items-center justify-center"
                   >
                     <Plus className="w-5 h-5" />
                   </button>

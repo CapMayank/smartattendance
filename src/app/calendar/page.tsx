@@ -190,7 +190,7 @@ export default function CalendarPage() {
                   onClick={() => handleDayClick(day)}
                   className={`
                     min-h-[100px] sm:min-h-[120px] p-3 rounded-lg transition-all cursor-pointer relative group border shadow-sm
-                    ${!isCurrentMonth ? 'opacity-40 bg-transparent border-transparent' : 'bg-black/40 border-white/[0.08] hover:border-blue-500/50 hover:-translate-y-0.5'}
+                    ${!isCurrentMonth ? 'opacity-40 bg-transparent border-transparent' : 'bg-black/40 border-white/[0.08] hover:border-blue-500/50'}
                     ${holiday ? 'bg-blue-500/20 border-blue-500/40 ring-1 ring-inset ring-blue-500/30' : ''}
                     ${isTodayDate && !holiday ? 'border-emerald-500/50 bg-emerald-500/10 ' : ''}
                   `}
@@ -280,7 +280,7 @@ export default function CalendarPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-accent hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-accent text-white font-bold rounded-md transition-all"
                   >
                     <Plus className="w-5 h-5" /> Save Holiday
                   </button>

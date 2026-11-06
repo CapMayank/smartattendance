@@ -16,7 +16,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#6366f1']
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#64748b', '#60a5fa', '#34d399', '#94a3b8']
 
 export default function PayrollAnalyticsClient({ payrollData }: { payrollData: any[] }) {
   
@@ -110,8 +110,8 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
     return (
       <div className="bg-black/20 border border-white/[0.08] p-6 rounded-lg">
         <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-md flex items-center justify-center ${colorClass}`}>
-            <Icon className="w-6 h-6 text-white" />
+          <div className={`w-10 h-10 rounded-md flex items-center justify-center ${colorClass}`}>
+            <Icon className="w-5 h-5" />
           </div>
           <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
             isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
@@ -135,28 +135,28 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
           value={analytics.kpis.gross.value} 
           change={analytics.kpis.gross.change} 
           icon={Wallet} 
-          colorClass="bg-accent" 
+          colorClass="bg-accent-soft text-accent" 
         />
         <KPICard 
           title="Total Net Payout" 
           value={analytics.kpis.net.value} 
           change={analytics.kpis.net.change} 
           icon={IndianRupee} 
-          colorClass="bg-emerald-600" 
+          colorClass="bg-success-soft text-success" 
         />
         <KPICard 
           title="Total PF Liability" 
           value={analytics.kpis.epf.value} 
           change={analytics.kpis.epf.change} 
           icon={ShieldAlert} 
-          colorClass="bg-rose-600" 
+          colorClass="bg-danger-soft text-danger" 
         />
         <KPICard 
           title="Avg. CTC per Employee" 
           value={analytics.kpis.avgSalary.value} 
           change={analytics.kpis.avgSalary.change} 
           icon={TrendingUp} 
-          colorClass="bg-purple-600" 
+          colorClass="bg-raised text-muted" 
         />
       </div>
 
@@ -260,9 +260,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
                   formatter={(value: any) => formatCurrency(Number(value) || 0)}
                 />
                 <Legend />
-                <Bar dataKey="Employee EPF" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="Employee EPF" stackId="a" fill="#60a5fa" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="Employer EPF" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="Employer EPS" stackId="a" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Employer EPS" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -8,7 +8,7 @@ type ChartData = {
   total: number
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b']
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#64748b', '#60a5fa', '#34d399', '#94a3b8']
 
 export default function DepartmentPieChart({ data }: { data: ChartData[] }) {
   const activeData = data.filter(d => d.value > 0)

@@ -273,7 +273,7 @@ export default function StaffPage() {
               </div>
             </div>
 
-            <button type="submit" className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3.5 bg-accent hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5">
+            <button type="submit" className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3.5 bg-accent text-white font-bold rounded-md transition-all">
               <Plus className="w-5 h-5" /> Add Staff Member
             </button>
           </form>
@@ -299,7 +299,7 @@ export default function StaffPage() {
             >
               <Download className="w-5 h-5" /> Download Template
             </button>
-            <label className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-600 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-md transition-all cursor-pointer hover:-translate-y-0.5">
+            <label className="flex items-center justify-center gap-2 px-6 py-3.5 bg-accent text-white font-bold rounded-md transition-all cursor-pointer">
               <Upload className="w-5 h-5" /> {uploading ? 'Uploading...' : 'Upload CSV File'}
               <input
                 type="file"
@@ -622,7 +622,7 @@ export default function StaffPage() {
               <button onClick={() => setEditingId(null)} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-md transition-colors border border-white/[0.04]">
                 Cancel
               </button>
-              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-md transition-all hover:-translate-y-0.5">
+              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent text-white font-bold rounded-md transition-all">
                 <Check className="w-5 h-5" /> Save Changes
               </button>
             </div>

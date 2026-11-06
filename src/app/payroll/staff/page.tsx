@@ -191,7 +191,7 @@ export default function StaffPayrollPage() {
                         {s.payrollInfo?.uan || 'Not Set'}
                       </div>
                       {s.payrollInfo?.nameOnUan && (
-                        <div className="text-[10px] text-purple-400 uppercase tracking-wider bg-purple-500/10 px-1.5 py-0.5 rounded w-fit mt-1">
+                        <div className="text-[10px] text-blue-400 uppercase tracking-wider bg-blue-500/10 px-1.5 py-0.5 rounded w-fit mt-1">
                           {s.payrollInfo.nameOnUan}
                         </div>
                       )}
@@ -486,8 +486,8 @@ export default function StaffPayrollPage() {
                 className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-md transition-all  ${
                   saveSuccess 
                     ? 'bg-emerald-500 ' 
-                    : 'bg-accent hover:from-blue-500 hover:to-blue-400 hover:-translate-y-0.5'
-                } disabled:opacity-50 disabled:hover:-translate-y-0 `}
+                    : 'bg-accent'
+                } disabled:opacity-50 disabled: `}
               >
                 {saving ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
