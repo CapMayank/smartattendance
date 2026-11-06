@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ["latin"] });
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: "SEHSS Lakhnadon | Attendance Dashboard",
@@ -18,9 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${geist.variable} ${geistMono.variable}`}>
       <body
-        className={`${inter.className} bg-black/50 text-slate-100 min-h-screen antialiased`}
+        className={`bg-ground text-text font-sans min-h-screen antialiased`}
       >
         <Providers>
           <div className="relative min-h-screen">

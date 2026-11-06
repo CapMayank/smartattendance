@@ -1,49 +1,71 @@
 @import "tailwindcss";
 
-:root {
-  --background: #000000; /* Pure black */
-  --foreground: #f8fafc; /* text-slate-50 */
+@theme {
+  --color-ground: #000000;
+  --color-canvas: #060607;
+  --color-card: #0c0c0e;
+  --color-card-hi: #161618;
+  --color-line: #1e1e22;
+  --color-line-soft: #141416;
+  --color-text: #f4f4f5;
+  --color-muted: #a1a1a8;
+  --color-subtle: #7c7c85;
+  --color-acc-1: #a5acff;
+  --color-acc-2: #7b85ff;
+  --color-acc-3: #3b3fb8;
+  --color-present: #34d399;
+  --color-late: #f5a524;
+  --color-absent: #f7606c;
+  --color-leave: #a98bff;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Consolas, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: var(--color-ground);
+  color: var(--color-text);
 }
 
-/* Sleek Global Scrollbar */
+/* Neutral global scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  background: var(--color-canvas);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3); /* Sleek indigo accent */
+  background: var(--color-line);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+  background: var(--color-subtle);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Sleek Modern UI: Hide clunky native number increasers/decreasers */
@@ -63,6 +85,85 @@ input[type="number"] {
    Lives in the components layer so Tailwind utilities still win.
    ============================================================ */
 @layer components {
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Card top highlight */
+  .lit {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%);
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-card);
+    font-weight: 400;
+    font-size: 12.5px;
+    color: var(--color-muted);
+    text-align: left;
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+  .data-table tbody td {
+    padding: 11px 12px;
+    border-top: 1px solid var(--color-line-soft);
+    white-space: nowrap;
+    font-size: 13.5px;
+    vertical-align: middle;
+    transition: background-color 0.15s ease;
+  }
+  .data-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .data-matrix {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .data-matrix thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-card);
+    font-weight: 400;
+    font-size: 12.5px;
+    color: var(--color-muted);
+    text-align: center;
+    padding: 10px 8px;
+    white-space: nowrap;
+  }
+  .data-matrix tbody td {
+    padding: 8px;
+    border-top: 1px solid var(--color-line-soft);
+    white-space: nowrap;
+    font-size: 13.5px;
+    text-align: center;
+    vertical-align: middle;
+    transition: background-color 0.15s ease;
+  }
+  .data-matrix tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.025);
+  }
+  .data-matrix th:first-child,
+  .data-matrix td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    text-align: left;
+    background: var(--color-card);
+  }
+
   .glass-table {
     width: 100%;
     border-collapse: separate;
