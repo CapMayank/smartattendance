@@ -3,8 +3,6 @@
 import { signIn, useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Activity } from "lucide-react"
-import { Button, Card, Field, Input } from "@/components/ui"
 
 export default function LoginPage() {
   const { status } = useSession()
@@ -37,54 +35,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="flex items-center justify-center w-10 h-10 rounded-md bg-accent text-white">
-            <Activity className="w-5 h-5" aria-hidden />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-fg leading-tight">SEHSS Lakhnadon</p>
-            <p className="text-xs text-subtle leading-tight">Attendance &amp; Payroll</p>
-          </div>
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="w-full max-w-md p-8 rounded-3xl bg-black/20 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
+            Welcome Back
+          </h1>
+          <p className="text-slate-400 mt-2 text-sm">
+            Sign in to access your Attendance Dashboard
+          </p>
         </div>
 
-        <Card className="p-6">
-          <h1 className="text-xl font-semibold text-fg tracking-tight">Sign in</h1>
-          <p className="text-sm text-muted mt-1 mb-6">Use your administrator account to continue.</p>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="p-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg text-center">
+              {error}
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-black/40 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-200 transition-all placeholder:text-slate-600"
+              placeholder="admin@example.com"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-black/40 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-200 transition-all placeholder:text-slate-600"
+              placeholder="••••••••"
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {error && (
-              <div role="alert" className="p-3 text-sm text-danger bg-danger-soft rounded-md">
-                {error}
-              </div>
-            )}
-
-            <Field label="Email">
-              <Input
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@example.com"
-              />
-            </Field>
-
-            <Field label="Password">
-              <Input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </Field>
-
-            <Button type="submit" variant="primary" className="w-full">
-              Sign in
-            </Button>
-          </form>
-        </Card>
+          <button
+            type="submit"
+            className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-lg transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] active:scale-[0.98]"
+          >
+            Sign In
+          </button>
+        </form>
       </div>
     </div>
   )

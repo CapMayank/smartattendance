@@ -125,43 +125,45 @@ export default function MemberPayrollPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/20 rounded-lg border border-white/[0.04]">
+          <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-emerald-500/10">
             <Wallet className="w-8 h-8 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-fg">
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
               Member Payroll History
             </h1>
-            <p className="text-muted mt-1 font-medium">View detailed payroll history for individual staff members.</p>
+            <p className="text-slate-400 mt-1 font-medium">View detailed payroll history for individual staff members.</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={exportCSV}
             disabled={!staffData || payrolls.length === 0}
-            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-md transition-all"
+            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" /> Export CSV
           </button>
         </div>
       </div>
 
-      <div className="bg-black/30 border border-white/[0.08] rounded-lg overflow-hidden relative flex flex-col">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters */}
         <div className="bg-black/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 relative z-10">
           <div className="flex-1 max-w-md relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-muted" />
+              <Search className="h-5 w-5 text-slate-400" />
             </div>
             <select
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
-              className="w-full bg-black/60 border border-white/[0.08] rounded-md pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none"
+              className="w-full bg-black/60 border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none shadow-inner"
             >
               <option value="" disabled>Select Staff Member</option>
               {staffList.map((staff) => (
@@ -176,28 +178,28 @@ export default function MemberPayrollPage() {
         {/* Staff Summary */}
         {staffData && !loading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-6 border-b border-white/[0.08] relative z-10 bg-black/40/40">
-             <div className="bg-black/40/50 rounded-lg p-4 border border-white/[0.04] flex flex-col">
-                <span className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Current CTC</span>
-                <span className="text-2xl font-bold text-emerald-400">{formatCurrency(staffData.payrollInfo?.monthlyCtc || 0)}</span>
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current CTC</span>
+                <span className="text-2xl font-black text-emerald-400">{formatCurrency(staffData.payrollInfo?.monthlyCtc || 0)}</span>
              </div>
-             <div className="bg-black/40/50 rounded-lg p-4 border border-white/[0.04] flex flex-col">
-                <span className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Department / Role</span>
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Department / Role</span>
                 <span className="text-lg font-bold text-white">{staffData.department?.name || '-'}</span>
-                <span className="text-sm font-medium text-muted">{staffData.designation?.name || '-'}</span>
+                <span className="text-sm font-medium text-slate-400">{staffData.designation?.name || '-'}</span>
              </div>
-             <div className="bg-black/40/50 rounded-lg p-4 border border-white/[0.04] flex flex-col">
-                <span className="text-xs font-bold text-muted uppercase tracking-wider mb-1">Bank Details</span>
+             <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Bank Details</span>
                 <span className="text-sm font-medium text-white break-all">{staffData.payrollInfo?.bankAccount || 'Not Provided'}</span>
-                <span className="text-xs font-medium text-muted">{staffData.payrollInfo?.ifsc || 'No IFSC'}</span>
+                <span className="text-xs font-medium text-slate-400">{staffData.payrollInfo?.ifsc || 'No IFSC'}</span>
              </div>
           </div>
         )}
 
         <div className="hidden md:block overflow-x-auto min-h-[400px] relative z-10 custom-scrollbar px-4 pb-3">
-          <table className="data-table text-left text-sm text-muted min-w-[800px]">
+          <table className="glass-table text-left text-sm text-slate-400 min-w-[800px]">
             <thead>
               <tr>
-                <th className="px-6 py-3.5 sticky left-0 z-20">Period</th>
+                <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">Period</th>
                 <th className="px-6 py-3.5 text-center">Days (Total / Paid)</th>
                 <th className="px-6 py-3.5 text-right">Actual CTC</th>
                 <th className="px-6 py-3.5 text-right">Gross Wage</th>
@@ -210,8 +212,8 @@ export default function MemberPayrollPage() {
                 <tr>
                   <td colSpan={6} className="p-16">
                     <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-                      <p className="text-muted font-medium animate-pulse">Fetching payroll history...</p>
+                      <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                      <p className="text-slate-400 font-medium animate-pulse">Fetching payroll history...</p>
                     </div>
                   </td>
                 </tr>
@@ -225,9 +227,9 @@ export default function MemberPayrollPage() {
                       className="group cursor-pointer hover:bg-white/[0.02] transition-colors"
                       onClick={() => router.push(`/reports/member-payroll/${payroll.id}`)}
                     >
-                      <td className="px-6 py-4 sticky left-0 z-10">
+                      <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                          <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                             <CalendarIcon className="w-4 h-4 text-emerald-400" />
                           </div>
                           <div className="flex flex-col">
@@ -254,11 +256,11 @@ export default function MemberPayrollPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         {payroll.isLocked ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border shadow-sm bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10">
                             Locked
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border shadow-sm bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10">
                             Draft
                           </span>
                         )}
@@ -269,9 +271,9 @@ export default function MemberPayrollPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-16 text-center">
-                    <FileText className="w-12 h-12 text-subtle mx-auto mb-3" />
+                    <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                     <p className="text-slate-300 font-semibold text-lg">No Payroll Records Found</p>
-                    <p className="text-subtle text-sm mt-1">Select a different staff member or generate payroll first.</p>
+                    <p className="text-slate-500 text-sm mt-1">Select a different staff member or generate payroll first.</p>
                   </td>
                 </tr>
               )}
@@ -283,8 +285,8 @@ export default function MemberPayrollPage() {
         <div className="md:hidden relative z-10 p-4 space-y-3">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-              <p className="text-muted font-medium animate-pulse">Fetching payroll history...</p>
+              <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+              <p className="text-slate-400 font-medium animate-pulse">Fetching payroll history...</p>
             </div>
           ) : payrolls.length > 0 ? (
             payrolls.map((payroll) => {
@@ -294,49 +296,50 @@ export default function MemberPayrollPage() {
                 <div 
                   key={payroll.id} 
                   onClick={() => router.push(`/reports/member-payroll/${payroll.id}`)}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg p-4 relative overflow-hidden cursor-pointer transition-transform"
+                  className="bg-black/40 border border-white/[0.08] rounded-3xl p-4 relative overflow-hidden shadow-lg cursor-pointer active:scale-[0.98] transition-transform"
                 >
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
                   <div className="flex items-center justify-between gap-3 relative">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md shrink-0">
+                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl shrink-0">
                         <CalendarIcon className="w-5 h-5 text-emerald-400" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-bold text-white leading-tight">{monthName}</p>
-                        <p className="text-xs text-subtle font-semibold">{payroll.year}</p>
+                        <p className="text-xs text-slate-500 font-semibold">{payroll.year}</p>
                       </div>
                     </div>
                     {payroll.isLocked ? (
-                      <span className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-blue-500/10 text-blue-400 border-blue-500/20">Locked</span>
+                      <span className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 text-indigo-400 border-indigo-500/20">Locked</span>
                     ) : (
                       <span className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border bg-amber-500/10 text-amber-400 border-amber-500/20">Draft</span>
                     )}
                   </div>
 
-                  <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3.5 relative">
+                  <div className="mt-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 relative">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">Net Payment</p>
-                    <p className="text-2xl font-bold text-emerald-400 mt-0.5">{formatCurrency(payroll.netPayment)}</p>
+                    <p className="text-2xl font-black text-emerald-400 mt-0.5">{formatCurrency(payroll.netPayment)}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 mt-3 relative">
-                    <div className="bg-black/50 rounded-lg border border-white/[0.04] p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Actual CTC</p>
+                    <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Actual CTC</p>
                       <p className="text-sm font-bold text-slate-200 mt-1">{formatCurrency(payroll.actualCtc)}</p>
                     </div>
-                    <div className="bg-black/50 rounded-lg border border-white/[0.04] p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Gross Wage</p>
+                    <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gross Wage</p>
                       <p className="text-sm font-bold text-slate-200 mt-1">{formatCurrency(payroll.grossWage)}</p>
                     </div>
                   </div>
 
                   <div className="mt-4 relative">
                     <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
-                      <span className="text-muted uppercase tracking-wider">Days Paid</span>
-                      <span className="text-slate-200">{payroll.presentDays} <span className="text-subtle">/ {payroll.totalDays}</span></span>
+                      <span className="text-slate-400 uppercase tracking-wider">Days Paid</span>
+                      <span className="text-slate-200">{payroll.presentDays} <span className="text-slate-500">/ {payroll.totalDays}</span></span>
                     </div>
                     <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div className="h-full rounded-full bg-emerald-500" style={{ width: `${paidPct}%` }}></div>
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" style={{ width: `${paidPct}%` }}></div>
                     </div>
                   </div>
                 </div>
@@ -344,9 +347,9 @@ export default function MemberPayrollPage() {
             })
           ) : (
             <div className="py-14 text-center">
-              <FileText className="w-12 h-12 text-subtle mx-auto mb-3" />
+              <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <p className="text-slate-300 font-semibold text-lg">No Payroll Records Found</p>
-              <p className="text-subtle text-sm mt-1">Select a different staff member or generate payroll first.</p>
+              <p className="text-slate-500 text-sm mt-1">Select a different staff member or generate payroll first.</p>
             </div>
           )}
         </div>

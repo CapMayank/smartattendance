@@ -8,14 +8,14 @@ type ChartData = {
   total: number
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#64748b', '#60a5fa', '#34d399', '#94a3b8']
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b']
 
 export default function DepartmentPieChart({ data }: { data: ChartData[] }) {
   const activeData = data.filter(d => d.value > 0)
 
   if (activeData.length === 0) {
     return (
-      <div className="h-[300px] w-full flex items-center justify-center text-subtle font-medium">
+      <div className="h-[300px] w-full flex items-center justify-center text-slate-500 font-medium">
         No attendance data yet today
       </div>
     )

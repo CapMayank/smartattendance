@@ -16,7 +16,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#64748b', '#60a5fa', '#34d399', '#94a3b8']
+const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#6366f1']
 
 export default function PayrollAnalyticsClient({ payrollData }: { payrollData: any[] }) {
   
@@ -99,8 +99,8 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
 
   if (!analytics) {
     return (
-      <div className="p-8 text-center bg-black/20 border border-white/[0.08] rounded-lg">
-        <p className="text-muted">No payroll data available for analytics yet.</p>
+      <div className="p-8 text-center bg-black/20 backdrop-blur-2xl border border-white/[0.08] rounded-3xl">
+        <p className="text-slate-400">No payroll data available for analytics yet.</p>
       </div>
     )
   }
@@ -108,10 +108,10 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
   const KPICard = ({ title, value, change, icon: Icon, colorClass }: any) => {
     const isPositive = change >= 0
     return (
-      <div className="bg-black/20 border border-white/[0.08] p-6 rounded-lg">
+      <div className="bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex items-center justify-between mb-4">
-          <div className={`w-10 h-10 rounded-md flex items-center justify-center ${colorClass}`}>
-            <Icon className="w-5 h-5" />
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+            <Icon className="w-6 h-6 text-white" />
           </div>
           <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
             isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
@@ -120,7 +120,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
             {Math.abs(change).toFixed(1)}%
           </div>
         </div>
-        <h3 className="text-muted text-sm font-medium">{title}</h3>
+        <h3 className="text-slate-400 text-sm font-medium">{title}</h3>
         <p className="text-2xl font-bold text-white mt-1">{formatCurrency(value)}</p>
       </div>
     )
@@ -135,35 +135,35 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
           value={analytics.kpis.gross.value} 
           change={analytics.kpis.gross.change} 
           icon={Wallet} 
-          colorClass="bg-accent-soft text-accent" 
+          colorClass="bg-blue-600" 
         />
         <KPICard 
           title="Total Net Payout" 
           value={analytics.kpis.net.value} 
           change={analytics.kpis.net.change} 
           icon={IndianRupee} 
-          colorClass="bg-success-soft text-success" 
+          colorClass="bg-emerald-600" 
         />
         <KPICard 
           title="Total PF Liability" 
           value={analytics.kpis.epf.value} 
           change={analytics.kpis.epf.change} 
           icon={ShieldAlert} 
-          colorClass="bg-danger-soft text-danger" 
+          colorClass="bg-rose-600" 
         />
         <KPICard 
           title="Avg. CTC per Employee" 
           value={analytics.kpis.avgSalary.value} 
           change={analytics.kpis.avgSalary.change} 
           icon={TrendingUp} 
-          colorClass="bg-raised text-muted" 
+          colorClass="bg-purple-600" 
         />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         {/* Trend Chart */}
-        <div className="xl:col-span-2 bg-black/20 border border-white/[0.08] p-6 rounded-lg">
+        <div className="xl:col-span-2 bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
           <h3 className="text-xl font-bold text-white mb-6">Payroll Trajectory</h3>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -201,9 +201,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
         </div>
 
         {/* Department Pie Chart */}
-        <div className="bg-black/20 border border-white/[0.08] p-6 rounded-lg flex flex-col">
+        <div className="bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col">
           <h3 className="text-xl font-bold text-white mb-2">Cost by Department</h3>
-          <p className="text-sm text-muted mb-6">Latest Month ({analytics.latestMonthKey})</p>
+          <p className="text-sm text-slate-400 mb-6">Latest Month ({analytics.latestMonthKey})</p>
           
           <div className="h-[300px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -241,7 +241,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
         </div>
 
         {/* Compliance Stacked Bar Chart */}
-        <div className="xl:col-span-3 bg-black/20 border border-white/[0.08] p-6 rounded-lg">
+        <div className="xl:col-span-3 bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
           <h3 className="text-xl font-bold text-white mb-6">EPF Compliance Contributions</h3>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -260,9 +260,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
                   formatter={(value: any) => formatCurrency(Number(value) || 0)}
                 />
                 <Legend />
-                <Bar dataKey="Employee EPF" stackId="a" fill="#60a5fa" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="Employee EPF" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="Employer EPF" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="Employer EPS" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Employer EPS" stackId="a" fill="#06b6d4" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

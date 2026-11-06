@@ -1,168 +1,146 @@
 @import "tailwindcss";
 
-/* ============================================================
-   Design tokens — graphite surfaces, single blue accent.
-   Status colours (success / warning / danger) carry meaning only.
-   ============================================================ */
 :root {
-  --bg: #0b0d10;
-  --panel: #111418;
-  --raised: #171b21;
-  --hover: #1d222a;
-  --line: #232831;
-  --line-strong: #2e343f;
-  --fg: #e6e8eb;
-  --muted: #9aa3af;
-  --subtle: #7c8696;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #fb7185;
-  color-scheme: dark;
+  --background: #000000; /* Pure black */
+  --foreground: #f8fafc; /* text-slate-50 */
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-panel: var(--panel);
-  --color-raised: var(--raised);
-  --color-hover: var(--hover);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
-  --color-fg: var(--fg);
-  --color-muted: var(--muted);
-  --color-subtle: var(--subtle);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-soft: rgb(59 130 246 / 0.12);
-  --color-success: var(--success);
-  --color-success-soft: rgb(52 211 153 / 0.12);
-  --color-warning: var(--warning);
-  --color-warning-soft: rgb(251 191 36 / 0.12);
-  --color-danger: var(--danger);
-  --color-danger-soft: rgb(251 113 133 / 0.12);
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-}
-
-html {
-  background: var(--bg);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-td, .tabular {
-  font-variant-numeric: tabular-nums;
+/* Sleek Global Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* Keyboard focus ring */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Scrollbars — neutral */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  border: 2px solid var(--bg);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--subtle); }
-::-webkit-scrollbar-corner { background: transparent; }
 
-/* Hide native number spinners */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3); /* Sleek indigo accent */
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-input[type="number"] { -moz-appearance: textfield; }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Sleek Modern UI: Hide clunky native number increasers/decreasers */
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
 }
 
 /* ============================================================
-   Data tables — flat, ruled, dense.
+   Glass Table design language (tablet / desktop)
+   Rounded floating row-strips, frosted headers, status accents.
+   Lives in the components layer so Tailwind utilities still win.
    ============================================================ */
 @layer components {
-  .data-table{
+  .glass-table {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0;
+    border-spacing: 0 10px;
   }
 
-  .data-table thead th{
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    padding: 0.625rem 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+  .glass-table thead th {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: #94a3b8;
     white-space: nowrap;
-    text-align: left;
-    background: var(--raised);
-    border-bottom: 1px solid var(--line-strong);
+    background: rgba(255, 255, 255, 0.025);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .glass-table thead th:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1rem 0 0 1rem;
+  }
+  .glass-table thead th:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0 1rem 1rem 0;
   }
 
-  .data-table tbody td{
-    padding: 0.625rem 1rem;
-    border-bottom: 1px solid var(--line);
-    transition: background-color 0.15s ease;
+  .glass-table tbody td {
+    background: rgba(255, 255, 255, 0.035);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .glass-table tbody td:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.25rem 0 0 1.25rem;
+  }
+  .glass-table tbody td:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0 1.25rem 1.25rem 0;
+  }
+  .glass-table tbody td:only-child {
+    border-radius: 1.25rem;
+  }
+  .glass-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.075);
+    border-color: rgba(255, 255, 255, 0.13);
   }
 
-  .data-table tbody tr:last-child td{
-    border-bottom: 0;
+
+
+  /* Sticky columns need an opaque-ish surface so scrolled content doesn't bleed through */
+  .glass-table td.sticky,
+  .glass-table th.sticky {
+    background-color: rgba(14, 14, 24, 0.92);
+    backdrop-filter: blur(18px);
   }
 
-  .data-table tbody tr:hover td{
-    background: var(--hover);
-  }
-
-  /* Sticky columns need an opaque surface so scrolled content never bleeds through */
-  .data-table td.sticky,
-  .data-table th.sticky{
-    background-color: var(--panel);
-  }
-  .data-table thead th.sticky{
-    background-color: var(--raised);
-  }
-
-  /* Matrix variant: monthly attendance grid */
-  .data-matrix{
+  /* Matrix variant: monthly attendance grid with rounded colour-coded day cells */
+  .glass-matrix {
     border-collapse: separate;
-    border-spacing: 2px;
+    border-spacing: 4px;
     width: 100%;
   }
-  .data-matrix thead th{
-    border-radius: 4px;
-    background: var(--raised);
+  .glass-matrix thead th {
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
   }
-  .data-matrix tbody td{
-    border-radius: 4px;
-    background: var(--panel);
-    border: 1px solid var(--line);
+  .glass-matrix tbody td {
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
-  .data-matrix td.sticky,
-  .data-matrix th.sticky{
-    background-color: var(--panel);
+  .glass-matrix td.sticky,
+  .glass-matrix th.sticky {
+    background-color: rgba(14, 14, 24, 0.95);
+    backdrop-filter: blur(18px);
   }
-  .data-matrix tbody tr:hover td:not(.sticky){
-    border-color: var(--line-strong);
+  .glass-matrix tbody tr:hover td:not(.sticky) {
+    border-color: rgba(255, 255, 255, 0.14);
   }
 }

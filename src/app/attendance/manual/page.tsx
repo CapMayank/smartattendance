@@ -153,24 +153,24 @@ export default function ManualPunchPage() {
   }
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 pt-24 min-h-screen text-slate-200">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-fg">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
             Manual Punch
           </h1>
-          <p className="text-muted mt-2">Add missing punches for staff members</p>
+          <p className="text-slate-400 mt-2">Add missing punches for staff members</p>
         </div>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-lg p-1 overflow-hidden">
-        <div className="flex bg-black/20 rounded-md p-1 gap-1">
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-1 overflow-hidden">
+        <div className="flex bg-black/20 rounded-xl p-1 gap-1">
           <button
             onClick={() => setActiveTab('single')}
             className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all ${
               activeTab === 'single'
-                ? 'bg-accent text-white  '
-                : 'text-muted hover:text-white hover:bg-white/5'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             Single Punch
@@ -179,8 +179,8 @@ export default function ManualPunchPage() {
             onClick={() => setActiveTab('bulk')}
             className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all ${
               activeTab === 'bulk'
-                ? 'bg-accent text-white  '
-                : 'text-muted hover:text-white hover:bg-white/5'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             Bulk Punch
@@ -188,7 +188,7 @@ export default function ManualPunchPage() {
         </div>
       </div>
 
-      <div className="bg-black/40 border border-white/10 rounded-lg p-6 sm:p-8">
+      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl">
         {activeTab === 'single' ? (
           <form onSubmit={handleSingleSubmit} className="max-w-xl mx-auto space-y-6">
             <div className="space-y-4">
@@ -197,7 +197,7 @@ export default function ManualPunchPage() {
                 <select
                   value={singleStaffId}
                   onChange={(e) => setSingleStaffId(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-md px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   required
                 >
                   <option value="">Select a staff member</option>
@@ -213,12 +213,12 @@ export default function ManualPunchPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Date</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="date"
                       value={singleDate}
                       onChange={(e) => setSingleDate(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       required
                     />
                   </div>
@@ -226,12 +226,12 @@ export default function ManualPunchPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Time</label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="time"
                       value={singleTime}
                       onChange={(e) => setSingleTime(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       required
                     />
                   </div>
@@ -244,10 +244,10 @@ export default function ManualPunchPage() {
                   <button
                     type="button"
                     onClick={() => setSingleType('IN')}
-                    className={`py-2.5 rounded-md text-sm font-medium border transition-all ${
+                    className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
                       singleType === 'IN' 
                         ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
-                        : 'bg-black/50 border-white/10 text-muted hover:bg-white/5'
+                        : 'bg-black/50 border-white/10 text-slate-400 hover:bg-white/5'
                     }`}
                   >
                     IN
@@ -255,10 +255,10 @@ export default function ManualPunchPage() {
                   <button
                     type="button"
                     onClick={() => setSingleType('OUT')}
-                    className={`py-2.5 rounded-md text-sm font-medium border transition-all ${
+                    className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
                       singleType === 'OUT' 
                         ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' 
-                        : 'bg-black/50 border-white/10 text-muted hover:bg-white/5'
+                        : 'bg-black/50 border-white/10 text-slate-400 hover:bg-white/5'
                     }`}
                   >
                     OUT
@@ -270,7 +270,7 @@ export default function ManualPunchPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-accent text-white rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-medium shadow-lg shadow-blue-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Saving...' : 'Add Punch'}
             </button>
@@ -290,19 +290,19 @@ export default function ManualPunchPage() {
               </div>
               
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search staff..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
 
-              <div className="bg-black/50 border border-white/10 rounded-md h-72 overflow-y-auto custom-scrollbar p-2">
+              <div className="bg-black/50 border border-white/10 rounded-xl h-72 overflow-y-auto custom-scrollbar p-2">
                 {filteredStaff.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-subtle text-sm">
+                  <div className="h-full flex items-center justify-center text-slate-500 text-sm">
                     No staff found
                   </div>
                 ) : (
@@ -316,7 +316,7 @@ export default function ManualPunchPage() {
                         }`}
                       >
                         <div className={`w-5 h-5 rounded flex items-center justify-center border ${
-                          selectedStaffIds.has(staff.id) ? 'bg-accent border-blue-500' : 'border-white/20'
+                          selectedStaffIds.has(staff.id) ? 'bg-blue-500 border-blue-500' : 'border-white/20'
                         }`}>
                           {selectedStaffIds.has(staff.id) && <Check className="w-3 h-3 text-white" />}
                         </div>
@@ -326,7 +326,7 @@ export default function ManualPunchPage() {
                   </div>
                 )}
               </div>
-              <div className="text-sm text-muted text-right">
+              <div className="text-sm text-slate-400 text-right">
                 {selectedStaffIds.size} selected
               </div>
             </div>
@@ -336,12 +336,12 @@ export default function ManualPunchPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Start Date</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="date"
                       value={bulkStartDate}
                       onChange={(e) => setBulkStartDate(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       required
                     />
                   </div>
@@ -349,12 +349,12 @@ export default function ManualPunchPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">End Date</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="date"
                       value={bulkEndDate}
                       onChange={(e) => setBulkEndDate(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       required
                     />
                   </div>
@@ -364,12 +364,12 @@ export default function ManualPunchPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Time</label>
                 <div className="relative max-w-[50%]">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="time"
                     value={bulkTime}
                     onChange={(e) => setBulkTime(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                     required
                   />
                 </div>
@@ -381,10 +381,10 @@ export default function ManualPunchPage() {
                   <button
                     type="button"
                     onClick={() => setBulkType('IN')}
-                    className={`py-2.5 rounded-md text-sm font-medium border transition-all ${
+                    className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
                       bulkType === 'IN' 
                         ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
-                        : 'bg-black/50 border-white/10 text-muted hover:bg-white/5'
+                        : 'bg-black/50 border-white/10 text-slate-400 hover:bg-white/5'
                     }`}
                   >
                     IN
@@ -392,10 +392,10 @@ export default function ManualPunchPage() {
                   <button
                     type="button"
                     onClick={() => setBulkType('OUT')}
-                    className={`py-2.5 rounded-md text-sm font-medium border transition-all ${
+                    className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
                       bulkType === 'OUT' 
                         ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' 
-                        : 'bg-black/50 border-white/10 text-muted hover:bg-white/5'
+                        : 'bg-black/50 border-white/10 text-slate-400 hover:bg-white/5'
                     }`}
                   >
                     OUT
@@ -407,7 +407,7 @@ export default function ManualPunchPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-accent text-white rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-medium shadow-lg shadow-blue-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Saving Bulk Punches...' : 'Add Bulk Punches'}
                 </button>

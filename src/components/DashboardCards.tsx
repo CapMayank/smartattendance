@@ -50,14 +50,14 @@ export default function DashboardCards({
         {/* Total Staff */}
         <div 
           onClick={() => openModal('Total Staff', allStaff)}
-          className="p-5 rounded-lg bg-black/20 border border-white/[0.08] hover:bg-white/5 hover:border-blue-500/30 transition-all duration-300 group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-md group- transition-transform">
+            <div className="p-3 bg-blue-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Users className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted">Total Staff</p>
+              <p className="text-xs font-medium text-slate-400">Total Staff</p>
               <h3 className="text-xl font-bold text-white mt-0.5">{staffCount}</h3>
             </div>
           </div>
@@ -66,14 +66,14 @@ export default function DashboardCards({
         {/* Currently In */}
         <div 
           onClick={() => openModal('Currently In', presentStaff)}
-          className="p-5 rounded-lg bg-black/20 border border-white/[0.08] hover:bg-white/5 hover:border-emerald-500/30 transition-all duration-300 group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-emerald-500/30 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/20 rounded-md group- transition-transform">
+            <div className="p-3 bg-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Fingerprint className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted">Currently In</p>
+              <p className="text-xs font-medium text-slate-400">Currently In</p>
               <h3 className="text-xl font-bold text-white mt-0.5">{currentlyIn}</h3>
             </div>
           </div>
@@ -82,42 +82,42 @@ export default function DashboardCards({
         {/* Absent Today */}
         <div 
           onClick={() => openModal('Absent Today', absentStaff)}
-          className="p-5 rounded-lg bg-black/20 border border-white/[0.08] hover:bg-white/5 hover:border-rose-500/30 transition-all duration-300 group cursor-pointer"
+          className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-rose-500/30 hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-300 group cursor-pointer"
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-rose-500/20 rounded-md group- transition-transform">
+            <div className="p-3 bg-rose-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <UserMinus className="w-5 h-5 text-rose-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted">Absent Today</p>
+              <p className="text-xs font-medium text-slate-400">Absent Today</p>
               <h3 className="text-xl font-bold text-white mt-0.5">{absentCount}</h3>
             </div>
           </div>
         </div>
 
         {/* Logs Today */}
-        <div className="p-5 rounded-lg bg-black/20 border border-white/[0.08] hover:bg-white/5 hover:border-amber-500/30 transition-all duration-300 group">
+        <div className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300 group">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-500/20 rounded-md group- transition-transform">
+            <div className="p-3 bg-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
               <Clock className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted">Logs Today</p>
+              <p className="text-xs font-medium text-slate-400">Logs Today</p>
               <h3 className="text-xl font-bold text-white mt-0.5">{logsCount}</h3>
             </div>
           </div>
         </div>
 
         {/* Devices Online */}
-        <div className="p-5 rounded-lg bg-black/20 border border-white/[0.08] hover:bg-white/5 hover:border-blue-500/30 transition-all duration-300 group">
+        <div className="p-5 rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl hover:bg-white/5 hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300 group">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-md group- transition-transform relative">
-              <Server className="w-5 h-5 text-blue-400" />
+            <div className="p-3 bg-indigo-500/20 rounded-xl group-hover:scale-110 transition-transform relative">
+              <Server className="w-5 h-5 text-indigo-400" />
               {onlineDevices > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse border border-slate-900"></span>}
             </div>
             <div>
-              <p className="text-xs font-medium text-muted">Devices Online</p>
-              <h3 className="text-xl font-bold text-white mt-0.5">{onlineDevices} <span className="text-xs font-normal text-subtle">/ {devicesCount}</span></h3>
+              <p className="text-xs font-medium text-slate-400">Devices Online</p>
+              <h3 className="text-xl font-bold text-white mt-0.5">{onlineDevices} <span className="text-xs font-normal text-slate-500">/ {devicesCount}</span></h3>
             </div>
           </div>
         </div>
@@ -125,13 +125,13 @@ export default function DashboardCards({
 
       {/* Modal Overlay */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in duration-300">
-          <div className="bg-black/60 border border-white/[0.08] rounded-lg w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh] scale-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-300">
+          <div className="bg-black/60 border border-white/[0.08] backdrop-blur-3xl rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex flex-col max-h-[80vh] scale-in-95 duration-300">
             <div className="flex items-center justify-between p-4 border-b border-white/[0.08]">
               <h3 className="text-lg font-bold text-white">{modalTitle}</h3>
               <button 
                 onClick={() => setModalOpen(false)}
-                className="p-1 text-muted hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -147,7 +147,7 @@ export default function DashboardCards({
                         </div>
                         <div className="min-w-0 flex flex-col">
                           <span className="font-medium text-slate-200 truncate">{staff.name}</span>
-                          <span className="text-xs text-muted truncate">Machine ID: {staff.machineId}</span>
+                          <span className="text-xs text-slate-400 truncate">Machine ID: {staff.machineId}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
@@ -161,13 +161,13 @@ export default function DashboardCards({
                   ))}
                 </div>
               ) : (
-                <div className="p-8 text-center text-muted">
+                <div className="p-8 text-center text-slate-400">
                   <p>No staff found for this category.</p>
                 </div>
               )}
             </div>
             <div className="p-4 border-t border-white/[0.08] bg-black/20">
-              <p className="text-sm text-muted text-center">Total count: {modalData.length}</p>
+              <p className="text-sm text-slate-400 text-center">Total count: {modalData.length}</p>
             </div>
           </div>
         </div>

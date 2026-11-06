@@ -1,122 +1,233 @@
 'use client'
 
+import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Activity, Users, Clock, Settings, Building2, IdCard, FileText, Server,
-  Calendar as CalendarIcon, Wallet, UserCheck, TrendingUp,
+import { 
+  LogOut, Activity, Users, Clock, Settings, Building2, 
+  IdCard, FileText, Server, Calendar as CalendarIcon, 
+  Menu, X, Wallet, UserCheck, ChevronDown, TrendingUp 
 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { useState } from 'react'
 
-type NavItem = { name: string; href: string; icon: LucideIcon }
-type NavGroup = { label: string; links: NavItem[] }
-
-export const NAV_GROUPS: NavGroup[] = [
-  { label: 'Overview', links: [{ name: 'Dashboard', href: '/', icon: Activity }] },
-  {
-    label: 'Organization',
-    links: [
-      { name: 'Staff Directory', href: '/staff', icon: Users },
-      { name: 'Departments', href: '/departments', icon: Building2 },
-      { name: 'Designations', href: '/designations', icon: IdCard },
-      { name: 'Shifts', href: '/shifts', icon: Clock },
-      { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
-    ],
-  },
-  {
-    label: 'Attendance',
-    links: [
-      { name: 'Manual Punch', href: '/attendance/manual', icon: Clock },
-      { name: 'Overall Reports', href: '/reports', icon: FileText },
-      { name: 'Member Details', href: '/reports/member-attendance', icon: UserCheck },
-    ],
-  },
-  {
-    label: 'Payroll',
-    links: [
-      { name: 'Monthly Generation', href: '/payroll/monthly', icon: FileText },
-      { name: 'Member History', href: '/reports/member-payroll', icon: Wallet },
-      { name: 'Staff Salary Setup', href: '/payroll/staff', icon: Wallet },
-      { name: 'Payroll Analytics', href: '/reports/payroll-analytics', icon: TrendingUp },
-    ],
-  },
-  {
-    label: 'System',
-    links: [
-      { name: 'Devices', href: '/devices', icon: Server },
-      { name: 'Users', href: '/users', icon: Users },
-      { name: 'Settings', href: '/settings', icon: Settings },
-    ],
-  },
-]
-
-/** Longest-prefix match so nested routes highlight their parent item. */
-export function findActive(pathname: string): NavItem | undefined {
-  let best: NavItem | undefined
-  for (const g of NAV_GROUPS) {
-    for (const l of g.links) {
-      const match = l.href === '/' ? pathname === '/' : pathname === l.href || pathname.startsWith(l.href + '/')
-      if (match && (!best || l.href.length > best.href.length)) best = l
-    }
-  }
-  return best
-}
-
-export default function Navbar({ onNavigate }: { onNavigate?: () => void }) {
+export default function Navbar() {
+  const { data: session } = useSession()
   const pathname = usePathname()
-  const active = findActive(pathname)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // 1. Dashboard (Direct Link)
+  const dashboardLink = { name: 'Dashboard', href: '/', icon: Activity }
+
+  // 2. Organization
+  const orgLinks = [
+    { name: 'Staff Directory', href: '/staff', icon: Users },
+    { name: 'Departments', href: '/departments', icon: Building2 },
+    { name: 'Designations', href: '/designations', icon: IdCard },
+    { name: 'Shifts', href: '/shifts', icon: Clock },
+    { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
+  ]
+
+  // 3. Attendance
+  const attendanceLinks = [
+    { name: 'Manual Punch', href: '/attendance/manual', icon: Clock },
+    { name: 'Overall Reports', href: '/reports', icon: FileText },
+    { name: 'Member Details', href: '/reports/member-attendance', icon: UserCheck },
+  ]
+
+  // 4. Payroll
+  const payrollLinks = [
+    { name: 'Monthly Generation', href: '/payroll/monthly', icon: FileText },
+    { name: 'Member History', href: '/reports/member-payroll', icon: Wallet },
+    { name: 'Staff Salary Setup', href: '/payroll/staff', icon: Wallet },
+    { name: 'Payroll Analytics', href: '/reports/payroll-analytics', icon: TrendingUp },
+  ]
+
+  // 5. System
+  const systemLinks = [
+    { name: 'Devices', href: '/devices', icon: Server },
+    { name: 'Users', href: '/users', icon: Users },
+    { name: 'Settings', href: '/settings', icon: Settings },
+  ]
+
+  const dropdowns = [
+    { label: 'Organization', icon: Building2, links: orgLinks },
+    { label: 'Attendance', icon: UserCheck, links: attendanceLinks },
+    { label: 'Payroll', icon: Wallet, links: payrollLinks },
+    { label: 'System', icon: Settings, links: systemLinks },
+  ]
 
   return (
-    <nav aria-label="Primary" className="flex flex-col h-full">
-      <Link
-        href="/"
-        onClick={onNavigate}
-        className="flex items-center gap-2.5 h-14 px-4 border-b border-line shrink-0"
-      >
-        <span className="flex items-center justify-center w-8 h-8 rounded-md bg-accent text-white">
-          <Activity className="w-4 h-4" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-fg leading-tight">SEHSS Lakhnadon</span>
-          <span className="block text-[11px] text-subtle leading-tight">Attendance &amp; Payroll</span>
-        </span>
-      </Link>
+    <nav className="fixed top-4 inset-x-0 z-50 transition-all duration-300 pointer-events-none">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pointer-events-auto">
+        <div className="flex items-center justify-between h-14 px-2 sm:px-4 bg-black/50 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-[0_16px_32px_rgba(0,0,0,0.5)]">
+          <div className="flex items-center gap-4 xl:gap-8">
+            <Link href="/" className="flex items-center gap-2 pl-2">
+              <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                <Activity className="w-6 h-6 text-blue-400" />
+              </div>
+              <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 hidden xl:block">
+                SEHSS Lakhnadon
+              </span>
+              <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 xl:hidden">
+                SEHSS
+              </span>
+            </Link>
 
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label}>
-            <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-subtle">
-              {group.label}
-            </p>
-            <ul className="space-y-0.5">
-              {group.links.map((link) => {
+            {session && (
+              <div className="hidden lg:flex items-center gap-1">
+                {/* Dashboard Link */}
+                <Link
+                  href={dashboardLink.href}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    pathname === dashboardLink.href 
+                      ? 'bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-white/[0.04]' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <dashboardLink.icon className="w-4 h-4" />
+                  {dashboardLink.name}
+                </Link>
+
+                {/* Dropdowns */}
+                {dropdowns.map((dropdown) => {
+                  const DropdownIcon = dropdown.icon
+                  const isActive = dropdown.links.some(link => pathname === link.href)
+                  
+                  return (
+                    <div key={dropdown.label} className="relative group">
+                      <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                        isActive ? 'text-white bg-white/5 border border-white/[0.04]' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}>
+                        <DropdownIcon className="w-4 h-4" />
+                        {dropdown.label}
+                        <ChevronDown className="w-3 h-3 opacity-50 transition-transform group-hover:rotate-180" />
+                      </button>
+                      
+                      <div className="absolute top-full left-0 h-4 w-full" />
+                      
+                      <div className="absolute top-[calc(100%+0.5rem)] left-0 w-56 bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 overflow-hidden py-1 transform origin-top group-hover:translate-y-0 translate-y-2">
+                        {dropdown.links.map((link) => {
+                          const Icon = link.icon
+                          const isLinkActive = pathname === link.href
+                          return (
+                            <Link
+                              key={link.name}
+                              href={link.href}
+                              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
+                                isLinkActive 
+                                  ? 'bg-blue-500/15 text-blue-400 border-l-2 border-blue-400' 
+                                  : 'text-slate-300 hover:bg-white/10 hover:text-white border-l-2 border-transparent'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 opacity-70" />
+                              {link.name}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {session ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/[0.04]">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[10px] font-bold text-white">
+                    {session.user?.email?.[0].toUpperCase() || 'A'}
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 hidden lg:block max-w-[120px] truncate">
+                    {session.user?.email}
+                  </span>
+                </div>
+                <button
+                  onClick={() => signOut()}
+                  className="hidden sm:flex items-center justify-center p-2 text-slate-400 bg-white/5 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all duration-300 border border-white/[0.04] active:scale-95"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="lg:hidden p-2 text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600/80 hover:bg-blue-500 rounded-lg transition-all duration-300 border border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] backdrop-blur-xl active:scale-95"
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {session && isMobileMenuOpen && (
+        <div className="lg:hidden fixed top-20 inset-x-4 border border-white/[0.08] rounded-2xl bg-black/80 backdrop-blur-2xl px-4 py-4 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar z-40 pointer-events-auto">
+          
+          <Link
+            href={dashboardLink.href}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              pathname === dashboardLink.href
+                ? 'bg-blue-600/20 text-blue-400' 
+                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <dashboardLink.icon className="w-4 h-4 opacity-70" />
+            {dashboardLink.name}
+          </Link>
+
+          {dropdowns.map((dropdown) => (
+            <div key={dropdown.label} className="flex flex-col space-y-1 pt-4 border-t border-white/[0.08]">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2 flex items-center gap-2">
+                <dropdown.icon className="w-3 h-3" />
+                {dropdown.label}
+              </span>
+              {dropdown.links.map((link) => {
                 const Icon = link.icon
-                const isActive = active?.href === link.href
+                const isActive = pathname === link.href
                 return (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      onClick={onNavigate}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`relative flex items-center gap-3 h-10 px-3 rounded-md text-sm transition-colors duration-150 ${
-                        isActive
-                          ? 'bg-hover text-fg font-medium'
-                          : 'text-muted hover:bg-hover hover:text-fg'
-                      }`}
-                    >
-                      {isActive && (
-                        <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-accent" aria-hidden />
-                      )}
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : ''}`} aria-hidden />
-                      <span className="truncate">{link.name}</span>
-                    </Link>
-                  </li>
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive 
+                        ? 'bg-blue-600/20 text-blue-400' 
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 opacity-70" />
+                    {link.name}
+                  </Link>
                 )
               })}
-            </ul>
+            </div>
+          ))}
+
+          <div className="pt-4 border-t border-white/[0.08]">
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false)
+                signOut()
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors w-full"
+            >
+              <LogOut className="w-4 h-4 opacity-70" />
+              Sign Out
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </nav>
   )
 }

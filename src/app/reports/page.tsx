@@ -65,9 +65,9 @@ const dayKindStyle: Record<DayKind, { cell: string; label: string; name: string 
   present: { cell: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300', label: 'P', name: 'Present' },
   absent: { cell: 'bg-rose-500/15 border-rose-500/30 text-rose-300', label: 'A', name: 'Absent' },
   half: { cell: 'bg-amber-500/15 border-amber-500/30 text-amber-300', label: 'HD', name: 'Half Day' },
-  holiday: { cell: 'bg-blue-500/15 border-blue-500/30 text-blue-300', label: 'H', name: 'Holiday' },
-  weekoff: { cell: 'bg-slate-500/10 border-white/[0.06] text-muted', label: 'W', name: 'Week Off' },
-  none: { cell: 'bg-white/[0.02] border-white/[0.04] text-subtle', label: '', name: 'No data' },
+  holiday: { cell: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300', label: 'H', name: 'Holiday' },
+  weekoff: { cell: 'bg-slate-500/10 border-white/[0.06] text-slate-400', label: 'W', name: 'Week Off' },
+  none: { cell: 'bg-white/[0.02] border-white/[0.04] text-slate-600', label: '', name: 'No data' },
 }
 
 function MonthlyMobileCard({
@@ -89,39 +89,39 @@ function MonthlyMobileCard({
   const selectedKind = getDayKind(selectedData)
 
   return (
-    <div className="bg-black/40 border border-white/[0.08] rounded-lg overflow-hidden">
+    <div className="bg-black/40 border border-white/[0.08] rounded-3xl overflow-hidden shadow-lg">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full p-4 text-left active:bg-white/[0.03] transition-colors"
         aria-expanded={open}
       >
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-lg bg-accent flex items-center justify-center text-sm font-bold text-white border border-white/[0.08] shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
             {record.staff.name.substring(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-white leading-tight truncate">{record.staff.name}</p>
-            <p className="text-xs text-subtle font-medium truncate mt-0.5">{record.staff.designation?.name || 'No Role'}</p>
+            <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{record.staff.designation?.name || 'No Role'}</p>
           </div>
-          <ChevronDown className={`w-5 h-5 text-muted shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
         </div>
 
         <div className="grid grid-cols-4 gap-2 mt-4">
-          <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 py-2 text-center">
-            <p className="text-lg font-bold text-emerald-400 leading-none">{record.totalPresents}</p>
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 py-2 text-center">
+            <p className="text-lg font-black text-emerald-400 leading-none">{record.totalPresents}</p>
             <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-300/70 mt-1">Present</p>
           </div>
-          <div className="rounded-md bg-rose-500/10 border border-rose-500/20 py-2 text-center">
-            <p className="text-lg font-bold text-rose-400 leading-none">{record.totalAbsents}</p>
+          <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 py-2 text-center">
+            <p className="text-lg font-black text-rose-400 leading-none">{record.totalAbsents}</p>
             <p className="text-[9px] font-bold uppercase tracking-wider text-rose-300/70 mt-1">Absent</p>
           </div>
-          <div className="rounded-md bg-amber-500/10 border border-amber-500/20 py-2 text-center">
-            <p className="text-lg font-bold text-amber-400 leading-none">{record.totalHalfDays}</p>
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 py-2 text-center">
+            <p className="text-lg font-black text-amber-400 leading-none">{record.totalHalfDays}</p>
             <p className="text-[9px] font-bold uppercase tracking-wider text-amber-300/70 mt-1">Half</p>
           </div>
-          <div className="rounded-md bg-blue-500/10 border border-blue-500/20 py-2 text-center">
-            <p className="text-lg font-bold text-blue-400 leading-none">{(record.totalWorkMinutes / 60).toFixed(0)}</p>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-blue-300/70 mt-1">Hours</p>
+          <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 py-2 text-center">
+            <p className="text-lg font-black text-indigo-400 leading-none">{(record.totalWorkMinutes / 60).toFixed(0)}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-indigo-300/70 mt-1">Hours</p>
           </div>
         </div>
       </button>
@@ -130,7 +130,7 @@ function MonthlyMobileCard({
         <div className="px-4 pb-4 pt-1 border-t border-white/[0.06] animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="grid grid-cols-7 gap-1.5 mt-3 mb-1.5">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-              <div key={i} className="text-center text-[10px] font-bold text-subtle">{d}</div>
+              <div key={i} className="text-center text-[10px] font-bold text-slate-500">{d}</div>
             ))}
           </div>
 
@@ -145,10 +145,10 @@ function MonthlyMobileCard({
                 <button
                   key={day}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
-                  className={`aspect-square rounded-md border flex flex-col items-center justify-center leading-none transition-all active:scale-90 ${style.cell} ${isSelected ? 'ring-2 ring-white/70 scale-105' : ''}`}
+                  className={`aspect-square rounded-xl border flex flex-col items-center justify-center leading-none transition-all active:scale-90 ${style.cell} ${isSelected ? 'ring-2 ring-white/70 scale-105' : ''}`}
                 >
                   <span className="text-[13px] font-bold">{day}</span>
-                  <span className="text-[8px] font-semibold mt-0.5 h-2">{style.label}</span>
+                  <span className="text-[8px] font-extrabold mt-0.5 h-2">{style.label}</span>
                 </button>
               )
             })}
@@ -156,7 +156,7 @@ function MonthlyMobileCard({
 
           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
             {(['present', 'absent', 'half', 'holiday', 'weekoff'] as DayKind[]).map(k => (
-              <span key={k} className="flex items-center gap-1 text-[10px] font-semibold text-muted">
+              <span key={k} className="flex items-center gap-1 text-[10px] font-semibold text-slate-400">
                 <span className={`w-2.5 h-2.5 rounded-[4px] border ${dayKindStyle[k].cell}`}></span>
                 {dayKindStyle[k].name}
               </span>
@@ -164,7 +164,7 @@ function MonthlyMobileCard({
           </div>
 
           {selectedDay && (
-            <div className="mt-3 rounded-lg bg-black/50 border border-white/[0.08] p-3 animate-in fade-in zoom-in-95 duration-200">
+            <div className="mt-3 rounded-2xl bg-black/50 border border-white/[0.08] p-3 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-white">
                   {new Date(`${selectedStr}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
@@ -176,20 +176,20 @@ function MonthlyMobileCard({
               {selectedData && (selectedData.checkIn || selectedData.checkOut) ? (
                 <div className="grid grid-cols-3 gap-2 mt-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">In</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">In</p>
                     <p className="text-sm font-bold text-emerald-400">{timeFmt(selectedData.checkIn)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Out</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Out</p>
                     <p className="text-sm font-bold text-rose-400">{timeFmt(selectedData.checkOut)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Hours</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Hours</p>
                     <p className="text-sm font-bold text-slate-200">{(selectedData.workMinutes / 60).toFixed(1)}</p>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-subtle mt-2">No punches recorded for this day.</p>
+                <p className="text-xs text-slate-500 mt-2">No punches recorded for this day.</p>
               )}
               {selectedData && selectedData.lateMinutes > 0 && (
                 <p className="text-[11px] font-bold text-rose-400 mt-2">{selectedData.lateMinutes} mins late</p>
@@ -391,39 +391,41 @@ export default function ReportsPage() {
   const firstDow = new Date(`${month}-01T00:00:00`).getDay()
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-500/20 rounded-lg border border-white/[0.04]">
-            <FileText className="w-8 h-8 text-blue-400" />
+          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
+            <FileText className="w-8 h-8 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-fg">
+            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
               Attendance Reports
             </h1>
-            <p className="text-muted mt-1 font-medium">View and export detailed attendance sheets.</p>
+            <p className="text-slate-400 mt-1 font-medium">View and export detailed attendance sheets.</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={exportCSV}
-            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-accent text-white font-bold rounded-md transition-all"
+            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" /> Export CSV
           </button>
         </div>
       </div>
 
-      <div className="bg-black/30 border border-white/[0.08] rounded-lg overflow-hidden relative flex flex-col">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Filters and View Type */}
         <div className="bg-black/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 relative z-10">
-          <div className="grid grid-cols-2 sm:flex items-center gap-2 bg-black/60 rounded-md p-1.5 border border-white/[0.08]">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 bg-black/60 rounded-xl p-1.5 border border-white/[0.08] shadow-inner">
             <button
               onClick={() => setViewType('daily')}
               className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                viewType === 'daily' ? 'bg-blue-500/20 text-blue-400 ' : 'text-muted hover:text-slate-200 hover:bg-white/5'
+                viewType === 'daily' ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
               <FileText className="w-4 h-4" /> Daily
@@ -431,15 +433,15 @@ export default function ReportsPage() {
             <button
               onClick={() => setViewType('monthly')}
               className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                viewType === 'monthly' ? 'bg-blue-500/20 text-blue-400 ' : 'text-muted hover:text-slate-200 hover:bg-white/5'
+                viewType === 'monthly' ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
               <BarChart3 className="w-4 h-4" /> Monthly
             </button>
           </div>
 
-          <div className="flex items-center gap-3 bg-black/40 p-2 rounded-md border border-white/[0.08]">
-            <CalendarIcon className="w-5 h-5 text-blue-400 ml-2 shrink-0" />
+          <div className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/[0.08]">
+            <CalendarIcon className="w-5 h-5 text-indigo-400 ml-2 shrink-0" />
             {viewType === 'daily' ? (
               <input 
                 type="date" 
@@ -459,11 +461,11 @@ export default function ReportsPage() {
         </div>
 
         <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar px-4 pb-3">
-          <table className={`${viewType === 'daily' ? 'data-table min-w-[800px]' : 'data-matrix min-w-[1400px]'} text-left text-sm text-muted`}>
+          <table className={`${viewType === 'daily' ? 'glass-table min-w-[800px]' : 'glass-matrix min-w-[1400px]'} text-left text-sm text-slate-400`}>
             <thead>
               {viewType === 'daily' ? (
                 <tr>
-                  <th className="px-6 py-3.5 sticky left-0 z-20">Staff Details</th>
+                  <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">Staff Details</th>
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5">Check In</th>
                   <th className="px-6 py-3.5">Check Out</th>
@@ -472,23 +474,23 @@ export default function ReportsPage() {
                 </tr>
               ) : (
                 <tr>
-                  <th className="px-6 py-3.5 sticky left-0 z-20 whitespace-nowrap">Staff Details</th>
+                  <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)] whitespace-nowrap">Staff Details</th>
                   {daysArray.map(day => {
                     const dateObj = new Date(`${month}-${day.toString().padStart(2, '0')}T00:00:00`);
                     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
                     const isWeekend = dayName === 'Sun' || dayName === 'Sat';
                     return (
-                      <th key={day} className={`px-2 py-3 text-center min-w-[75px] ${isWeekend ? 'bg-blue-500/5' : ''}`}>
+                      <th key={day} className={`px-2 py-3 text-center min-w-[75px] ${isWeekend ? 'bg-indigo-500/5' : ''}`}>
                         <div className="flex flex-col items-center gap-1.5">
-                          <span className={`text-sm ${isWeekend ? 'text-blue-300' : 'text-slate-200'}`}>{day}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${isWeekend ? 'bg-blue-500/20 text-blue-300' : 'bg-white/5 text-muted'}`}>{dayName}</span>
+                          <span className={`text-sm ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{day}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${isWeekend ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-400'}`}>{dayName}</span>
                         </div>
                       </th>
                     );
                   })}
                   <th className="px-4 py-3.5 text-center text-emerald-400">P</th>
                   <th className="px-4 py-3.5 text-center text-rose-400">A</th>
-                  <th className="px-4 py-3.5 text-right text-blue-400">Total Hrs</th>
+                  <th className="px-4 py-3.5 text-right text-indigo-400">Total Hrs</th>
                 </tr>
               )}
             </thead>
@@ -499,7 +501,7 @@ export default function ReportsPage() {
                     <tr key={i} className="animate-pulse border-b border-white/[0.04]">
                       <td className="px-6 py-4 sticky left-0 z-10 bg-black/40">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-lg bg-white/10"></div>
+                          <div className="w-11 h-11 rounded-2xl bg-white/10"></div>
                           <div className="flex flex-col gap-2">
                             <div className="h-4 w-32 bg-white/10 rounded"></div>
                             <div className="h-3 w-20 bg-white/5 rounded"></div>
@@ -522,24 +524,24 @@ export default function ReportsPage() {
                     >
                       <td className="px-6 py-4 sticky left-0 z-10">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-lg bg-accent flex items-center justify-center text-sm font-bold text-white border border-white/[0.08] shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
                             {record.staff.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-100 text-base whitespace-nowrap">{record.staff.name}</span>
-                            <span className="text-xs font-medium text-subtle whitespace-nowrap mt-0.5">
+                            <span className="text-xs font-medium text-slate-500 whitespace-nowrap mt-0.5">
                               {record.staff.designation?.name || 'No Role'} • {record.staff.department?.name || 'No Dept'}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border  ${
-                          record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 ' :
-                          record.status === 'ABSENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 ' :
-                          record.status === 'HOLIDAY' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 ' :
-                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-muted border-slate-500/20 ' :
-                          'bg-amber-500/10 text-amber-400 border-amber-500/20 '
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border shadow-sm ${
+                          record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' :
+                          record.status === 'ABSENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10' :
+                          record.status === 'HOLIDAY' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10' :
+                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20 shadow-slate-500/10' :
+                          'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10'
                         }`}>
                           {record.status}
                         </span>
@@ -553,13 +555,13 @@ export default function ReportsPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex flex-col items-end gap-1">
                           {record.status === 'ABSENT' || record.status === 'HOLIDAY' || record.status === 'WEEKOFF' ? (
-                            <span className="text-subtle font-bold">-</span>
+                            <span className="text-slate-600 font-bold">-</span>
                           ) : record.lateMinutes > 0 ? (
                             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">{record.lateMinutes} mins late</span>
                           ) : (
                             <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">On time</span>
                           )}
-                          <span className="text-xs font-medium text-subtle">{(record.workMinutes / 60).toFixed(1)} hrs</span>
+                          <span className="text-xs font-medium text-slate-500">{(record.workMinutes / 60).toFixed(1)} hrs</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -568,7 +570,7 @@ export default function ReportsPage() {
                             e.stopPropagation()
                             openPunchModal(record.staffId, record.staff.name)
                           }}
-                          className="p-2.5 text-muted hover:text-blue-400 hover:bg-accent-hover/10 bg-black/50 border border-white/[0.04] rounded-md transition-all opacity-50 group-hover:opacity-100"
+                          className="p-2.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 bg-black/50 border border-white/[0.04] rounded-xl transition-all shadow-sm opacity-50 group-hover:opacity-100"
                           title="Manage Punches"
                         >
                           <Settings2 className="w-4 h-4" />
@@ -579,9 +581,9 @@ export default function ReportsPage() {
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-16 text-center">
-                      <FileText className="w-12 h-12 text-subtle mx-auto mb-3" />
+                      <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                       <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
-                      <p className="text-subtle text-sm mt-1">There are no attendance records for this date.</p>
+                      <p className="text-slate-500 text-sm mt-1">There are no attendance records for this date.</p>
                     </td>
                   </tr>
                 )
@@ -593,14 +595,14 @@ export default function ReportsPage() {
                       className="group cursor-pointer hover:bg-white/5 transition-colors"
                       onClick={() => router.push(`/reports/member-attendance?staffId=${record.staff.id}&month=${month}`)}
                     >
-                      <td className="px-4 py-3 sticky left-0 z-10">
+                      <td className="px-4 py-3 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-xs font-bold text-white border border-white/[0.08] shrink-0">
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-lg border border-white/[0.08] shrink-0">
                             {record.staff.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-100 text-sm whitespace-nowrap">{record.staff.name}</span>
-                            <span className="text-[11px] font-medium text-subtle whitespace-nowrap">
+                            <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
                               {record.staff.designation?.name || 'No Role'}
                             </span>
                           </div>
@@ -611,7 +613,7 @@ export default function ReportsPage() {
                         const dateStr = `${month}-${day.toString().padStart(2, '0')}`;
                         const dayData = record.days[dateStr];
                         
-                        if (!dayData) return <td key={day} className="px-2 py-4 text-center text-subtle font-bold">-</td>;
+                        if (!dayData) return <td key={day} className="px-2 py-4 text-center text-slate-600 font-bold">-</td>;
                         
                         if (dayData.checkIn) {
                           const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -622,16 +624,16 @@ export default function ReportsPage() {
 
                           if (dayData.status === 'HALF_DAY') {
                             bgClass = "bg-amber-500/10";
-                            statusLabel = <span className="text-amber-400 text-[10px] font-semibold mt-1">HD</span>;
+                            statusLabel = <span className="text-amber-400 text-[10px] font-extrabold mt-1">HD</span>;
                           } else if (dayData.status === 'ABSENT') {
                             bgClass = "bg-rose-500/10";
-                            statusLabel = <span className="text-rose-400 text-[10px] font-semibold mt-1">A</span>;
+                            statusLabel = <span className="text-rose-400 text-[10px] font-extrabold mt-1">A</span>;
                           } else if (dayData.status === 'HOLIDAY') {
-                            bgClass = "bg-blue-500/10";
-                            statusLabel = <span className="text-blue-400 text-[10px] font-semibold mt-1">H</span>;
+                            bgClass = "bg-indigo-500/10";
+                            statusLabel = <span className="text-indigo-400 text-[10px] font-extrabold mt-1">H</span>;
                           } else if (dayData.status === 'WEEKOFF') {
                             bgClass = "bg-slate-500/10";
-                            statusLabel = <span className="text-muted text-[10px] font-semibold mt-1">W</span>;
+                            statusLabel = <span className="text-slate-400 text-[10px] font-extrabold mt-1">W</span>;
                           }
 
                           return (
@@ -648,7 +650,7 @@ export default function ReportsPage() {
                         if (dayData.status === 'ABSENT') {
                           return (
                             <td key={day} className="px-2 py-4 text-center bg-rose-500/10">
-                              <span className="text-rose-400 font-semibold">A</span>
+                              <span className="text-rose-400 font-extrabold">A</span>
                             </td>
                           );
                         }
@@ -656,15 +658,15 @@ export default function ReportsPage() {
                         if (dayData.status === 'HALF_DAY') {
                           return (
                             <td key={day} className="px-2 py-4 text-center bg-amber-500/10">
-                              <span className="text-amber-400 font-semibold">HD</span>
+                              <span className="text-amber-400 font-extrabold">HD</span>
                             </td>
                           );
                         }
                         
                         if (dayData.status === 'HOLIDAY') {
                           return (
-                            <td key={day} className="px-2 py-4 text-center bg-blue-500/10">
-                              <span className="text-blue-400 font-semibold">H</span>
+                            <td key={day} className="px-2 py-4 text-center bg-indigo-500/10">
+                              <span className="text-indigo-400 font-extrabold">H</span>
                             </td>
                           );
                         }
@@ -672,31 +674,31 @@ export default function ReportsPage() {
                         if (dayData.status === 'WEEKOFF') {
                           return (
                             <td key={day} className="px-2 py-4 text-center bg-slate-500/10">
-                              <span className="text-muted font-semibold">W</span>
+                              <span className="text-slate-400 font-extrabold">W</span>
                             </td>
                           );
                         }
 
-                        return <td key={day} className="px-2 py-4 text-center text-subtle font-bold">-</td>;
+                        return <td key={day} className="px-2 py-4 text-center text-slate-600 font-bold">-</td>;
                       })}
 
                       <td className="px-4 py-4 text-center bg-white/[0.04]">
-                        <span className="font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">{record.totalPresents}</span>
+                        <span className="font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">{record.totalPresents}</span>
                       </td>
                       <td className="px-4 py-4 text-center bg-white/[0.04]">
-                        <span className="font-semibold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md">{record.totalAbsents}</span>
+                        <span className="font-extrabold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-md">{record.totalAbsents}</span>
                       </td>
                       <td className="px-4 py-4 text-right bg-white/[0.04]">
-                        <span className="font-semibold text-blue-400 whitespace-nowrap bg-blue-500/10 px-2 py-1 rounded-md">{(record.totalWorkMinutes / 60).toFixed(1)} hrs</span>
+                        <span className="font-extrabold text-indigo-400 whitespace-nowrap bg-indigo-500/10 px-2 py-1 rounded-md">{(record.totalWorkMinutes / 60).toFixed(1)} hrs</span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={daysArray.length + 4} className="p-16 text-center">
-                      <BarChart3 className="w-12 h-12 text-subtle mx-auto mb-3" />
+                      <BarChart3 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                       <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
-                      <p className="text-subtle text-sm mt-1">There are no attendance records for this month.</p>
+                      <p className="text-slate-500 text-sm mt-1">There are no attendance records for this month.</p>
                     </td>
                   </tr>
                 )
@@ -709,24 +711,24 @@ export default function ReportsPage() {
         <div className="md:hidden relative z-10 p-4 space-y-3">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-              <p className="text-muted font-medium animate-pulse">Calculating attendance records...</p>
+              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+              <p className="text-slate-400 font-medium animate-pulse">Calculating attendance records...</p>
             </div>
           ) : viewType === 'daily' ? (
             dailyRecords.length > 0 ? (
               <>
                 {/* Summary strip */}
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-emerald-400 leading-none">{dailyRecords.filter(r => r.status === 'PRESENT').length}</p>
+                  <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
+                    <p className="text-2xl font-black text-emerald-400 leading-none">{dailyRecords.filter(r => r.status === 'PRESENT').length}</p>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70 mt-1.5">Present</p>
                   </div>
-                  <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-rose-400 leading-none">{dailyRecords.filter(r => r.status === 'ABSENT').length}</p>
+                  <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 p-3 text-center">
+                    <p className="text-2xl font-black text-rose-400 leading-none">{dailyRecords.filter(r => r.status === 'ABSENT').length}</p>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-rose-300/70 mt-1.5">Absent</p>
                   </div>
-                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                    <p className="text-2xl font-bold text-amber-400 leading-none">{dailyRecords.filter(r => r.lateMinutes > 0 && r.status !== 'ABSENT').length}</p>
+                  <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3 text-center">
+                    <p className="text-2xl font-black text-amber-400 leading-none">{dailyRecords.filter(r => r.lateMinutes > 0 && r.status !== 'ABSENT').length}</p>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300/70 mt-1.5">Late</p>
                   </div>
                 </div>
@@ -734,22 +736,22 @@ export default function ReportsPage() {
                 {dailyRecords.map((record) => {
                   const noWork = record.status === 'ABSENT' || record.status === 'HOLIDAY' || record.status === 'WEEKOFF'
                   return (
-                    <div key={record.id} className="bg-black/40 border border-white/[0.08] rounded-lg p-4 relative overflow-hidden">
+                    <div key={record.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-4 relative overflow-hidden shadow-lg">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-lg bg-accent flex items-center justify-center text-sm font-bold text-white border border-white/[0.08] shrink-0">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-lg border border-white/[0.08] shrink-0">
                           {record.staff.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-white leading-tight truncate">{record.staff.name}</p>
-                          <p className="text-xs text-subtle font-medium truncate mt-0.5">
+                          <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
                             {record.staff.designation?.name || 'No Role'} • {record.staff.department?.name || 'No Dept'}
                           </p>
                         </div>
                         <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
                           record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                           record.status === 'ABSENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                          record.status === 'HOLIDAY' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-muted border-slate-500/20' :
+                          record.status === 'HOLIDAY' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                           'bg-amber-500/10 text-amber-400 border-amber-500/20'
                         }`}>
                           {record.status.replace('_', ' ')}
@@ -757,23 +759,23 @@ export default function ReportsPage() {
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 mt-4">
-                        <div className="bg-black/50 rounded-lg border border-white/[0.04] p-2.5">
-                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-subtle"><LogIn className="w-3 h-3 text-emerald-400" />In</p>
+                        <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-2.5">
+                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><LogIn className="w-3 h-3 text-emerald-400" />In</p>
                           <p className="mt-1 text-sm font-bold text-slate-200 whitespace-nowrap">{timeFmt(record.checkIn)}</p>
                         </div>
-                        <div className="bg-black/50 rounded-lg border border-white/[0.04] p-2.5">
-                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-subtle"><LogOut className="w-3 h-3 text-rose-400" />Out</p>
+                        <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-2.5">
+                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><LogOut className="w-3 h-3 text-rose-400" />Out</p>
                           <p className="mt-1 text-sm font-bold text-slate-200 whitespace-nowrap">{timeFmt(record.checkOut)}</p>
                         </div>
-                        <div className="bg-black/50 rounded-lg border border-white/[0.04] p-2.5">
-                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-subtle"><Timer className="w-3 h-3 text-blue-400" />Hours</p>
+                        <div className="bg-black/50 rounded-2xl border border-white/[0.04] p-2.5">
+                          <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><Timer className="w-3 h-3 text-indigo-400" />Hours</p>
                           <p className="mt-1 text-sm font-bold text-slate-200">{noWork ? '-' : (record.workMinutes / 60).toFixed(1)}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between gap-3 mt-4">
                         {noWork ? (
-                          <span className="text-xs font-semibold text-subtle">No punches expected</span>
+                          <span className="text-xs font-semibold text-slate-600">No punches expected</span>
                         ) : record.lateMinutes > 0 ? (
                           <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">{record.lateMinutes} mins late</span>
                         ) : (
@@ -784,7 +786,7 @@ export default function ReportsPage() {
                             e.stopPropagation()
                             openPunchModal(record.staffId, record.staff.name)
                           }}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-blue-300 bg-blue-500/10 hover:bg-accent-hover/20 border border-blue-500/20 rounded-md transition-all active:scale-95"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl transition-all active:scale-95"
                         >
                           <Settings2 className="w-4 h-4" /> Punches
                         </button>
@@ -795,14 +797,14 @@ export default function ReportsPage() {
               </>
             ) : (
               <div className="py-14 text-center">
-                <FileText className="w-12 h-12 text-subtle mx-auto mb-3" />
+                <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
-                <p className="text-subtle text-sm mt-1">There are no attendance records for this date.</p>
+                <p className="text-slate-500 text-sm mt-1">There are no attendance records for this date.</p>
               </div>
             )
           ) : monthlyRecords.length > 0 ? (
             <>
-              <p className="text-xs text-subtle font-medium px-1">Tap a person to open their month calendar. Tap a day for details.</p>
+              <p className="text-xs text-slate-500 font-medium px-1">Tap a person to open their month calendar. Tap a day for details.</p>
               {monthlyRecords.map((record) => (
                 <MonthlyMobileCard
                   key={record.staff.machineId}
@@ -815,9 +817,9 @@ export default function ReportsPage() {
             </>
           ) : (
             <div className="py-14 text-center">
-              <BarChart3 className="w-12 h-12 text-subtle mx-auto mb-3" />
+              <BarChart3 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
-              <p className="text-subtle text-sm mt-1">There are no attendance records for this month.</p>
+              <p className="text-slate-500 text-sm mt-1">There are no attendance records for this month.</p>
             </div>
           )}
         </div>
@@ -825,36 +827,36 @@ export default function ReportsPage() {
 
       {/* Modern Punches Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in">
-          <div className="bg-black/60 border border-white/[0.08] rounded-lg w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in">
+          <div className="bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-3xl w-full max-w-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-5 border-b border-white/[0.08] flex justify-between items-center bg-black/50">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Settings2 className="w-5 h-5 text-blue-400" /> Manage Punches
+                <Settings2 className="w-5 h-5 text-indigo-400" /> Manage Punches
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-muted hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
               <div className="mb-6">
-                <p className="text-sm font-bold text-muted uppercase tracking-wider mb-1">Staff Member</p>
-                <p className="text-xl font-semibold text-white">{selectedStaffName}</p>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Staff Member</p>
+                <p className="text-xl font-extrabold text-white">{selectedStaffName}</p>
               </div>
 
-              <div className="space-y-4 bg-black/40 p-5 rounded-lg border border-white/[0.04]">
-                <h4 className="text-xs font-bold text-muted uppercase tracking-wider">Add Manual Punch</h4>
+              <div className="space-y-4 bg-black/40 p-5 rounded-3xl border border-white/[0.04] shadow-inner">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Add Manual Punch</h4>
                 <div className="flex gap-3">
                   <input
                     type="time"
                     value={newPunchTime}
                     onChange={(e) => setNewPunchTime(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/[0.08] rounded-md px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    className="flex-1 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner"
                   />
                   <select
                     value={newPunchType}
                     onChange={(e) => setNewPunchType(e.target.value)}
-                    className="w-24 bg-black/40 border border-white/[0.08] rounded-md px-4 py-3 text-white font-bold focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer"
+                    className="w-24 bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner appearance-none cursor-pointer"
                   >
                     <option value="IN">IN</option>
                     <option value="OUT">OUT</option>
@@ -862,7 +864,7 @@ export default function ReportsPage() {
                   <button
                     onClick={handleAddPunch}
                     disabled={!newPunchTime || isPunchLoading}
-                    className="px-5 py-3 bg-accent disabled:opacity-50 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold rounded-md transition-all flex items-center justify-center"
+                    className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -870,20 +872,20 @@ export default function ReportsPage() {
               </div>
 
               <div className="mt-8 space-y-4">
-                <h4 className="text-xs font-bold text-muted uppercase tracking-wider flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Raw Logs</span>
-                  <span className="text-blue-400">{date}</span>
+                  <span className="text-indigo-400">{date}</span>
                 </h4>
                 {rawPunches.length === 0 ? (
-                  <div className="p-6 text-center border border-white/[0.04] rounded-lg border-dashed">
-                    <p className="text-sm font-medium text-subtle">No punches recorded for this date.</p>
+                  <div className="p-6 text-center border border-white/[0.04] rounded-3xl border-dashed">
+                    <p className="text-sm font-medium text-slate-500">No punches recorded for this date.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {rawPunches.map((punch: any) => (
-                      <div key={punch.id} className="flex items-center justify-between p-4 rounded-lg bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.05] transition-colors group">
+                      <div key={punch.id} className="flex items-center justify-between p-4 rounded-3xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.05] transition-colors group">
                         <div className="flex items-center gap-4">
-                          <span className={`px-3 py-1.5 text-[10px] font-semibold rounded-md uppercase tracking-wider border  ${punch.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 ' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 '}`}>
+                          <span className={`px-3 py-1.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider border shadow-sm ${punch.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10'}`}>
                             {punch.type}
                           </span>
                           <span className="text-slate-200 font-bold tracking-wide">
@@ -893,7 +895,7 @@ export default function ReportsPage() {
                         <button
                           onClick={() => handleDeletePunch(punch.id)}
                           disabled={isPunchLoading}
-                          className="p-2 text-muted hover:text-rose-400 hover:bg-rose-500/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all disabled:opacity-50 opacity-50 group-hover:opacity-100"
+                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm disabled:opacity-50 opacity-50 group-hover:opacity-100"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
