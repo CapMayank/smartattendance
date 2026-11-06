@@ -1,0 +1,174 @@
+"use client";
+
+import { useId, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { ChevronDown, HelpCircle, LogOut, Plus } from "lucide-react";
+import { Button } from "@/components/ui";
+import { cn } from "@/lib/cn";
+import { formatTime } from "@/lib/format";
+import type { ShellData } from "@/lib/shell-data";
+import { NAV, activeHref } from "./nav";
+
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join("") || "?"
+  );
+}
+
+export function Sidebar({ shell, className }: { shell: ShellData; className?: string }) {
+  const pathname = usePathname();
+  const active = activeHref(pathname);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const offline = shell.devices.filter((d) => !d.online).length;
+  const online = shell.devices.length - offline;
+
+  return (
+    <div className={cn("flex h-full min-h-0 flex-col gap-[18px]", className)}>
+      <Link href="/" className="flex items-center gap-2.5 rounded-[10px] px-1.5 py-1">
+        <span
+          aria-hidden="true"
+          className="grid size-9 place-items-center rounded-[10px] bg-gradient-to-br from-acc-2 to-acc-3 text-[13px] font-semibold text-ground"
+        >
+          SE
+        </span>
+        <span className="min-w-0">
+          <b className="block text-sm font-semibold">SEHSS Lakhnadon</b>
+          <span className="block text-xs text-subtle">Staff attendance</span>
+        </span>
+      </Link>
+
+      <div className="rounded-xl border border-line bg-canvas">
+        <button
+          type="button"
+          aria-expanded={menuOpen}
+          aria-controls={menuId}
+          onClick={() => setMenuOpen((o) => !o)}
+          className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left"
+        >
+          <span
+            aria-hidden="true"
+            className="grid size-8 flex-none place-items-center rounded-full bg-card-hi text-[11.5px] font-semibold"
+          >
+            {initials(shell.userName)}
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block truncate text-[13.5px] font-medium">{shell.userName}</b>
+            <span className="block text-xs text-subtle">{shell.userRole}</span>
+          </span>
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            className={cn("flex-none text-subtle transition-transform duration-150", menuOpen && "rotate-180")}
+          />
+        </button>
+        {menuOpen ? (
+          <div id={menuId} className="border-t border-line-soft p-1.5">
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-muted transition-colors duration-150 hover:bg-card hover:text-absent"
+            >
+              <LogOut size={16} aria-hidden="true" />
+              Sign out
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <Link href="/attendance/manual" className="block rounded-[10px]">
+        <Button variant="primary" icon={Plus} tabIndex={-1} className="h-[42px] w-full">
+          Manual punch
+        </Button>
+      </Link>
+
+      <nav aria-label="Main navigation" className="flex min-h-0 flex-col gap-0.5 overflow-y-auto">
+        {NAV.map((g) => (
+          <div key={g.group} className="flex flex-col gap-0.5">
+            <div className="px-3 pt-3.5 pb-1.5 text-[11px] tracking-[0.08em] text-subtle uppercase first:pt-0.5">
+              {g.group}
+            </div>
+            {g.items.map(({ label, href, icon: Icon }) => {
+              const isActive = href === active;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex h-[38px] items-center gap-3 rounded-[9px] px-3 transition-colors duration-150",
+                    isActive
+                      ? "bg-card-hi text-text shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]"
+                      : "text-muted hover:bg-card hover:text-text",
+                  )}
+                >
+                  <Icon size={18} aria-hidden="true" className={cn("flex-none", isActive && "text-acc-2")} />
+                  {label}
+                  {href === "/staff" ? (
+                    <span className="num ml-auto text-[11.5px] text-subtle">{shell.staffCount}</span>
+                  ) : null}
+                  {href === "/devices" && offline > 0 ? (
+                    <span className="num ml-auto rounded-full bg-absent/15 px-[7px] text-[11px] text-absent">
+                      <span className="sr-only">Offline devices: </span>
+                      {offline}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <div className="mt-auto flex flex-col gap-2.5">
+        <div className="rounded-xl border border-line bg-canvas p-3">
+          <div className="mb-1 flex justify-between text-[13px] font-medium">
+            <span>Punch devices</span>
+            {shell.devices.length > 0 ? (
+              <span className="num text-muted">
+                {online} / {shell.devices.length}
+              </span>
+            ) : null}
+          </div>
+          {shell.devices.length === 0 ? (
+            <p className="py-1 text-[12.5px] text-muted">No devices yet</p>
+          ) : (
+            shell.devices.map((d) => (
+              <div key={d.id} className="flex items-center justify-between gap-2 py-[3px] text-[12.5px] text-muted">
+                <span className="flex min-w-0 items-center">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "mr-2 size-[7px] flex-none rounded-full",
+                      d.online
+                        ? "bg-present shadow-[0_0_0_3px_rgb(52_211_153/0.15)]"
+                        : "bg-absent shadow-[0_0_0_3px_rgb(247_96_108/0.15)]",
+                    )}
+                  />
+                  <span className="truncate">{d.name}</span>
+                  <span className="sr-only">{d.online ? " online" : " offline"}</span>
+                </span>
+                <span className="num flex-none">{d.online ? formatTime(new Date(d.lastPing)) : "Offline"}</span>
+              </div>
+            ))
+          )}
+        </div>
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 rounded-[9px] px-3 py-2 text-muted transition-colors duration-150 hover:text-text"
+        >
+          <HelpCircle size={18} aria-hidden="true" />
+          Help &amp; guide
+        </Link>
+      </div>
+    </div>
+  );
+}
