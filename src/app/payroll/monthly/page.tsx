@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Save, RefreshCw, AlertCircle, IndianRupee, ShieldCheck, Lock, Unlock, Gift, Sparkles, X, Check, PencilLine } from 'lucide-react'
+import { FileText, Download, Save, RefreshCw, AlertCircle, IndianRupee, ShieldCheck, Lock, Unlock, Gift, Sparkles, Check, PencilLine } from 'lucide-react'
 import { format } from 'date-fns'
-import { Button, Card, Field, PageHeader, Select, StatusBadge } from '@/components/ui'
+import { Button, Card, Chip, ChipGroup, Field, Input, Modal, PageHeader, Select, StatusBadge } from '@/components/ui'
+import { formatINR } from '@/lib/format'
+import { cn } from '@/lib/cn'
 
 function calculatePayroll(
   monthlyCtc: number,
@@ -398,45 +400,47 @@ export default function MonthlyPayrollPage() {
           </div>
 
           {/* Step 3 & 4: Review & Recalculate */}
-          <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">3</div>
-            <div className="ml-3">
-              <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
-              <p className="text-xs text-slate-400 max-w-xs mb-3">
+          <div className="flex flex-col justify-between gap-5 rounded-xl border border-line-soft bg-canvas p-4">
+            <div>
+              <h3 className="mb-2 flex items-center gap-2.5 text-[13.5px] font-medium text-text">
+                <span className="num grid size-6 flex-none place-items-center rounded-full border border-line bg-card-hi text-xs text-muted">3</span>
+                Review & Adjust
+              </h3>
+              <p className="mb-3 max-w-xs text-xs leading-relaxed text-muted">
                 {isBonusModeEnabled ? (
-                  <>Directly enter <strong className="text-amber-400">Bonus Days</strong> per staff in the table below, or apply bulk baseline bonuses.</>
+                  <>Directly enter <strong className="font-medium text-late">Bonus Days</strong> per staff in the table below, or apply bulk baseline bonuses.</>
                 ) : (
                   <>Review present days and advance refunds below. Toggle Bonus Mode ON if awarding bonuses this month.</>
                 )}
               </p>
               {isBonusModeEnabled && (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Gift}
                   onClick={() => setShowBonusModal(true)}
                   disabled={payrolls.length === 0 || isMonthLocked}
-                  className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-all border border-amber-500/30 disabled:opacity-50 shadow-sm"
                 >
-                  <Gift className="w-3.5 h-3.5 text-amber-400" />
                   Distribute Baseline Bonus
-                </button>
+                </Button>
               )}
             </div>
 
-            <div className="mt-6 ml-3">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[96px]">4</div>
-              <h3 className="text-sm font-bold text-white mb-3">Save & Recalculate</h3>
-              <button
+            <div>
+              <h3 className="mb-3 flex items-center gap-2.5 text-[13.5px] font-medium text-text">
+                <span className="num grid size-6 flex-none place-items-center rounded-full border border-line bg-card-hi text-xs text-muted">4</span>
+                Save & Recalculate
+              </h3>
+              <Button
+                variant="primary"
+                icon={saveSuccess ? Check : Save}
+                loading={saving}
                 onClick={handleSave}
                 disabled={saving || payrolls.length === 0 || isMonthLocked}
-                className={`flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-lg ${
-                  saveSuccess 
-                    ? 'bg-emerald-500' 
-                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400'
-                } disabled:opacity-50`}
+                className={saveSuccess ? 'bg-present text-ground hover:bg-present' : undefined}
               >
-                {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="w-4 h-4" />}
                 {saving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Changes'}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -488,107 +492,120 @@ export default function MonthlyPayrollPage() {
       </Card>
 
       {/* Master Performance / Festival Bonus Mode Switch */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-3.5">
-          <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
-            isBonusModeEnabled 
-              ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
-              : 'bg-white/[0.04] border-white/[0.08] text-slate-400'
-          }`}>
-            <Gift className="w-5 h-5" />
-          </div>
+      <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3.5 sm:items-center">
+          <span className={cn(
+            'grid size-10 flex-none place-items-center rounded-[10px] transition-colors duration-150',
+            isBonusModeEnabled ? 'tone-late tint-badge' : 'border border-line bg-card-hi text-muted'
+          )}>
+            <Gift size={18} aria-hidden="true" />
+          </span>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-sm font-bold text-white">Performance / Festival Bonus:</span>
+              <span className="text-[14px] font-medium text-text">Performance / Festival Bonus:</span>
               {isBonusModeEnabled ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  <Sparkles className="w-3 h-3" /> Enabled for this Month
+                <span className="tone-late tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                  <Sparkles size={13} aria-hidden="true" /> Enabled for this Month
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/[0.04] text-slate-400 border border-white/[0.08]">
+                <span className="inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-card-hi px-2.5 text-xs text-muted">
                   Standard Payroll (Bonus Off)
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
               {isBonusModeEnabled
                 ? 'Bonus columns and EPF configuration are visible. You can assign performance bonus days or flat bonuses per staff member.'
                 : 'Turn on to reward performance days or festive bonuses to your team for this month. Bonus controls and columns stay hidden when off.'}
             </p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3 self-end sm:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
-          <span className="text-xs font-semibold text-slate-300">
+
+        <div className="flex shrink-0 items-center gap-3 self-end rounded-xl border border-line bg-ground px-4 py-2.5 sm:self-center">
+          <span id="bonus-mode-switch-label" className="text-xs text-muted">
             {isBonusModeEnabled ? 'Bonus Active' : 'Include Bonus'}
           </span>
           <button
             type="button"
+            role="switch"
+            aria-checked={isBonusModeEnabled}
+            aria-labelledby="bonus-mode-switch-label"
             disabled={isMonthLocked}
             onClick={handleToggleBonusMode}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
-              isBonusModeEnabled ? 'bg-amber-500' : 'bg-slate-700'
-            }`}
+            className={cn(
+              'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+              isBonusModeEnabled ? 'border-acc-2 bg-acc-2' : 'border-line bg-card-hi'
+            )}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                isBonusModeEnabled ? 'translate-x-5' : 'translate-x-0'
-              }`}
+              aria-hidden="true"
+              className={cn(
+                'pointer-events-none inline-block size-4 rounded-full bg-text',
+                isBonusModeEnabled ? 'translate-x-6' : 'translate-x-1'
+              )}
             />
           </button>
         </div>
-      </div>
+      </Card>
 
       {/* Dedicated EPF Compliance & Bonus Configuration Banner (Visible only when Bonus Mode is Enabled) */}
       {isBonusModeEnabled && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-200">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
-              isBonusPfApplicable 
-                ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
-                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-            }`}>
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+        <Card className={cn(
+          'flex flex-col justify-between gap-4 md:flex-row md:items-center',
+          isBonusPfApplicable ? 'border-acc-3' : 'border-late/30'
+        )}>
+          <div className="flex items-start gap-3.5 sm:items-center">
+            <span className={cn(
+              'grid size-10 flex-none place-items-center rounded-[10px] tint-badge transition-colors duration-150',
+              isBonusPfApplicable ? 'tone-accent' : 'tone-present'
+            )}>
+              <ShieldCheck size={18} aria-hidden="true" />
+            </span>
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className="text-sm font-bold text-white">EPF on Bonus Setting:</span>
+                <span className="text-[14px] font-medium text-text">EPF on Bonus Setting:</span>
                 {isBonusPfApplicable ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                    <Check className="w-3 h-3" /> PF Applicable (12% Deducted)
+                  <span className="tone-accent tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                    <Check size={13} aria-hidden="true" /> PF Applicable (12% Deducted)
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    <Check className="w-3 h-3" /> PF-Exempt (Standard EPFO Rule)
+                  <span className="tone-present tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                    <Check size={13} aria-hidden="true" /> PF-Exempt (Standard EPFO Rule)
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                {isBonusPfApplicable 
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+                {isBonusPfApplicable
                   ? 'Bonus is added into EPF Wages and attracts 12% employee PF contribution (subject to the revised ₹25,000 ceiling).'
                   : 'Standard EPFO rule: Bonuses are paid in full to employees in Net Payment without PF deduction, avoiding wage ceiling violations.'}
               </p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
-            <span className="text-xs font-semibold text-slate-300">Deduct 12% PF:</span>
+
+          <div className="flex shrink-0 items-center gap-3 self-end rounded-xl border border-line bg-ground px-4 py-2.5 md:self-center">
+            <span id="bonus-pf-switch-label" className="text-xs text-muted">Deduct 12% PF:</span>
             <button
               type="button"
+              role="switch"
+              aria-checked={isBonusPfApplicable}
+              aria-labelledby="bonus-pf-switch-label"
               disabled={isMonthLocked}
               onClick={() => setIsBonusPfApplicable(!isBonusPfApplicable)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
-                isBonusPfApplicable ? 'bg-indigo-600' : 'bg-slate-700'
-              }`}
+              className={cn(
+                'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+                isBonusPfApplicable ? 'border-acc-2 bg-acc-2' : 'border-line bg-card-hi'
+              )}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                  isBonusPfApplicable ? 'translate-x-5' : 'translate-x-0'
-                }`}
+                aria-hidden="true"
+                className={cn(
+                  'pointer-events-none inline-block size-4 rounded-full bg-text',
+                  isBonusPfApplicable ? 'translate-x-6' : 'translate-x-1'
+                )}
               />
             </button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Main Table Area */}
@@ -946,165 +963,110 @@ export default function MonthlyPayrollPage() {
       </div>
 
       {/* Bonus Baseline Modal */}
-      {showBonusModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/[0.12] rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-400">
-                  <Gift className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Distribute Baseline Bonus</h3>
-                  <p className="text-xs text-slate-400">Batch-apply a starting bonus to all staff, then tweak individually</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowBonusModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <Modal
+        open={showBonusModal}
+        onClose={() => setShowBonusModal(false)}
+        title="Distribute baseline bonus"
+        footer={
+          <>
+            <Button variant="ghost" onClick={clearAllBonuses} className="mr-auto text-absent hover:text-absent">
+              Clear All Bonuses
+            </Button>
+            <Button variant="secondary" onClick={() => setShowBonusModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={applyBonusToAll}>
+              Apply to All
+            </Button>
+          </>
+        }
+      >
+        <p className="mb-4 text-[12.5px] text-subtle">Batch-apply a starting bonus to all staff, then tweak individually</p>
 
-            {/* Mode selection */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 border border-white/[0.08] rounded-2xl mb-5">
-              <button
-                type="button"
-                onClick={() => setBonusDistMode('DAYS')}
-                className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                  bonusDistMode === 'DAYS'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Days of Pay (0-3d)
-              </button>
-              <button
-                type="button"
-                onClick={() => setBonusDistMode('FLAT')}
-                className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                  bonusDistMode === 'FLAT'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <IndianRupee className="w-3.5 h-3.5" />
-                Equal Flat (₹)
-              </button>
-            </div>
-
-            {/* Mode 1: Days of Wage */}
-            {bonusDistMode === 'DAYS' ? (
-              <div className="space-y-4 mb-5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    Default Bonus Days for All Members
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3].map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => setBonusDaysInput(d)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                          bonusDaysInput === d
-                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
-                            : 'bg-black/30 border-white/[0.08] text-slate-400 hover:border-white/20'
-                        }`}
-                      >
-                        +{d} {d === 1 ? 'Day' : 'Days'}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Custom Days:</span>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="15"
-                      value={bonusDaysInput}
-                      onChange={(e) => setBonusDaysInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-20 bg-black/40 border border-white/[0.12] rounded-xl px-2.5 py-1.5 text-center text-sm font-bold text-white focus:outline-none focus:border-amber-500"
-                    />
-                    <span className="text-xs text-slate-500">days of daily rate</span>
-                  </div>
-                </div>
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300/90 leading-relaxed">
-                  💡 Sets each employee's Bonus Days to <strong>{bonusDaysInput} days</strong> and auto-multiplies by their daily wage. You can still adjust each person's days in the table afterwards.
-                </div>
-              </div>
-            ) : (
-              /* Mode 2: Equal Flat Amount */
-              <div className="space-y-4 mb-5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    Flat Rupee Amount per Staff
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">₹</span>
-                    <input
-                      type="number"
-                      step="100"
-                      min="0"
-                      value={bonusFlatInput}
-                      onChange={(e) => setBonusFlatInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-full bg-black/40 border border-white/[0.12] rounded-xl pl-8 pr-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
-                      placeholder="e.g. 1000"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {[500, 1000, 2000, 5000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setBonusFlatInput(amt)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        bonusFlatInput === amt
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                          : 'bg-black/30 border-white/[0.08] text-slate-400 hover:border-white/20'
-                      }`}
-                    >
-                      ₹{amt.toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                onClick={clearAllBonuses}
-                className="px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
-              >
-                Clear All Bonuses
-              </button>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowBonusModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={applyBonusToAll}
-                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl shadow-lg transition-all"
-                >
-                  Apply to All
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Mode selection */}
+        <div className="mb-5">
+          <ChipGroup label="Bonus distribution mode">
+            <Chip pressed={bonusDistMode === 'DAYS'} onClick={() => setBonusDistMode('DAYS')}>
+              <Sparkles size={14} aria-hidden="true" />
+              Days of Pay (0-3d)
+            </Chip>
+            <Chip pressed={bonusDistMode === 'FLAT'} onClick={() => setBonusDistMode('FLAT')}>
+              <IndianRupee size={14} aria-hidden="true" />
+              Equal Flat (₹)
+            </Chip>
+          </ChipGroup>
         </div>
-      )}
+
+        {/* Mode 1: Days of Wage */}
+        {bonusDistMode === 'DAYS' ? (
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-[12.5px] text-muted">
+                Default Bonus Days for All Members
+              </p>
+              <ChipGroup label="Default bonus days">
+                {[1, 2, 3].map((d) => (
+                  <Chip
+                    key={d}
+                    pressed={bonusDaysInput === d}
+                    onClick={() => setBonusDaysInput(d)}
+                  >
+                    <span className="num">+{d}</span> {d === 1 ? 'Day' : 'Days'}
+                  </Chip>
+                ))}
+              </ChipGroup>
+              <div className="mt-3 flex items-center gap-2">
+                <label htmlFor="bonus-custom-days" className="text-xs text-muted">Custom Days:</label>
+                <Input
+                  id="bonus-custom-days"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="15"
+                  value={bonusDaysInput}
+                  onChange={(e) => setBonusDaysInput(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="num w-20 px-2.5 text-center"
+                />
+                <span className="text-xs text-subtle">days of daily rate</span>
+              </div>
+            </div>
+            <p className="tone-late tint-badge rounded-xl p-3 text-[12px] leading-relaxed">
+              Sets each employee&apos;s Bonus Days to <strong className="num font-medium">{bonusDaysInput} days</strong> and auto-multiplies by their daily wage. You can still adjust each person&apos;s days in the table afterwards.
+            </p>
+          </div>
+        ) : (
+          /* Mode 2: Equal Flat Amount */
+          <div className="space-y-4">
+            <Field label="Flat Rupee Amount per Staff" htmlFor="bonus-flat-amount">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-subtle" aria-hidden="true">₹</span>
+                <Input
+                  id="bonus-flat-amount"
+                  type="number"
+                  step="100"
+                  min="0"
+                  value={bonusFlatInput}
+                  onChange={(e) => setBonusFlatInput(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="num pl-8"
+                  placeholder="e.g. 1000"
+                />
+              </div>
+            </Field>
+            <ChipGroup label="Quick flat amounts">
+              {[500, 1000, 2000, 5000].map((amt) => (
+                <Chip
+                  key={amt}
+                  pressed={bonusFlatInput === amt}
+                  onClick={() => setBonusFlatInput(amt)}
+                  className="num"
+                >
+                  {formatINR(amt)}
+                </Chip>
+              ))}
+            </ChipGroup>
+          </div>
+        )}
+      </Modal>
 
       {/* Danger Zone */}
       {isMonthLocked && (
