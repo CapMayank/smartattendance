@@ -65,6 +65,9 @@ describe("recalculateAttendance characterization", () => {
     ["late beyond grace", ["09:20", "15:30"], "PRESENT", 20, 370],
     ["half day", ["09:00", "12:00"], "HALF_DAY", 0, 180],
     ["single punch", ["09:00"], "HALF_DAY", 0, 0],
+    ["exactly 360 minutes is not half day", ["09:00", "15:00"], "PRESENT", 0, 360],
+    ["arrival exactly at grace limit 09:15", ["09:15", "15:30"], "PRESENT", 0, 375],
+    ["arrival one minute past grace 09:16", ["09:16", "15:30"], "PRESENT", 16, 374],
   ]
   it.each(cases)("%s", async (_n, times, status, late, work) => {
     const { created } = await run({ logs: punches("A", MON, times) }, MON)

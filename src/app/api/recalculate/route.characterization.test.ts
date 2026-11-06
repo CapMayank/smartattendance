@@ -77,15 +77,30 @@ describe("POST /api/recalculate characterization", () => {
     )
     expect(json).toEqual({ success: true, recalculatedDays: 1, processedRecords: 0 })
     expect(created).toEqual([])
-    expect(JSON.stringify(deleteCalls[0])).toContain("NOT")
+    expect(deleteCalls).toHaveLength(1)
+    expect(deleteCalls[0]).toEqual({
+      where: {
+        date: { gte: dayStart, lte: dayStart },
+        NOT: {
+          OR: [
+            {
+              staffId: "A",
+              date: { gte: new Date("2026-11-01T00:00:00+05:30"), lte: new Date("2026-11-30T23:59:59.999+05:30") },
+            },
+          ],
+        },
+      },
+    })
   })
 
   it("no startDate: defaults to earliest log through today", async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-11-06T12:00:00+05:30"))
-    const { json } = await post({ logs: punches(["09:00", "15:00"]) }, {})
+    const { json, created } = await post({ logs: punches(["09:00", "15:00"]) }, {})
     // 2 Nov through 6 Nov inclusive
     expect(json.success).toBe(true)
     expect(json.recalculatedDays).toBe(5)
+    expect(json.processedRecords).toBe(5)
+    expect(created.some((r) => (r.date as Date).getTime() === dayStart.getTime())).toBe(true)
   })
 })
