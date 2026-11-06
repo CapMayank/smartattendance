@@ -125,4 +125,65 @@ describe("evaluateDay", () => {
       overtimeMinutes: 0,
     })
   })
+
+  it("every-IN-OUT policy infers types by index when no punch is OUT", () => {
+    // three punches all typed IN: inferred IN, OUT, OUT; only 09:00-12:00 pairs
+    expect(
+      run({
+        policy: { ...POLICY, allInOut: "Every IN OUT" },
+        logs: punches(["09:00", "12:00", "15:00"], ["IN", "IN", "IN"]),
+      }),
+    ).toEqual({
+      status: "HALF_DAY",
+      checkIn: at("09:00"),
+      checkOut: at("15:00"),
+      lateMinutes: 0,
+      workMinutes: 180,
+      overtimeMinutes: 0,
+    })
+  })
+
+  it("every-IN-OUT policy ignores an OUT before any IN for pairing", () => {
+    // checkIn is still the first punch (the orphan OUT)
+    expect(
+      run({
+        policy: { ...POLICY, allInOut: "Every IN OUT" },
+        logs: punches(["08:00", "09:00", "15:00"], ["OUT", "IN", "OUT"]),
+      }),
+    ).toEqual({
+      status: "PRESENT",
+      checkIn: at("08:00"),
+      checkOut: at("15:00"),
+      lateMinutes: 0,
+      workMinutes: 360,
+      overtimeMinutes: 0,
+    })
+  })
+
+  it("absent threshold: 90 minutes under absentIfWorkHrsLessThan 02:00 on a working day is ABSENT", () => {
+    expect(
+      run({
+        policy: { ...POLICY, absentIfWorkHrsLessThan: "02:00" },
+        logs: punches(["09:00", "10:30"]),
+      }),
+    ).toEqual({
+      status: "ABSENT",
+      checkIn: at("09:00"),
+      checkOut: at("10:30"),
+      lateMinutes: 0,
+      workMinutes: 90,
+      overtimeMinutes: 0,
+    })
+  })
+
+  it("week off with a 120-minute punch pair stays PRESENT (no half-day downgrade)", () => {
+    expect(run({ isWeekOff: true, logs: punches(["09:00", "11:00"]) })).toEqual({
+      status: "PRESENT",
+      checkIn: at("09:00"),
+      checkOut: at("11:00"),
+      lateMinutes: 0,
+      workMinutes: 120,
+      overtimeMinutes: 0,
+    })
+  })
 })
