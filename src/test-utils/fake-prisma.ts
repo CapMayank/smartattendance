@@ -25,22 +25,29 @@ export function createFakePrisma(fixtures: Fixtures): {
   const inRange = (t: Date, f?: TimeFilter) =>
     (!f?.gte || t.getTime() >= f.gte.getTime()) && (!f?.lte || t.getTime() <= f.lte.getTime())
 
-  const sortedLogs = (where?: { timestamp?: TimeFilter }) =>
+  const sortedLogs = (where?: { timestamp?: TimeFilter; staffId?: string }) =>
     fixtures.logs
       .filter((l) => inRange(l.timestamp, where?.timestamp))
+      .filter((l) => !where?.staffId || l.staffId === where.staffId)
       .map((l) => ({ id: l.id, staffId: l.staffId, timestamp: l.timestamp, type: l.type }))
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
 
   const client = {
-    staff: { findMany: async () => fixtures.staff },
+    staff: {
+      findMany: async (args?: { where?: { id?: string } }) =>
+        fixtures.staff.filter((s) => !args?.where?.id || s.id === args.where.id),
+    },
     policy: { findFirst: async () => fixtures.policy },
     holiday: {
       findMany: async (args?: { where?: { date?: TimeFilter } }) =>
         fixtures.holidays.filter((h) => inRange(h.date, args?.where?.date)),
     },
-    monthlyPayroll: { findMany: async () => fixtures.lockedPayrolls },
+    monthlyPayroll: {
+      findMany: async (args?: { where?: { staffId?: string } }) =>
+        fixtures.lockedPayrolls.filter((p) => !args?.where?.staffId || p.staffId === args.where.staffId),
+    },
     attendanceLog: {
-      findMany: async (args?: { where?: { timestamp?: TimeFilter } }) => sortedLogs(args?.where),
+      findMany: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where),
       findFirst: async (args?: { where?: { timestamp?: TimeFilter } }) => sortedLogs(args?.where)[0] ?? null,
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
