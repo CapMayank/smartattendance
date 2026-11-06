@@ -1,226 +1,265 @@
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
-import { Users, Clock, Fingerprint, CalendarDays, Server, UserMinus } from "lucide-react"
-import { format } from "date-fns"
-import AttendanceChart from "@/components/AttendanceChart"
-import DepartmentPieChart from "@/components/DepartmentPieChart"
-import AutoRefresh from "@/components/AutoRefresh"
-import DashboardCards from "@/components/DashboardCards"
-import RecentActivity from "@/components/RecentActivity"
+import { getServerSession } from "next-auth/next";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { AlarmClock, BarChart3, CheckCircle2, DatabaseZap, Fingerprint, Sunrise, XCircle } from "lucide-react";
+import { authOptions } from "@/lib/auth";
+import AutoRefresh from "@/components/AutoRefresh";
+import { Card, CardHeader, EmptyState, KpiTile, SectionLabel, PageHeader } from "@/components/ui";
+import { getDashboardData, istDateKey, type DashboardData } from "@/lib/dashboard";
+import { istMinutes, turnoutPercent } from "@/lib/dashboard-calc";
+import { formatDateLong, formatTime } from "@/lib/format";
+import { ArrivalsChart } from "@/components/dashboard/ArrivalsChart";
+import { StatusRing } from "@/components/dashboard/StatusRing";
+import { TrendChart } from "@/components/dashboard/TrendChart";
+import { DepartmentTurnout } from "@/components/dashboard/DepartmentTurnout";
+import { AttentionList } from "@/components/dashboard/AttentionList";
+import { StaffToday } from "@/components/dashboard/StaffToday";
 
-export default async function Dashboard() {
-  const session = await getServerSession(authOptions)
-  
+/** Dev-only `?at=<ISO>` override of "now" for checking other days. */
+function resolveNow(at: string | string[] | undefined): Date {
+  if (process.env.NODE_ENV !== "production" && typeof at === "string") {
+    const d = new Date(at);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return new Date();
+}
+
+function greeting(now: Date) {
+  const m = istMinutes(now);
+  if (m < 12 * 60) return "Good morning";
+  if (m < 17 * 60) return "Good afternoon";
+  return "Good evening";
+}
+
+/** Most common shift among staff (for the header), or null. */
+function commonShift(staff: DashboardData["staff"]) {
+  const counts = new Map<string, { shift: { start: string; end: string }; n: number }>();
+  for (const s of staff) {
+    if (!s.shift) continue;
+    const key = `${s.shift.start}-${s.shift.end}`;
+    const c = counts.get(key) ?? { shift: s.shift, n: 0 };
+    c.n++;
+    counts.set(key, c);
+  }
+  let best: { shift: { start: string; end: string }; n: number } | null = null;
+  for (const c of counts.values()) if (!best || c.n > best.n) best = c;
+  return best?.shift ?? null;
+}
+
+function medianArrival(staff: DashboardData["staff"]): string | null {
+  const firsts = staff
+    .filter((s) => s.punches.length > 0)
+    .map((s) => s.punches[0].at)
+    .sort();
+  if (firsts.length === 0) return null;
+  return formatTime(new Date(firsts[Math.floor((firsts.length - 1) / 2)]));
+}
+
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const session = await getServerSession(authOptions);
   if (!session) {
-    redirect("/login")
+    redirect("/login");
   }
 
-  const policy = await prisma.policy.findFirst()
-  const allInOutPolicy = policy?.allInOut || "First IN Last OUT"
+  const now = resolveNow((await searchParams).at);
+  const firstName = (session.user?.name ?? "").trim().split(/\s+/)[0] || "there";
+  const title = `${greeting(now)}, ${firstName}`;
 
-  const staffCount = await prisma.staff.count()
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  
-  const todayLogs = await prisma.attendanceLog.findMany({
-    where: { timestamp: { gte: todayStart } },
-    include: { staff: true },
-    orderBy: { timestamp: 'desc' }
-  })
+  let data: DashboardData;
+  try {
+    data = await getDashboardData(now);
+  } catch (err) {
+    console.error("[dashboard] failed to load data:", err);
+    return (
+      <div className="flex flex-col gap-[22px]">
+        <PageHeader title={title} subtitle={`${formatDateLong(now)} · ${formatTime(now)}`} />
+        <Card>
+          <EmptyState
+            icon={DatabaseZap}
+            title="Attendance data is unavailable"
+            hint="The database could not be reached. The page will refresh when punches arrive."
+          />
+        </Card>
+        <AutoRefresh />
+      </div>
+    );
+  }
 
-  // Group today's logs by staff
-  const staffStatus = await prisma.staff.findMany({
-    include: {
-      department: true,
-      designation: true,
-      attendanceLogs: {
-        where: { timestamp: { gte: todayStart } },
-        orderBy: { timestamp: 'asc' }, // Ascending to know 1st vs last
-      }
-    }
-  })
+  const { kpis, workingDay } = data;
+  const shift = commonShift(data.staff);
+  const subtitle = [
+    formatDateLong(now),
+    formatTime(now),
+    shift ? `Shift ${shift.start}–${shift.end}` : null,
+    data.graceLabel ? `Grace till ${data.graceLabel}` : null,
+    workingDay ? null : `${data.offDayName} · no attendance expected`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  const presentStaffData = staffStatus.filter(s => {
-    const logs = s.attendanceLogs
-    if (logs.length === 0) return false
-    
-    const lastLog = logs[logs.length - 1]
-    if (lastLog.type === 'IN') return true
-    if (lastLog.type === 'OUT') return false
-
-    // Dynamic inference for PUNCH
-    // Both policies treat a single punch as IN, and multiple punches as the last one being OUT.
-    return logs.length === 1
-  })
-  
-  const absentStaffData = staffStatus.filter(s => s.attendanceLogs.length === 0)
-
-  const currentlyIn = presentStaffData.length
-  const absentCount = absentStaffData.length
-
-  const devices = await prisma.device.findMany()
-  const now = new Date()
-  const onlineDevices = devices.filter(d => (now.getTime() - new Date(d.lastPing).getTime()) < 5 * 60 * 1000).length
-
-  // Generate Weekly Graph Data
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
-  sevenDaysAgo.setHours(0,0,0,0)
-
-  const weeklyLogs = await prisma.attendanceLog.findMany({
-    where: { timestamp: { gte: sevenDaysAgo } },
-    select: { timestamp: true, staffId: true }
-  })
-
-  const chartData = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (6 - i))
-    const dateStr = format(d, 'EEE')
-    
-    const dayStart = new Date(d)
-    dayStart.setHours(0,0,0,0)
-    const dayEnd = new Date(d)
-    dayEnd.setHours(23,59,59,999)
-    
-    const logsForDay = weeklyLogs.filter(l => {
-      const t = new Date(l.timestamp).getTime()
-      return t >= dayStart.getTime() && t <= dayEnd.getTime()
-    })
-    const uniqueStaffPresent = new Set(logsForDay.map(l => l.staffId)).size
-    
-    return {
-      date: dateStr,
-      present: uniqueStaffPresent,
-      absent: staffCount - uniqueStaffPresent
-    }
-  })
-
-  // Generate data for department pie chart
-  const deptStats = new Map<string, { present: number, total: number }>()
-  
-  staffStatus.forEach(s => {
-    const dName = s.department?.name || 'Unassigned'
-    if (!deptStats.has(dName)) {
-      deptStats.set(dName, { present: 0, total: 0 })
-    }
-    const stat = deptStats.get(dName)!
-    stat.total += 1
-    
-    // Check if present
-    if (presentStaffData.some(ps => ps.id === s.id)) {
-      stat.present += 1
-    }
-  })
-
-  const pieData = Array.from(deptStats.entries()).map(([name, stats]) => ({
-    name,
-    value: stats.present,
-    total: stats.total
-  })).sort((a, b) => b.value - a.value)
+  const turnout = workingDay ? turnoutPercent(kpis.inToday, kpis.total) : null;
+  const lateRows = data.staff.filter((s) => s.status === "late");
+  const avgLate = lateRows.length ? Math.round(lateRows.reduce((n, s) => n + s.lateBy, 0) / lateRows.length) : 0;
+  const devicesOffline = kpis.devicesTotal - kpis.devicesOnline;
+  const arrivalsTotal = data.arrivals.reduce((n, b) => n + b.onTime + b.late, 0);
+  const onTimeArrivals = data.arrivals.reduce((n, b) => n + b.onTime, 0);
+  const median = medianArrival(data.staff);
+  const trendTotal = data.trend.reduce((n, d) => n + d.onTime + d.late, 0);
+  const todayInTrend = data.trend.at(-1)?.date === istDateKey(now);
 
   return (
-    <div className="px-4 sm:px-0 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col gap-[22px]">
       <AutoRefresh />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Sarvodaya English Higher Secondary School Lakhnadon</h1>
-          <p className="text-slate-400 mt-1">Staff Attendance System Dashboard</p>
-        </div>
-        <div className="px-4 py-2 bg-black/20 rounded-xl border border-white/[0.08] flex items-center gap-2 backdrop-blur-2xl shadow-[0_4px_15px_rgba(0,0,0,0.2)]">
-          <CalendarDays className="w-4 h-4 text-blue-400" />
-          <span className="text-sm font-medium">{format(new Date(), 'EEEE, MMMM do yyyy')}</span>
-        </div>
-      </div>
+      <PageHeader title={title} subtitle={subtitle} />
 
-      {/* Stats Cards */}
-      <DashboardCards
-        staffCount={staffCount}
-        currentlyIn={currentlyIn}
-        absentCount={absentCount}
-        logsCount={todayLogs.length}
-        onlineDevices={onlineDevices}
-        devicesCount={devices.length}
-        allStaff={staffStatus}
-        presentStaff={presentStaffData}
-        absentStaff={absentStaffData}
-      />
+      <SectionLabel>Today</SectionLabel>
 
-      {/* Graphs & Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <div className="lg:col-span-2 space-y-8">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              <h2 className="text-xl font-bold text-white mb-6">Weekly Attendance</h2>
-              <AttendanceChart data={chartData} />
+      <section aria-label="Today at a glance" className="grid grid-cols-1 gap-3.5 min-[600px]:grid-cols-2 min-[1100px]:grid-cols-4">
+        <KpiTile
+          tone="present"
+          icon={CheckCircle2}
+          label="In today"
+          value={kpis.inToday}
+          total={kpis.total}
+          delta={workingDay ? { ...kpis.deltas.in, good: kpis.deltas.in.direction === "up" } : undefined}
+          foot={
+            workingDay
+              ? turnout === null
+                ? "No staff on roll"
+                : `${turnout}% turnout`
+              : `${data.offDayName} · off day`
+          }
+          spark={kpis.spark.in}
+        />
+        <KpiTile
+          tone="late"
+          icon={AlarmClock}
+          label="Late arrivals"
+          value={kpis.late}
+          delta={workingDay ? { ...kpis.deltas.late, good: kpis.deltas.late.direction === "down" } : undefined}
+          foot={kpis.late ? `Avg ${avgLate} min after shift start` : "Nobody late so far"}
+          spark={kpis.spark.late}
+        />
+        <KpiTile
+          tone="absent"
+          icon={XCircle}
+          label="Absent"
+          value={kpis.absent}
+          delta={workingDay ? { ...kpis.deltas.absent, good: kpis.deltas.absent.direction === "down" } : undefined}
+          foot={workingDay ? "No punch today" : `Not counted on ${data.offDayName}`}
+          spark={kpis.spark.absent}
+        />
+        <KpiTile
+          tone="accent"
+          icon={Fingerprint}
+          label="Devices online"
+          value={kpis.devicesOnline}
+          total={kpis.devicesTotal}
+          foot={
+            kpis.devicesTotal === 0
+              ? "No devices registered"
+              : devicesOffline === 0
+                ? "All devices reporting"
+                : `${devicesOffline} offline · pinged in last 5 min`
+          }
+          spark={kpis.spark.devices}
+        />
+      </section>
+
+      <section className="grid grid-cols-1 gap-3.5 min-[1240px]:grid-cols-12">
+        <Card className="min-[1240px]:col-span-7">
+          <CardHeader title="Arrivals this morning" caption="First punch of each staff member, in 15-minute slots" />
+          {arrivalsTotal === 0 ? (
+            <EmptyState
+              icon={Sunrise}
+              title={workingDay ? "No arrivals yet" : "No arrivals today"}
+              hint={workingDay ? "First punches will appear here as staff arrive." : `${data.offDayName} is not a working day.`}
+            />
+          ) : (
+            <>
+              <ArrivalsChart arrivals={data.arrivals} graceLabel={data.graceLabel} />
+              <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted">
+                <span className="inline-flex items-center gap-[7px]">
+                  <i className="size-2.5 rounded-[3px] bg-present" aria-hidden="true" />
+                  On time · <span className="num">{onTimeArrivals}</span>
+                </span>
+                <span className="inline-flex items-center gap-[7px]">
+                  <i className="size-2.5 rounded-[3px] bg-late" aria-hidden="true" />
+                  Late · <span className="num">{arrivalsTotal - onTimeArrivals}</span>
+                </span>
+                {median ? (
+                  <span className="text-subtle">
+                    Median arrival <b className="num font-medium text-text">{median}</b>
+                  </span>
+                ) : null}
+              </div>
+            </>
+          )}
+        </Card>
+
+        <Card className="min-[1240px]:col-span-5">
+          <CardHeader title="Where everyone is" caption={`${kpis.total} staff on roll`} />
+          <StatusRing {...data.ring} />
+        </Card>
+
+        <Card className="min-[1240px]:col-span-7">
+          <CardHeader
+            title="Departments today"
+            action={
+              <Link href="/departments" className="text-acc-2 hover:underline">
+                Open departments
+              </Link>
+            }
+          />
+          <DepartmentTurnout departments={data.departments} />
+        </Card>
+
+        <Card className="min-[1240px]:col-span-5">
+          <CardHeader
+            title="Needs your attention"
+            caption={data.attention.length ? <span className="num">{data.attention.length} items</span> : undefined}
+          />
+          <AttentionList items={data.attention} />
+        </Card>
+      </section>
+
+      <SectionLabel>Last 3 weeks</SectionLabel>
+
+      <Card as="section">
+        <CardHeader
+          title="Staff present per working day"
+          caption={`Saturdays are half days${todayInTrend ? ` · today counted up to ${formatTime(now)}` : ""}`}
+        />
+        {trendTotal === 0 ? (
+          <EmptyState icon={BarChart3} title="No punches in the last 3 weeks" />
+        ) : (
+          <>
+            <TrendChart trend={data.trend} total={kpis.total} />
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted">
+              <span className="inline-flex items-center gap-[7px]">
+                <i className="size-2.5 rounded-[3px] bg-linear-to-b from-acc-1 to-acc-2" aria-hidden="true" />
+                On time
+              </span>
+              <span className="inline-flex items-center gap-[7px]">
+                <i className="size-2.5 rounded-[3px] bg-late" aria-hidden="true" />
+                Late
+              </span>
+              <span className="inline-flex items-center gap-[7px]">
+                <i className="size-2.5 rounded-[3px] bg-acc-2/45" aria-hidden="true" />
+                Saturday
+              </span>
             </div>
+          </>
+        )}
+      </Card>
 
-            <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-              <h2 className="text-xl font-bold text-white mb-6">Today by Department</h2>
-              <DepartmentPieChart data={pieData} />
-            </div>
-          </div>
+      <SectionLabel>Staff</SectionLabel>
 
-          <RecentActivity logs={todayLogs} />
-        </div>
-
-        {/* Right Column (Staff Status) */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white">Current Status</h2>
-          <div className="rounded-3xl bg-black/20 border border-white/[0.08] backdrop-blur-2xl overflow-hidden p-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            {/* Scrollable Container */}
-            <div className="flex flex-col gap-1 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
-              {(() => {
-                const staffWithStatus = staffStatus.map(staff => {
-                  const logs = staff.attendanceLogs
-                  let isOut = true
-                  
-                  if (logs.length > 0) {
-                    const lastLog = logs[logs.length - 1]
-                    if (lastLog.type === 'IN') isOut = false
-                    else if (lastLog.type === 'OUT') isOut = true
-                    else {
-                      // PUNCH fallback
-                      isOut = logs.length > 1
-                    }
-                  }
-                  return { ...staff, isOut }
-                })
-
-                // Sort: online (isOut=false) first
-                staffWithStatus.sort((a, b) => {
-                  if (a.isOut === b.isOut) return 0
-                  return a.isOut ? 1 : -1
-                })
-
-                return staffWithStatus.map(staff => (
-                  <div key={staff.id} className="p-3 rounded-xl hover:bg-white/5 flex items-center justify-between transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/[0.08] text-xs font-bold text-white shrink-0">
-                        {staff.name.substring(0,2).toUpperCase()}
-                      </div>
-                      <span className="font-medium text-slate-200 truncate">{staff.name}</span>
-                    </div>
-                    <span className="flex h-2.5 w-2.5 relative shrink-0">
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${staff.isOut ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${staff.isOut ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
-                    </span>
-                  </div>
-                ))
-              })()}
-              {staffStatus.length === 0 && (
-                <div className="p-8 text-center text-slate-400 text-sm">
-                  No staff registered yet.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>
+      <StaffToday staff={data.staff} punchLog={data.punchLog} workingDay={workingDay} now={data.now} />
     </div>
-  )
+  );
 }
