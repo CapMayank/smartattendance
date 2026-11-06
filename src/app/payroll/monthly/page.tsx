@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Save, RefreshCw, AlertCircle, Calendar, IndianRupee, ShieldCheck, Lock, Unlock, CheckCircle, ChevronRight, Gift, Sparkles, X, Check } from 'lucide-react'
+import { FileText, Download, Save, RefreshCw, AlertCircle, IndianRupee, ShieldCheck, Lock, Unlock, Gift, Sparkles, X, Check, PencilLine } from 'lucide-react'
 import { format } from 'date-fns'
+import { Button, Card, Field, PageHeader, Select, StatusBadge } from '@/components/ui'
 
 function calculatePayroll(
   monthlyCtc: number,
@@ -314,91 +315,86 @@ export default function MonthlyPayrollPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
-            <FileText className="w-8 h-8 text-indigo-400" />
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                Monthly Payroll
-              </h1>
-              {payrolls.length > 0 && (
-                <span className={`px-2.5 py-1 rounded-md text-xs font-bold tracking-wider uppercase border shadow-sm ${
-                  isMonthLocked 
-                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10' 
-                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10'
-                }`}>
-                  {isMonthLocked ? 'Locked' : 'Draft'}
-                </span>
-              )}
-            </div>
-            <p className="text-slate-400 mt-1 font-medium">Follow the steps below to process, adjust bonuses, and export payroll</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Monthly payroll"
+        subtitle="Follow the steps below to process, adjust bonuses, and export payroll"
+        actions={payrolls.length > 0 && (
+          isMonthLocked ? (
+            <StatusBadge status="locked" />
+          ) : (
+            <span className="tone-late tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+              <PencilLine size={13} aria-hidden="true" />
+              Draft
+            </span>
+          )
+        )}
+      />
 
       {/* 5-Step Process Wizard */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        
-        <div className="flex flex-col xl:flex-row gap-6 relative z-10 items-stretch">
-          
+      <Card>
+        <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1fr_1fr_1.2fr]">
+
           {/* Step 1 & 2: Setup & Sync */}
-          <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">1</div>
-            <h3 className="text-sm font-bold text-white mb-4 ml-3">Select Period</h3>
-            <div className="flex flex-wrap items-end gap-3 ml-3">
-              <div>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
+          <div className="flex flex-col gap-5 rounded-xl border border-line-soft bg-canvas p-4">
+            <div>
+              <h3 className="mb-3 flex items-center gap-2.5 text-[13.5px] font-medium text-text">
+                <span className="num grid size-6 flex-none place-items-center rounded-full border border-line bg-card-hi text-xs text-muted">1</span>
+                Select Period
+              </h3>
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label="Month" htmlFor="payroll-month">
+                  <Select
+                    id="payroll-month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    className="min-w-[120px]"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                      <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Year" htmlFor="payroll-year">
+                  <Select
+                    id="payroll-year"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="num min-w-[90px]"
+                  >
+                    {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Button
+                  variant="secondary"
+                  onClick={fetchPayroll}
+                  title="Refresh Data"
+                  aria-label="Refresh data"
+                  className="w-10 px-0"
                 >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                    <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
-                  ))}
-                </select>
+                  <RefreshCw size={16} aria-hidden="true" className={loading ? 'animate-spin text-acc-1' : ''} />
+                </Button>
               </div>
-              <div>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
-                >
-                  {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={fetchPayroll}
-                className="p-2 text-slate-400 hover:text-white bg-black/40 rounded-lg transition-all border border-white/[0.04]"
-                title="Refresh Data"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
-              </button>
             </div>
 
-            <div className="mt-6 ml-3">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[88px]">2</div>
-              <h3 className="text-sm font-bold text-white mb-3">Sync Attendance</h3>
-              <button
+            <div>
+              <h3 className="mb-3 flex items-center gap-2.5 text-[13.5px] font-medium text-text">
+                <span className="num grid size-6 flex-none place-items-center rounded-full border border-line bg-card-hi text-xs text-muted">2</span>
+                Sync Attendance
+              </h3>
+              <Button
+                variant="secondary"
+                icon={RefreshCw}
+                loading={syncing}
                 onClick={handleSyncAttendance}
                 disabled={syncing || payrolls.length === 0 || isMonthLocked}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg transition-all border border-amber-500/20 disabled:opacity-50"
               >
-                {syncing ? <div className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin"></div> : <RefreshCw className="w-3.5 h-3.5" />}
                 Sync with Logs
-              </button>
+              </Button>
             </div>
-          </div>
-
-          <div className="hidden xl:flex items-center justify-center text-slate-700">
-            <ChevronRight className="w-8 h-8" />
           </div>
 
           {/* Step 3 & 4: Review & Recalculate */}
@@ -444,10 +440,6 @@ export default function MonthlyPayrollPage() {
             </div>
           </div>
 
-          <div className="hidden xl:flex items-center justify-center text-slate-700">
-            <ChevronRight className="w-8 h-8" />
-          </div>
-
           {/* Step 5: Lock & Export */}
           <div className="flex-[1.2] bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
@@ -491,9 +483,9 @@ export default function MonthlyPayrollPage() {
               </div>
             </div>
           </div>
-          
+
         </div>
-      </div>
+      </Card>
 
       {/* Master Performance / Festival Bonus Mode Switch */}
       <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
