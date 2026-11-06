@@ -12,32 +12,41 @@ export type ShellData = {
 };
 
 export async function getShellData(): Promise<ShellData | null> {
+  // Not wrapped: JWT sessions need no DB, and Next's dynamic-rendering signals must propagate.
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  const now = new Date();
-  const [staffCount, devices, logs] = await Promise.all([
-    prisma.staff.count(),
-    prisma.device.findMany({ orderBy: { name: "asc" } }),
-    prisma.attendanceLog.findMany({
-      where: { timestamp: { gte: istDayStart(now) } },
-      orderBy: { timestamp: "desc" },
-      take: 4,
-      include: { staff: { select: { name: true } } },
-    }),
-  ]);
+  const userName = session.user?.name ?? session.user?.email ?? "Admin";
+  const userRole = "Administrator"; // User model has no role field
 
-  return {
-    userName: session.user?.name ?? session.user?.email ?? "Admin",
-    userRole: "Administrator", // User model has no role field
-    staffCount,
-    devices: devices.map((d) => ({
-      id: d.id,
-      name: d.name,
-      online: isDeviceOnline(d.lastPing, now),
-      lastPing: d.lastPing.toISOString(),
-    })),
-    // AttendanceLog has no device relation in the schema
-    recentPunches: logs.map((l) => ({ name: l.staff.name, time: l.timestamp.toISOString(), device: null })),
-  };
+  const now = new Date();
+  try {
+    const [staffCount, devices, logs] = await Promise.all([
+      prisma.staff.count(),
+      prisma.device.findMany({ orderBy: { name: "asc" } }),
+      prisma.attendanceLog.findMany({
+        where: { timestamp: { gte: istDayStart(now) } },
+        orderBy: { timestamp: "desc" },
+        take: 4,
+        include: { staff: { select: { name: true } } },
+      }),
+    ]);
+
+    return {
+      userName,
+      userRole,
+      staffCount,
+      devices: devices.map((d) => ({
+        id: d.id,
+        name: d.name,
+        online: isDeviceOnline(d.lastPing, now),
+        lastPing: d.lastPing.toISOString(),
+      })),
+      // AttendanceLog has no device relation in the schema
+      recentPunches: logs.map((l) => ({ name: l.staff.name, time: l.timestamp.toISOString(), device: null })),
+    };
+  } catch (err) {
+    console.error("[shell] failed to load shell data:", err);
+    return { userName, userRole, staffCount: 0, devices: [], recentPunches: [] };
+  }
 }
