@@ -28,6 +28,7 @@ export type SuggestionView = {
   id: string
   staffId: string
   staffName: string
+  fromShiftId: string | null
   fromShiftName: string | null
   medianIn: string
   medianOut: string | null
@@ -251,6 +252,7 @@ export async function listPendingSuggestions(): Promise<SuggestionView[]> {
     id: r.id,
     staffId: r.staffId,
     staffName: staffName.get(r.staffId) ?? '',
+    fromShiftId: r.fromShiftId ?? null,
     fromShiftName: r.fromShiftId ? (shiftName.get(r.fromShiftId) ?? null) : null,
     medianIn: r.medianIn,
     medianOut: r.medianOut ?? null,
@@ -289,7 +291,7 @@ export async function approveSuggestion(
   id: string,
   startDate: string,
   opts: { dryRun?: boolean; userId?: string } = {},
-): Promise<PreviewSummary | ApplyResult> {
+): Promise<PreviewSummary | (ApplyResult & { staffId: string; shiftId: string })> {
   if (!isValidDayKey(startDate)) throw new SuggestionError('startDate must be a valid YYYY-MM-DD date', 400)
   if (startDate < ALWAYS) throw new SuggestionError(`Start date must be on or after ${ALWAYS}`, 400)
 
@@ -349,7 +351,7 @@ export async function approveSuggestion(
         },
       })
     }
-    return result
+    return { ...result, staffId: suggestion.staffId, shiftId }
   } catch (error) {
     // Give the row back so it can be retried (best effort)
     try {

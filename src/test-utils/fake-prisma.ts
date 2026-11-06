@@ -88,7 +88,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   const matchValue = (v: unknown, cond: unknown): boolean => {
     if (cond instanceof Date) return v instanceof Date && v.getTime() === cond.getTime()
     if (cond && typeof cond === 'object') {
-      const c = cond as { lt?: Date | string }
+      const c = cond as { lt?: Date | string; in?: unknown[] }
+      if (Array.isArray(c.in)) return c.in.includes(v)
       if (!('lt' in c) || v === null || v === undefined || c.lt === undefined) return false
       const a = v instanceof Date ? v.getTime() : (v as string)
       const b = c.lt instanceof Date ? c.lt.getTime() : c.lt
@@ -172,6 +173,7 @@ export function createFakePrisma(fixtures: Fixtures): {
     },
     shift: {
       findMany: async () => shiftRows,
+      findUnique: async (args: { where: { id: string } }) => shiftRows.find((r) => r.id === args.where.id) ?? null,
       delete: async ({ where }: { where: { id: string } }) => {
         const i = shiftRows.findIndex((r) => r.id === where.id)
         if (i < 0) throw new Error(`shift ${where.id} not found`)

@@ -3,6 +3,8 @@ import { ensureSchoolTimezone } from "@/lib/timezone"
 import { createFakePrisma, type Fixtures, type SuggestionRow } from "@/test-utils/fake-prisma"
 
 const holder = vi.hoisted(() => ({ client: null as unknown }))
+vi.mock("next-auth/next", () => ({ getServerSession: vi.fn(async () => ({ user: { id: "u1" } })) }))
+vi.mock("@/lib/auth", () => ({ authOptions: {} }))
 vi.mock("@/lib/prisma", () => ({
   get prisma() {
     return holder.client
@@ -351,6 +353,7 @@ describe("listPendingSuggestions", () => {
       id: "g2",
       staffId: "B",
       staffName: "Bela",
+      fromShiftId: "s1",
       fromShiftName: "Day",
       medianIn: "08:30",
       medianOut: "14:30",
@@ -550,5 +553,43 @@ describe("dismissSuggestion", () => {
     fake({ suggestions: [{ ...SUG, status: "APPROVED" }] })
     await expect(dismissSuggestion("g1")).rejects.toMatchObject({ status: 404 })
     await expect(dismissSuggestion("zzz")).rejects.toMatchObject({ status: 404 })
+  })
+})
+
+describe("approve then recover from a failed recalculation", () => {
+  it("returns staffId and shiftId; repeating the change through the staff route adds no second shift or assignment", async () => {
+    const f = approveFake()
+    const client = f.client as { $transaction: (fn: (tx: unknown) => Promise<unknown>) => Promise<unknown> }
+    const original = client.$transaction
+    let calls = 0
+    client.$transaction = async (fn) => {
+      calls++
+      if (calls === 2) throw new Error("db down")
+      return original(fn)
+    }
+    const res = (await approveSuggestion("g1", "2026-11-02", { userId: "u1" })) as {
+      recalculated: boolean
+      staffId: string
+      shiftId: string
+    }
+    expect(res.recalculated).toBe(false)
+    expect(res.staffId).toBe("A")
+    expect(res.shiftId).toBe(f.shiftRows[1].id)
+    client.$transaction = original
+    const shiftsBefore = f.shiftRows.length
+    const assignmentsBefore = f.assignments.length
+
+    const { POST } = await import("@/app/api/staff/[id]/shift/route")
+    const r = await POST(
+      new Request("http://localhost/api/staff/A/shift", {
+        method: "POST",
+        body: JSON.stringify({ shiftId: res.shiftId, effectiveFrom: "2026-11-02" }),
+      }),
+      { params: Promise.resolve({ id: "A" }) },
+    )
+    expect(r.status).toBe(200)
+    expect(await r.json()).toMatchObject({ assignmentSaved: true, recalculated: true })
+    expect(f.shiftRows).toHaveLength(shiftsBefore)
+    expect(f.assignments).toHaveLength(assignmentsBefore)
   })
 })

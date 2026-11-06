@@ -18,7 +18,7 @@ const shifts = [
   { id: "S2", name: "Unused", startTime: "10:00", endTime: "18:00" },
 ]
 
-function setup(extra: { staffShiftId?: string | null; assignmentShiftId?: string; suggestedShiftId?: string } = {}) {
+function setup(extra: { staffShiftId?: string | null; assignmentShiftId?: string; suggestedShiftId?: string; suggestionStatus?: string } = {}) {
   const f = createFakePrisma({
     staff: [{ id: "A", name: "A", shiftId: extra.staffShiftId ?? null, shift: null }],
     policy: null,
@@ -30,7 +30,7 @@ function setup(extra: { staffShiftId?: string | null; assignmentShiftId?: string
       ? [{ staffId: "A", effectiveFrom: "2026-11-01", shiftId: extra.assignmentShiftId }]
       : [],
     suggestions: extra.suggestedShiftId
-      ? [{ id: "g1", staffId: "A", status: "PENDING", suggestedShiftId: extra.suggestedShiftId }]
+      ? [{ id: "g1", staffId: "A", status: extra.suggestionStatus ?? "PENDING", suggestedShiftId: extra.suggestedShiftId }]
       : [],
   })
   holder.client = f.client
@@ -74,6 +74,26 @@ describe.each([
     expect((await res.json()).error).toBe(
       "This shift is in use by 3 teachers or shift changes. Move them to another shift first.",
     )
+  })
+
+  it("uses the singular for one reference", async () => {
+    setup({ assignmentShiftId: "S1" })
+    const res = await call("S1")
+    expect((await res.json()).error).toBe(
+      "This shift is in use by 1 teacher or shift change. Move them to another shift first.",
+    )
+  })
+
+  it.each(["DISMISSED", "APPROVED"])("a %s suggestion does not block deletion", async (status) => {
+    const f = setup({ suggestedShiftId: "S1", suggestionStatus: status })
+    const res = await call("S1")
+    expect(res.status).toBe(200)
+    expect(f.shiftRows.map((s) => s.id)).toEqual(["S2"])
+  })
+
+  it("an APPROVING suggestion still blocks deletion", async () => {
+    setup({ suggestedShiftId: "S1", suggestionStatus: "APPROVING" })
+    expect((await call("S1")).status).toBe(409)
   })
 
   it("still deletes an unused shift", async () => {

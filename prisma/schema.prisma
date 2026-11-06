@@ -120,7 +120,7 @@ model ShiftSuggestion {
   updatedAt           DateTime  @updatedAt
 
   staff          Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  suggestedShift Shift? @relation("SuggestedShift", fields: [suggestedShiftId], references: [id], onDelete: Restrict)
+  suggestedShift Shift? @relation("SuggestedShift", fields: [suggestedShiftId], references: [id], onDelete: SetNull)
 
   @@index([staffId, status])
 }

@@ -18,6 +18,7 @@ type Suggestion = {
   id: string
   staffId: string
   staffName: string
+  fromShiftId?: string | null
   fromShiftName: string | null
   medianIn: string
   medianOut: string | null
@@ -39,7 +40,7 @@ type Review = {
   error?: string
 }
 
-type Unrecalculated = { suggestion: Suggestion; startDate: string; message: string }
+type Unrecalculated = { staffId: string; staffName: string; shiftId: string; startDate: string; message: string }
 
 const ALWAYS_DAY = '2000-01-01'
 
@@ -66,6 +67,7 @@ export default function ShiftsPage() {
   const [review, setReview] = useState<Review | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [unrecalculated, setUnrecalculated] = useState<Unrecalculated | null>(null)
+  const [retrying, setRetrying] = useState(false)
 
   const fetchSuggestions = async (refresh = false) => {
     try {
@@ -140,7 +142,9 @@ export default function ShiftsPage() {
       setReview(null)
       if (body.assignmentSaved && body.recalculated === false) {
         setUnrecalculated({
-          suggestion: sg,
+          staffId: body.staffId,
+          staffName: sg.staffName,
+          shiftId: body.shiftId,
           startDate,
           message: body.error || 'The new shift was saved, but past days were not recalculated yet.'
         })
@@ -154,6 +158,36 @@ export default function ShiftsPage() {
     } finally {
       setConfirming(false)
       setBusyFor(sg.id, false)
+    }
+  }
+
+  // The suggestion is already APPROVED, so recovery repeats the idempotent staff shift change
+  const retryRecalculation = async () => {
+    if (!unrecalculated) return
+    const u = unrecalculated
+    setRetrying(true)
+    try {
+      const res = await fetch(`/api/staff/${u.staffId}/shift`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId: u.shiftId, effectiveFrom: u.startDate })
+      })
+      if (!res.ok) {
+        setUnrecalculated({ ...u, message: await errorOf(res, 'Could not recalculate past days') })
+        return
+      }
+      const body = await res.json()
+      if (body.recalculated === false) {
+        setUnrecalculated({ ...u, message: body.error || 'Past days were not recalculated yet.' })
+        return
+      }
+      setUnrecalculated(null)
+      toast.success(`${u.staffName}'s past days are recalculated`)
+      await Promise.all([fetchSuggestions(), fetchShifts()])
+    } catch {
+      setUnrecalculated({ ...u, message: 'Could not recalculate past days' })
+    } finally {
+      setRetrying(false)
     }
   }
 
@@ -259,8 +293,9 @@ export default function ShiftsPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                loading={!!busy[unrecalculated.suggestion.id]}
-                onClick={() => sendApprove(unrecalculated.suggestion, unrecalculated.startDate)}
+                loading={retrying}
+                disabled={retrying}
+                onClick={retryRecalculation}
               >Retry</Button>
               <Button size="sm" variant="ghost" onClick={() => setUnrecalculated(null)}>Close</Button>
             </div>
@@ -277,7 +312,7 @@ export default function ShiftsPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {suggestions.map(sg => {
               const inFlight = !!busy[sg.id]
-              const fromShift = shifts.find(x => x.name === sg.fromShiftName)
+              const fromShift = sg.fromShiftId ? shifts.find(x => x.id === sg.fromShiftId) : shifts.find(x => x.name === sg.fromShiftName)
               const proposedName = sg.suggestedShiftId ? (shifts.find(x => x.id === sg.suggestedShiftId)?.name ?? 'Existing shift') : 'New shift'
               return (
                 <Card key={sg.id} className="space-y-3">
