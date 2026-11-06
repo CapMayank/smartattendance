@@ -8,8 +8,8 @@ import { Button, Card, Field, Input } from "@/components/ui"
 
 export default function LoginPage() {
   const { status } = useSession()
-  const [email, setEmail] = useState("admin@example.com")
-  const [password, setPassword] = useState("admin")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
