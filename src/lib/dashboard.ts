@@ -1,6 +1,7 @@
 // Server only: Prisma reads for the Dashboard page.
 import { prisma } from "@/lib/prisma";
 import { formatPing } from "@/lib/format";
+import { runDetection } from "@/lib/shift-suggestions";
 import {
   absenceStreak,
   arrivalsWindow,
@@ -45,7 +46,7 @@ export type DashboardData = {
   ring: { onTime: number; late: number; absent: number };
   departments: { name: string; present: number; total: number }[];
   attention: {
-    kind: "absent-streak" | "late-repeat" | "device-offline" | "missing-out";
+    kind: "absent-streak" | "late-repeat" | "device-offline" | "missing-out" | "shift-suggestions";
     title: string;
     detail: string;
     href: string;
@@ -408,6 +409,26 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     }
   }
 
+  // Shift suggestions: detection is throttled (once per 6 hours) and must never break the Dashboard.
+  let pendingSuggestions = 0;
+  try {
+    await runDetection();
+    pendingSuggestions = await prisma.shiftSuggestion.count({ where: { status: "PENDING" } });
+  } catch (error) {
+    console.error("[dashboard] shift detection failed:", error);
+  }
+  const suggestionItems: DashboardData["attention"] =
+    pendingSuggestions > 0
+      ? [
+          {
+            kind: "shift-suggestions",
+            title: pendingSuggestions === 1 ? "1 shift suggestion to review" : `${pendingSuggestions} shift suggestions to review`,
+            detail: "Teachers whose real arrival time differs from their shift",
+            href: "/shifts",
+          },
+        ]
+      : [];
+
   // Devices and the payroll-relevant missing OUT always make the cut; then up to 2 of each
   // person-kind; then fill from what is left.
   type Ranked = DashboardData["attention"][number] & { n: number };
@@ -417,9 +438,9 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     detail: r.detail,
     href: r.href,
   });
-  const primary = [...offline, ...missing, ...streaks.slice(0, 2).map(strip), ...lateRepeats.slice(0, 2).map(strip)];
+  const primary = [...offline, ...missing, ...suggestionItems, ...streaks.slice(0, 2).map(strip), ...lateRepeats.slice(0, 2).map(strip)];
   const extra = [...streaks.slice(2).map(strip), ...lateRepeats.slice(2).map(strip)];
-  const order = { "absent-streak": 0, "late-repeat": 1, "device-offline": 2, "missing-out": 3 } as const;
+  const order = { "absent-streak": 0, "late-repeat": 1, "device-offline": 2, "missing-out": 3, "shift-suggestions": 4 } as const;
   const attention = [...primary.slice(0, MAX_ATTENTION), ...extra]
     .slice(0, MAX_ATTENTION)
     .sort((a, b) => order[a.kind] - order[b.kind]);

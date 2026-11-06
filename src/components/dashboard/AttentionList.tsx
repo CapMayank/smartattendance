@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlarmClock, ChevronRight, LogOut, ShieldCheck, WifiOff, XCircle, type LucideIcon } from "lucide-react";
+import { AlarmClock, CalendarClock, ChevronRight, LogOut, ShieldCheck, WifiOff, XCircle, type LucideIcon } from "lucide-react";
 import { EmptyState } from "@/components/ui";
 import type { DashboardData } from "@/lib/dashboard";
 import { cn } from "@/lib/cn";
@@ -11,6 +11,7 @@ const look: Record<Item["kind"], { icon: LucideIcon; tone: string }> = {
   "late-repeat": { icon: AlarmClock, tone: "tone-late" },
   "device-offline": { icon: WifiOff, tone: "tone-accent" },
   "missing-out": { icon: LogOut, tone: "tone-muted" },
+  "shift-suggestions": { icon: CalendarClock, tone: "tone-accent" },
 };
 
 export function AttentionList({ items }: { items: Item[] }) {
