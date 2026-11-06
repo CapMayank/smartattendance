@@ -61,7 +61,7 @@ export function Modal({
         downOnBackdrop.current = false;
         upOnBackdrop.current = false;
       }}
-      className="ui-dialog m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-card-hi p-0 text-text shadow-[0_24px_60px_-12px_rgba(0,0,0,0.6)]"
+      className="ui-dialog m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-card-hi p-0 text-text shadow-overlay"
     >
       <div className="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-4">
         <h2 id={titleId} className="text-[15px] font-medium">

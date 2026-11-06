@@ -41,9 +41,9 @@ export default async function RootLayout({
                   '--error-bg': 'var(--color-card-hi)',
                   '--error-border': 'var(--color-line)',
                   '--error-text': 'var(--color-text)',
+                  boxShadow: 'none',
                 } as React.CSSProperties
               }
-              toastOptions={{ className: 'shadow-none' }}
             />
           </div>
         </Providers>

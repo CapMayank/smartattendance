@@ -172,7 +172,7 @@ export default function CalendarPage() {
                   <div className="flex items-start justify-between">
                     <span className={cn(
                       'num flex size-7 items-center justify-center rounded-full text-sm',
-                      isTodayDate ? 'bg-acc-2 font-medium text-ground' : holiday ? 'text-muted' : 'text-muted',
+                      isTodayDate ? 'bg-acc-2 font-medium text-ground' : 'text-muted',
                     )}>
                       {format(day, dateFormat)}
                     </span>
