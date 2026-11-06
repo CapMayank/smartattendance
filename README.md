@@ -75,6 +75,24 @@ SELECT date FROM "DailyRecord" ORDER BY date DESC LIMIT 5;
 
 ---
 
+## Shifts and shift history
+
+A teacher's shift is a history of dated assignments, and each day is judged by the shift that applied on that day. Changing a shift never rewrites past months. Until a teacher's first change they keep using their current shift, so nothing changes at deploy.
+
+**Changing a shift:** Staff page, edit the teacher, pick the shift and a start date. The preview shows how many days will change and how many fall in locked payroll months; locked months are never touched.
+
+**Suggestions:** the system looks at the last 28 days and proposes a change only when a teacher's arrival is steady and 20 or more minutes away from their shift start (it needs 10 days of data, or 15 for a later start). It never applies a suggestion without approval. Detection runs at most once every 6 hours; the "Check now" button on the Shifts page forces a run. Approving a suggestion that proposes a new shift creates that shift.
+
+**Deleting shifts:** a shift cannot be deleted while teachers, shift changes or pending suggestions use it.
+
+**Editing a shift itself:** changing the start or end time of a shift still changes every past day that used it. To keep history, create a new shift and move teachers to it.
+
+**Recovery:** if an approval saves but the recalculation fails, the Shifts page shows a "Recalculate" retry. Re-applying the same change from the Staff page also works.
+
+**Deploy:** run `prisma db push`. It adds two tables (`ShiftAssignment`, `ShiftSuggestion`) and one nullable column (`Policy.shiftDetectionRanAt`); all changes are additive.
+
+---
+
 ## 🌐 Production Architecture
 
 The production environment is hosted on an Oracle Cloud Ubuntu instance using **PostgreSQL**, **PM2** (process manager), and **Nginx** (reverse proxy). 
