@@ -17,7 +17,7 @@ const PROPOSED_ID = 'proposed:new'
 export class SuggestionError extends Error {
   constructor(
     message: string,
-    public readonly status: 400 | 404,
+    public readonly status: 400 | 404 | 409,
   ) {
     super(message)
     this.name = 'SuggestionError'
@@ -96,7 +96,10 @@ async function detectForTeacher(args: {
     where: { staffId, status: 'DISMISSED' },
     orderBy: { decidedAt: 'desc' },
   })
-  if (isSuppressed(dismissed, pattern.medianIn, todayKey)) return
+  if (isSuppressed(dismissed, pattern.medianIn, todayKey)) {
+    if (existing) await prisma.shiftSuggestion.delete({ where: { id: existing.id } })
+    return
+  }
 
   const proposal = proposeShift(pattern, allShifts, currentShift)
   const data = {
@@ -129,83 +132,113 @@ export async function runDetection(
     return { ran: false, pending: await pendingCount() }
   }
 
-  const todayKey = istDateKey(now)
-  const windowStartKey = addDays(todayKey, -SHIFT_DETECTION.windowDays)
-  const windowStart = istDayStart(new Date(now.getTime() - SHIFT_DETECTION.windowDays * DAY_MS))
-  const windowEnd = new Date(istDayStart(now).getTime() - 1) // up to yesterday 23:59:59.999
-
-  const [staffList, shifts, assignmentRows, holidays, logs] = await Promise.all([
-    prisma.staff.findMany(),
-    prisma.shift.findMany(),
-    prisma.shiftAssignment.findMany(),
-    prisma.holiday.findMany({ where: { date: { gte: windowStart, lte: windowEnd } } }),
-    prisma.attendanceLog.findMany({
-      where: { timestamp: { gte: windowStart, lte: windowEnd } },
-      orderBy: { timestamp: 'asc' },
-    }),
-  ])
-
-  const allShifts: ShiftLite[] = shifts.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime, endTime: s.endTime }))
-  const shiftsById = new Map(allShifts.map((s) => [s.id, s]))
-
-  const assignmentsByStaff = new Map<string, AssignmentLite[]>()
-  for (const a of assignmentRows) {
-    const item = { effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }
-    const list = assignmentsByStaff.get(a.staffId)
-    if (list) list.push(item)
-    else assignmentsByStaff.set(a.staffId, [item])
+  // Claim the run before any heavy work, atomically, so overlapping requests cannot both detect
+  if (!policy) {
+    await prisma.policy.create({ data: { shiftDetectionRanAt: now } })
+  } else if (opts.force === true) {
+    await prisma.policy.update({ where: { id: policy.id }, data: { shiftDetectionRanAt: now } })
+  } else {
+    const cutoff = new Date(now.getTime() - SHIFT_DETECTION.throttleHours * 3600000)
+    const claimed = await prisma.policy.updateMany({
+      where: { id: policy.id, OR: [{ shiftDetectionRanAt: null }, { shiftDetectionRanAt: { lt: cutoff } }] },
+      data: { shiftDetectionRanAt: now },
+    })
+    if (claimed.count === 0) return { ran: false, pending: await pendingCount() }
   }
 
-  const weekOffDays = (policy?.weekOffDays ?? '0').split(',').map(Number)
-  const holidayKeys = new Set(holidays.map((h) => istDateKey(h.date)))
-  const skipDayKeys = new Set<string>(holidayKeys)
-  for (let key = windowStartKey; key < todayKey; key = addDays(key, 1)) {
-    if (weekOffDays.includes(weekdayOf(key))) skipDayKeys.add(key)
-  }
-  const allow = normalizeAllow(policy?.lateArrivalAllow ?? '00:15')
+  try {
+    const todayKey = istDateKey(now)
+    const windowStartKey = addDays(todayKey, -SHIFT_DETECTION.windowDays)
+    const windowStart = istDayStart(new Date(now.getTime() - SHIFT_DETECTION.windowDays * DAY_MS))
+    const windowEnd = new Date(istDayStart(now).getTime() - 1) // up to yesterday 23:59:59.999
 
-  const punchesByStaff = new Map<string, Map<string, Date[]>>()
-  for (const log of logs) {
-    let byDay = punchesByStaff.get(log.staffId)
-    if (!byDay) punchesByStaff.set(log.staffId, (byDay = new Map()))
-    const key = istDateKey(log.timestamp)
-    const list = byDay.get(key)
-    if (list) list.push(log.timestamp)
-    else byDay.set(key, [log.timestamp])
-  }
+    const [staffList, shifts, assignmentRows, holidays, logs] = await Promise.all([
+      prisma.staff.findMany(),
+      prisma.shift.findMany(),
+      prisma.shiftAssignment.findMany(),
+      prisma.holiday.findMany({ where: { date: { gte: windowStart, lte: windowEnd } } }),
+      prisma.attendanceLog.findMany({
+        where: { timestamp: { gte: windowStart, lte: windowEnd } },
+        orderBy: { timestamp: 'asc' },
+      }),
+    ])
 
-  for (const staff of staffList) {
-    try {
-      const shiftId = currentShiftId(assignmentsByStaff.get(staff.id) ?? [], staff.shiftId, todayKey)
-      const currentShift = shiftId ? shiftsById.get(shiftId) : undefined
-      if (!currentShift) continue
-      await detectForTeacher({
-        staffId: staff.id,
-        currentShift,
-        allShifts,
-        punchesByDay: punchesByStaff.get(staff.id) ?? new Map(),
-        skipDayKeys,
-        allow,
-        todayKey,
-      })
-    } catch (error) {
-      console.error(`${LOG} detection failed for staff ${staff.id}:`, error)
+    const allShifts: ShiftLite[] = shifts.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime, endTime: s.endTime }))
+    const shiftsById = new Map(allShifts.map((s) => [s.id, s]))
+
+    const assignmentsByStaff = new Map<string, AssignmentLite[]>()
+    for (const a of assignmentRows) {
+      const item = { effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }
+      const list = assignmentsByStaff.get(a.staffId)
+      if (list) list.push(item)
+      else assignmentsByStaff.set(a.staffId, [item])
     }
-  }
 
-  if (policy) await prisma.policy.update({ where: { id: policy.id }, data: { shiftDetectionRanAt: now } })
-  else {
-    const created = await prisma.policy.create({ data: {} })
-    await prisma.policy.update({ where: { id: created.id }, data: { shiftDetectionRanAt: now } })
+    const weekOffDays = (policy?.weekOffDays ?? '0').split(',').map(Number)
+    const holidayKeys = new Set(holidays.map((h) => istDateKey(h.date)))
+    const skipDayKeys = new Set<string>(holidayKeys)
+    for (let key = windowStartKey; key < todayKey; key = addDays(key, 1)) {
+      if (weekOffDays.includes(weekdayOf(key))) skipDayKeys.add(key)
+    }
+    const allow = normalizeAllow(policy?.lateArrivalAllow ?? '00:15')
+
+    const punchesByStaff = new Map<string, Map<string, Date[]>>()
+    for (const log of logs) {
+      let byDay = punchesByStaff.get(log.staffId)
+      if (!byDay) punchesByStaff.set(log.staffId, (byDay = new Map()))
+      const key = istDateKey(log.timestamp)
+      const list = byDay.get(key)
+      if (list) list.push(log.timestamp)
+      else byDay.set(key, [log.timestamp])
+    }
+
+    for (const staff of staffList) {
+      try {
+        const shiftId = currentShiftId(assignmentsByStaff.get(staff.id) ?? [], staff.shiftId, todayKey)
+        const currentShift = shiftId ? shiftsById.get(shiftId) : undefined
+        if (!currentShift) continue
+        await detectForTeacher({
+          staffId: staff.id,
+          currentShift,
+          allShifts,
+          punchesByDay: punchesByStaff.get(staff.id) ?? new Map(),
+          skipDayKeys,
+          allow,
+          todayKey,
+        })
+      } catch (error) {
+        console.error(`${LOG} detection failed for staff ${staff.id}:`, error)
+      }
+    }
+
+  } catch (error) {
+    console.error(`${LOG} detection failed:`, error)
+    throw error
   }
   return { ran: true, pending: await pendingCount() }
 }
 
 export async function listPendingSuggestions(): Promise<SuggestionView[]> {
-  const rows = await prisma.shiftSuggestion.findMany({
+  const all = await prisma.shiftSuggestion.findMany({
     where: { status: 'PENDING' },
     orderBy: { patternSince: 'desc' },
   })
+  // Defensive: keep only the newest PENDING row per teacher and remove the older duplicates
+  const newest = new Map<string, (typeof all)[number]>()
+  for (const r of all) {
+    const cur = newest.get(r.staffId)
+    if (!cur || new Date(r.createdAt).getTime() > new Date(cur.createdAt).getTime()) newest.set(r.staffId, r)
+  }
+  const rows = all.filter((r) => newest.get(r.staffId) === r)
+  for (const r of all) {
+    if (newest.get(r.staffId) !== r) {
+      try {
+        await prisma.shiftSuggestion.delete({ where: { id: r.id } })
+      } catch {
+        // best effort
+      }
+    }
+  }
   if (rows.length === 0) return []
   const staffIds = [...new Set(rows.map((r) => r.staffId))]
   const [staff, shifts] = await Promise.all([
@@ -232,41 +265,38 @@ export async function listPendingSuggestions(): Promise<SuggestionView[]> {
   }))
 }
 
+const APPROVE_LOCK_MS = 5 * 60000
+
 async function loadPending(id: string) {
   const row = await prisma.shiftSuggestion.findFirst({ where: { id } })
   if (!row || row.status !== 'PENDING') throw new SuggestionError('Suggestion not found', 404)
   return row
 }
 
+/** After a failed claim: 409 when someone else is deciding it right now, otherwise 404. */
+async function claimFailure(id: string): Promise<SuggestionError> {
+  const row = await prisma.shiftSuggestion.findFirst({ where: { id } })
+  if (row && row.status === 'APPROVING') return new SuggestionError('This suggestion is already being decided', 409)
+  return new SuggestionError('Suggestion not found', 404)
+}
+
 /**
  * Applies a pending suggestion from `startDate`. A dry run writes nothing and previews the
- * change, even when the suggested shift does not exist yet.
+ * change, even when the suggested shift does not exist yet. A real approve first claims the
+ * row atomically (PENDING -> APPROVING), so a double click cannot create two shifts.
  */
 export async function approveSuggestion(
   id: string,
   startDate: string,
   opts: { dryRun?: boolean; userId?: string } = {},
 ): Promise<PreviewSummary | ApplyResult> {
-  const suggestion = await loadPending(id)
   if (!isValidDayKey(startDate)) throw new SuggestionError('startDate must be a valid YYYY-MM-DD date', 400)
   if (startDate < ALWAYS) throw new SuggestionError(`Start date must be on or after ${ALWAYS}`, 400)
 
-  // Target shift: the suggested one, else an existing shift with the same times, else a new one
-  let shiftId: string | null = suggestion.suggestedShiftId ?? null
-  if (shiftId === null) {
-    const shifts = await prisma.shift.findMany()
-    const same = shifts.find((s) => s.startTime === suggestion.suggestedStart && s.endTime === suggestion.suggestedEnd)
-    if (same) shiftId = same.id
-  }
-
-  const base = {
-    staffId: suggestion.staffId,
-    effectiveFrom: startDate,
-    source: 'SUGGESTION' as const,
-    createdByUserId: opts.userId,
-  }
-
   if (opts.dryRun) {
+    const suggestion = await loadPending(id)
+    const shiftId = await existingTargetShiftId(suggestion)
+    const base = { staffId: suggestion.staffId, effectiveFrom: startDate, source: 'SUGGESTION' as const }
     if (shiftId !== null) return previewShiftChange({ ...base, shiftId } satisfies ChangeRequest)
     const proposed: ShiftLite = {
       id: PROPOSED_ID,
@@ -277,39 +307,75 @@ export async function approveSuggestion(
     return previewShiftChange({ ...base, shiftId: PROPOSED_ID }, new Date(), [proposed])
   }
 
-  let createdShift = false
-  if (shiftId === null) {
-    const created = await prisma.shift.create({
-      data: {
-        name: `${suggestion.suggestedStart}-${suggestion.suggestedEnd}`,
-        startTime: suggestion.suggestedStart,
-        endTime: suggestion.suggestedEnd,
-      },
-    })
-    shiftId = created.id
-    createdShift = true
-  }
+  const staleBefore = new Date(Date.now() - APPROVE_LOCK_MS)
+  const claim = await prisma.shiftSuggestion.updateMany({
+    where: { id, OR: [{ status: 'PENDING' }, { status: 'APPROVING', updatedAt: { lt: staleBefore } }] },
+    data: { status: 'APPROVING' },
+  })
+  if (claim.count === 0) throw await claimFailure(id)
 
-  const result = await applyShiftChange({ ...base, shiftId })
-  if (result.assignmentSaved) {
-    await prisma.shiftSuggestion.update({
-      where: { id },
-      data: {
-        status: 'APPROVED',
-        decidedByUserId: opts.userId ?? null,
-        decidedAt: new Date(),
-        ...(createdShift ? { suggestedShiftId: shiftId } : {}),
-      },
+  try {
+    const suggestion = await prisma.shiftSuggestion.findFirst({ where: { id } })
+    if (!suggestion) throw new SuggestionError('Suggestion not found', 404)
+    let shiftId = await existingTargetShiftId(suggestion)
+    let createdShift = false
+    if (shiftId === null) {
+      const created = await prisma.shift.create({
+        data: {
+          name: `${suggestion.suggestedStart}-${suggestion.suggestedEnd}`,
+          startTime: suggestion.suggestedStart,
+          endTime: suggestion.suggestedEnd,
+        },
+      })
+      shiftId = created.id
+      createdShift = true
+    }
+
+    const result = await applyShiftChange({
+      staffId: suggestion.staffId,
+      shiftId,
+      effectiveFrom: startDate,
+      source: 'SUGGESTION',
+      createdByUserId: opts.userId,
     })
+    if (result.assignmentSaved) {
+      await prisma.shiftSuggestion.update({
+        where: { id },
+        data: {
+          status: 'APPROVED',
+          decidedByUserId: opts.userId ?? null,
+          decidedAt: new Date(),
+          ...(createdShift ? { suggestedShiftId: shiftId } : {}),
+        },
+      })
+    }
+    return result
+  } catch (error) {
+    // Give the row back so it can be retried (best effort)
+    try {
+      await prisma.shiftSuggestion.updateMany({ where: { id, status: 'APPROVING' }, data: { status: 'PENDING' } })
+    } catch (revertError) {
+      console.error(`${LOG} could not release suggestion ${id}:`, revertError)
+    }
+    throw error
   }
-  return result
+}
+
+/** The suggested shift, else an existing shift with the same times (avoids duplicates on retry), else null. */
+async function existingTargetShiftId(s: {
+  suggestedShiftId: string | null
+  suggestedStart: string
+  suggestedEnd: string
+}): Promise<string | null> {
+  if (s.suggestedShiftId) return s.suggestedShiftId
+  const shifts = await prisma.shift.findMany()
+  return shifts.find((x) => x.startTime === s.suggestedStart && x.endTime === s.suggestedEnd)?.id ?? null
 }
 
 /** Hides a pending suggestion for `dismissDays` days (it returns early if the pattern moves a lot). */
 export async function dismissSuggestion(id: string, userId?: string): Promise<void> {
-  await loadPending(id)
-  await prisma.shiftSuggestion.update({
-    where: { id },
+  const claim = await prisma.shiftSuggestion.updateMany({
+    where: { id, status: 'PENDING' },
     data: {
       status: 'DISMISSED',
       dismissedUntil: addDays(istDateKey(new Date()), SHIFT_DETECTION.dismissDays),
@@ -317,4 +383,5 @@ export async function dismissSuggestion(id: string, userId?: string): Promise<vo
       decidedAt: new Date(),
     },
   })
+  if (claim.count === 0) throw await claimFailure(id)
 }

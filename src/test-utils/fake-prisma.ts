@@ -39,6 +39,7 @@ export type SuggestionRow = {
   decidedByUserId?: string | null
   decidedAt?: Date | null
   createdAt?: Date
+  updatedAt?: Date
 }
 
 type TimeFilter = { gte?: Date; lte?: Date }
@@ -84,8 +85,21 @@ export function createFakePrisma(fixtures: Fixtures): {
     return [...byId.values()].map((x) => ({ ...x }))
   })()
 
-  const matchesWhere = (row: Record<string, unknown>, where?: Record<string, unknown>) =>
-    Object.entries(where ?? {}).every(([k, v]) => row[k] === v)
+  const matchValue = (v: unknown, cond: unknown): boolean => {
+    if (cond instanceof Date) return v instanceof Date && v.getTime() === cond.getTime()
+    if (cond && typeof cond === 'object') {
+      const c = cond as { lt?: Date | string }
+      if (!('lt' in c) || v === null || v === undefined || c.lt === undefined) return false
+      const a = v instanceof Date ? v.getTime() : (v as string)
+      const b = c.lt instanceof Date ? c.lt.getTime() : c.lt
+      return a < b
+    }
+    return v === cond
+  }
+  const matchesWhere = (row: Record<string, unknown>, where?: Record<string, unknown>): boolean =>
+    Object.entries(where ?? {}).every(([k, v]) =>
+      k === 'OR' ? (v as Record<string, unknown>[]).some((w) => matchesWhere(row, w)) : matchValue(row[k], v),
+    )
   const sortBy = <T extends Record<string, unknown>>(rows: T[], orderBy?: Record<string, 'asc' | 'desc'>) => {
     if (!orderBy) return rows
     const [key, dir] = Object.entries(orderBy)[0]
@@ -170,15 +184,22 @@ export function createFakePrisma(fixtures: Fixtures): {
       count: async (args?: { where?: Record<string, unknown> }) =>
         suggestions.filter((r) => matchesWhere(r, args?.where)).length,
       create: async ({ data }: { data: Omit<SuggestionRow, 'id'> }) => {
-        const row = { id: `sug-${++suggestionSeq}`, createdAt: new Date(), ...data }
+        const now = new Date()
+        const row = { id: `sug-${++suggestionSeq}`, createdAt: now, updatedAt: now, ...data }
         suggestions.push(row)
         return row
       },
       update: async ({ where, data }: { where: { id: string }; data: Partial<SuggestionRow> }) => {
         const row = suggestions.find((r) => r.id === where.id)
         if (!row) throw new Error(`suggestion ${where.id} not found`)
-        Object.assign(row, data)
+        Object.assign(row, data, { updatedAt: new Date() })
         return row
+      },
+      // Synchronous check-and-write, so overlapping callers cannot both claim a row
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Partial<SuggestionRow> }) => {
+        const rows = suggestions.filter((r) => matchesWhere(r, where))
+        for (const r of rows) Object.assign(r, data, { updatedAt: new Date() })
+        return { count: rows.length }
       },
       delete: async ({ where }: { where: { id: string } }) => {
         const i = suggestions.findIndex((r) => r.id === where.id)
@@ -207,6 +228,13 @@ export function createFakePrisma(fixtures: Fixtures): {
         policyWrites.push({ op: 'update', data })
         policyRow = { ...(policyRow ?? {}), ...data }
         return policyRow
+      },
+      // Synchronous check-and-write, so overlapping callers cannot both claim the run
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        if (!policyRow || !matchesWhere(policyRow, where)) return { count: 0 }
+        policyWrites.push({ op: 'update', data })
+        policyRow = { ...policyRow, ...data }
+        return { count: 1 }
       },
     },
     holiday: {

@@ -80,6 +80,20 @@ function fake(fx: Partial<Fixtures> = {}) {
   return f
 }
 
+const TODAY = "2026-11-06"
+const ALL_WINDOW_DAYS = (() => {
+  const out: string[] = []
+  for (let t = Date.parse("2026-10-09T00:00:00Z"); t <= Date.parse("2026-11-05T00:00:00Z"); t += 86400000) {
+    out.push(new Date(t).toISOString().slice(0, 10))
+  }
+  return out
+})()
+const weekday = (key: string) => new Date(`${key}T00:00:00Z`).getUTCDay()
+/** The n most recent non-Sunday day keys before today. */
+function recentWorkingDays(n: number): string[] {
+  return ALL_WINDOW_DAYS.filter((d) => weekday(d) !== 0).slice(-n)
+}
+
 const pending = (rows: SuggestionRow[]) => rows.filter((r) => r.status === "PENDING")
 
 describe("shouldRunDetection", () => {
@@ -140,11 +154,30 @@ describe("runDetection", () => {
     expect(f.policyWrites).toEqual([{ op: "update", data: { shiftDetectionRanAt: NOW } }])
   })
 
-  it("creates the policy row when none exists", async () => {
+  it("creates the policy row, already stamped, when none exists", async () => {
     const f = fake({ policy: null })
     await runDetection({ now: NOW })
-    expect(f.policyWrites[0]).toEqual({ op: "create", data: {} })
-    expect(f.policyWrites[1]).toMatchObject({ op: "update", data: { shiftDetectionRanAt: NOW } })
+    expect(f.policyWrites).toEqual([{ op: "create", data: { shiftDetectionRanAt: NOW } }])
+  })
+
+  it("two overlapping runs create one pending row per teacher and only one runs", async () => {
+    const f = fake()
+    const results = await Promise.all([runDetection({ now: NOW }), runDetection({ now: NOW })])
+    expect(results.filter((r) => r.ran)).toHaveLength(1)
+    expect(pending(f.suggestions)).toHaveLength(1)
+  })
+
+  it("a forced run stamps the policy before the heavy work", async () => {
+    const f = fake({ policy: { ...POLICY, shiftDetectionRanAt: new Date(NOW.getTime() - 60000) } })
+    const client = f.client as { attendanceLog: { findMany: () => Promise<unknown> } }
+    client.attendanceLog.findMany = async () => {
+      expect(f.policyWrites).toHaveLength(1)
+      throw new Error("db down")
+    }
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    await expect(runDetection({ now: NOW, force: true })).rejects.toThrow("db down")
+    expect(spy.mock.calls[0][0]).toContain("[shift-suggestions]")
+    spy.mockRestore()
   })
 
   it("does not run twice within the throttle window", async () => {
@@ -174,39 +207,80 @@ describe("runDetection", () => {
     expect(f.suggestions).toEqual([])
   })
 
-  it("does not use today's punches", async () => {
-    // Only today has punches: no observed days, so no suggestion
-    const f = fake({ logs: punches("A", "2026-11-06", ["08:00", "09:00"]) })
-    await runDetection({ now: NOW })
-    expect(f.suggestions).toEqual([])
-  })
-
   it("skips a teacher with no current shift", async () => {
     const f = fake({ staff: [{ id: "A", name: "Asha", shiftId: null, shift: null }] })
     await runDetection({ now: NOW })
     expect(f.suggestions).toEqual([])
   })
 
-  it("ignores week-off days", async () => {
-    // Only Sundays carry the early pattern; all other days are on time
-    const sundays = ["2026-10-11", "2026-10-18", "2026-10-25", "2026-11-01"]
-    const logs = [
-      ...WINDOW_DAYS.flatMap((d) => punches("A", d, ["09:00", "15:00"])),
-      ...sundays.flatMap((d) => punches("A", d, ["08:00", "14:00"])),
-    ]
-    const f = fake({ logs })
+  it("does not use today punches (9 qualifying days plus an early punch today: no pattern; 10 past days: pattern)", async () => {
+    const nine = recentWorkingDays(9)
+    const withToday = fake({
+      logs: [...nine.flatMap((d) => punches("A", d, ["08:30", "14:30"])), ...punches("A", TODAY, ["08:30", "14:30"])],
+    })
     await runDetection({ now: NOW })
-    expect(f.suggestions).toEqual([])
+    expect(withToday.suggestions).toEqual([])
+
+    const ten = recentWorkingDays(10)
+    const control = fake({ logs: ten.flatMap((d) => punches("A", d, ["08:30", "14:30"])) })
+    await runDetection({ now: NOW })
+    expect(pending(control.suggestions)).toHaveLength(1)
   })
 
-  it("ignores holidays", async () => {
-    // 24 early days minus 14 holidays leaves 10 early + 14 holiday-only days: no pattern remains if holidays are skipped
-    const early = WINDOW_DAYS.slice(0, 14)
-    const logs = WINDOW_DAYS.flatMap((d) => punches("A", d, early.includes(d) ? ["08:30", "14:30"] : ["09:00", "15:00"]))
-    const holidays = early.map((d) => ({ date: dayStart(d), name: "H" }))
-    const f = fake({ logs, holidays })
+  it("window start: a punch exactly 28 days back counts, 29 days back does not", async () => {
+    const recent = recentWorkingDays(9)
+    const early = (d: string) => punches("A", d, ["08:30", "14:30"])
+    const inside = fake({ logs: [...recent, "2026-10-09"].flatMap(early) }) // 28 days before 6 Nov
     await runDetection({ now: NOW })
-    expect(f.suggestions).toEqual([])
+    expect(pending(inside.suggestions)).toHaveLength(1)
+
+    const outside = fake({ logs: [...recent, "2026-10-08"].flatMap(early) }) // 29 days before
+    await runDetection({ now: NOW })
+    expect(outside.suggestions).toEqual([])
+  })
+
+  it("skips week-off days: the early pattern exists only when Mon-Wed are off", async () => {
+    // Mon-Wed arrive on time, every other day early
+    const logs = ALL_WINDOW_DAYS.flatMap((d) =>
+      punches("A", d, [weekday(d) >= 1 && weekday(d) <= 3 ? "09:00" : "08:30", "14:30"]),
+    )
+    const off = fake({ logs, policy: { ...POLICY, weekOffDays: "1,2,3" } })
+    await runDetection({ now: NOW })
+    expect(pending(off.suggestions)).toHaveLength(1)
+    expect(off.suggestions[0].daysObserved).toBe(16)
+
+    const control = fake({ logs, policy: { ...POLICY, weekOffDays: "0" } })
+    await runDetection({ now: NOW })
+    expect(control.suggestions).toEqual([]) // Mon-Wed now count: only half the days are early
+  })
+
+  it("skips holidays: the pattern exists only when the on-time days are marked as holidays", async () => {
+    const early = WINDOW_DAYS.slice(0, 12)
+    const holidayDays = WINDOW_DAYS.slice(12)
+    const logs = [
+      ...early.flatMap((d) => punches("A", d, ["08:30", "14:30"])),
+      ...holidayDays.flatMap((d) => punches("A", d, ["09:00", "15:00"])),
+    ]
+    const marked = fake({ logs, holidays: holidayDays.map((d) => ({ date: dayStart(d), name: "H" })) })
+    await runDetection({ now: NOW })
+    expect(pending(marked.suggestions)).toHaveLength(1)
+    expect(marked.suggestions[0].daysObserved).toBe(12)
+
+    const control = fake({ logs, holidays: [] })
+    await runDetection({ now: NOW })
+    expect(control.suggestions).toEqual([])
+  })
+
+  it("removes a stale pending row when the pattern is suppressed by a dismissal", async () => {
+    const f = fake({
+      suggestions: [
+        { id: "old", staffId: "A", status: "PENDING", medianIn: "08:30" },
+        { id: "d1", staffId: "A", status: "DISMISSED", medianIn: "08:30", dismissedUntil: "2026-12-01", decidedAt: NOW },
+      ],
+    })
+    const res = await runDetection({ now: NOW })
+    expect(res.pending).toBe(0)
+    expect(f.suggestions.map((r) => r.id)).toEqual(["d1"])
   })
 
   it("stays quiet for a recently dismissed suggestion with the same median", async () => {
@@ -261,9 +335,13 @@ const SUG: SuggestionRow = {
 describe("listPendingSuggestions", () => {
   it("shapes pending rows with staff and shift names, newest pattern first", async () => {
     fake({
+      staff: [
+        { id: "A", name: "Asha", shiftId: "s1", shift: DAY },
+        { id: "B", name: "Bela", shiftId: "s1", shift: DAY },
+      ],
       suggestions: [
         SUG,
-        { ...SUG, id: "g2", staffId: "A", patternSince: "2026-10-20" },
+        { ...SUG, id: "g2", staffId: "B", patternSince: "2026-10-20" },
         { ...SUG, id: "g3", status: "DISMISSED" },
       ],
     })
@@ -271,8 +349,8 @@ describe("listPendingSuggestions", () => {
     expect(list.map((r) => r.id)).toEqual(["g2", "g1"])
     expect(list[0]).toEqual({
       id: "g2",
-      staffId: "A",
-      staffName: "Asha",
+      staffId: "B",
+      staffName: "Bela",
       fromShiftName: "Day",
       medianIn: "08:30",
       medianOut: "14:30",
@@ -285,6 +363,20 @@ describe("listPendingSuggestions", () => {
       suggestedStart: "08:30",
       suggestedEnd: "14:30",
     })
+  })
+})
+
+describe("listPendingSuggestions duplicates", () => {
+  it("returns only the newest pending row per teacher and removes the older", async () => {
+    const f = fake({
+      suggestions: [
+        { ...SUG, id: "old", createdAt: new Date("2026-11-01T10:00:00+05:30") },
+        { ...SUG, id: "new", createdAt: new Date("2026-11-05T10:00:00+05:30") },
+      ],
+    })
+    const list = await listPendingSuggestions()
+    expect(list.map((r) => r.id)).toEqual(["new"])
+    expect(f.suggestions.map((r) => r.id)).toEqual(["new"])
   })
 })
 
@@ -365,6 +457,64 @@ describe("approveSuggestion", () => {
     expect(f.suggestions[0].status).toBe("APPROVED")
   })
 
+  it("two simultaneous real approves create one shift and one assignment, and one call wins", async () => {
+    const f = approveFake()
+    const results = await Promise.allSettled([
+      approveSuggestion("g1", "2026-11-02", { userId: "u1" }),
+      approveSuggestion("g1", "2026-11-02", { userId: "u1" }),
+    ])
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1)
+    const failed = results.find((r) => r.status === "rejected") as PromiseRejectedResult
+    expect(failed.reason).toMatchObject({ status: 409 })
+    expect(f.shiftRows).toHaveLength(2)
+    expect(f.assignments.filter((a) => a.source === "SUGGESTION")).toHaveLength(1)
+    expect(f.suggestions[0].status).toBe("APPROVED")
+  })
+
+  it("a failing apply returns the row to PENDING", async () => {
+    const f = approveFake()
+    const client = f.client as { $transaction: () => Promise<unknown> }
+    client.$transaction = async () => {
+      throw new Error("db down")
+    }
+    await expect(approveSuggestion("g1", "2026-11-02", {})).rejects.toThrow("db down")
+    expect(f.suggestions[0].status).toBe("PENDING")
+  })
+
+  it("a fresh APPROVING row cannot be claimed, a stale one can", async () => {
+    const fresh = approveFake({ suggestions: [{ ...SUG, status: "APPROVING", updatedAt: new Date(NOW.getTime() - 60000) }] })
+    await expect(approveSuggestion("g1", "2026-11-02", {})).rejects.toMatchObject({ status: 409 })
+    expect(fresh.shiftRows).toHaveLength(1)
+
+    const stale = approveFake({
+      suggestions: [{ ...SUG, status: "APPROVING", updatedAt: new Date(NOW.getTime() - 10 * 60000) }],
+    })
+    await approveSuggestion("g1", "2026-11-02", {})
+    expect(stale.suggestions[0].status).toBe("APPROVED")
+  })
+
+  it("a dry run previews a proposed new shift in memory (a 09:00 shift is still late for a 10:00 arrival)", async () => {
+    const EARLY8 = { id: "s8", name: "Early8", startTime: "08:00", endTime: "14:00" }
+    const days = dayKeys("2026-11-02", "2026-11-06")
+    const f = fake({
+      staff: [{ id: "A", name: "Asha", shiftId: "s8", shift: EARLY8 }],
+      shifts: [EARLY8],
+      suggestions: [{ ...SUG, fromShiftId: "s8", suggestedStart: "09:00", suggestedEnd: "15:00" }],
+      logs: days.flatMap((d) => punches("A", d, ["10:00", "16:30"])),
+      dailyRecords: days.map((d) => ({ staffId: "A", date: dayStart(d), status: "PRESENT", lateMinutes: 120 })),
+    })
+    const res = (await approveSuggestion("g1", "2026-11-02", { dryRun: true })) as {
+      recalculatedDays: number
+      changedDays: number
+      transitions: Record<string, number>
+    }
+    expect(res.recalculatedDays).toBe(5)
+    expect(res.changedDays).toBe(5) // 120 -> 60 minutes late
+    expect(res.transitions).toEqual({})
+    expect(f.shiftRows).toHaveLength(1)
+    expect(f.suggestions[0].status).toBe("PENDING")
+  })
+
   it("rejects an unknown or already decided suggestion", async () => {
     fake({ suggestions: [{ ...SUG, status: "DISMISSED" }] })
     await expect(approveSuggestion("nope", "2026-11-02", {})).rejects.toMatchObject({ status: 404 })
@@ -388,6 +538,12 @@ describe("dismissSuggestion", () => {
       decidedByUserId: "u1",
     })
     expect(f.suggestions[0].decidedAt).toBeInstanceOf(Date)
+  })
+
+  it("cannot dismiss a suggestion that is being approved", async () => {
+    const f = fake({ suggestions: [{ ...SUG, status: "APPROVING" }] })
+    await expect(dismissSuggestion("g1")).rejects.toMatchObject({ status: 409 })
+    expect(f.suggestions[0].status).toBe("APPROVING")
   })
 
   it("errors for an unknown or already decided suggestion", async () => {
