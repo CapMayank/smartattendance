@@ -99,8 +99,8 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
 
   if (!analytics) {
     return (
-      <div className="p-8 text-center bg-black/20 backdrop-blur-2xl border border-white/[0.08] rounded-3xl">
-        <p className="text-slate-400">No payroll data available for analytics yet.</p>
+      <div className="p-8 text-center bg-black/20 border border-white/[0.08] rounded-lg">
+        <p className="text-muted">No payroll data available for analytics yet.</p>
       </div>
     )
   }
@@ -108,9 +108,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
   const KPICard = ({ title, value, change, icon: Icon, colorClass }: any) => {
     const isPositive = change >= 0
     return (
-      <div className="bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="bg-black/20 border border-white/[0.08] p-6 rounded-lg">
         <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+          <div className={`w-12 h-12 rounded-md flex items-center justify-center ${colorClass}`}>
             <Icon className="w-6 h-6 text-white" />
           </div>
           <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
@@ -120,7 +120,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
             {Math.abs(change).toFixed(1)}%
           </div>
         </div>
-        <h3 className="text-slate-400 text-sm font-medium">{title}</h3>
+        <h3 className="text-muted text-sm font-medium">{title}</h3>
         <p className="text-2xl font-bold text-white mt-1">{formatCurrency(value)}</p>
       </div>
     )
@@ -135,7 +135,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
           value={analytics.kpis.gross.value} 
           change={analytics.kpis.gross.change} 
           icon={Wallet} 
-          colorClass="bg-blue-600" 
+          colorClass="bg-accent" 
         />
         <KPICard 
           title="Total Net Payout" 
@@ -163,7 +163,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         {/* Trend Chart */}
-        <div className="xl:col-span-2 bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        <div className="xl:col-span-2 bg-black/20 border border-white/[0.08] p-6 rounded-lg">
           <h3 className="text-xl font-bold text-white mb-6">Payroll Trajectory</h3>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -201,9 +201,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
         </div>
 
         {/* Department Pie Chart */}
-        <div className="bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col">
+        <div className="bg-black/20 border border-white/[0.08] p-6 rounded-lg flex flex-col">
           <h3 className="text-xl font-bold text-white mb-2">Cost by Department</h3>
-          <p className="text-sm text-slate-400 mb-6">Latest Month ({analytics.latestMonthKey})</p>
+          <p className="text-sm text-muted mb-6">Latest Month ({analytics.latestMonthKey})</p>
           
           <div className="h-[300px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -241,7 +241,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
         </div>
 
         {/* Compliance Stacked Bar Chart */}
-        <div className="xl:col-span-3 bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        <div className="xl:col-span-3 bg-black/20 border border-white/[0.08] p-6 rounded-lg">
           <h3 className="text-xl font-bold text-white mb-6">EPF Compliance Contributions</h3>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">

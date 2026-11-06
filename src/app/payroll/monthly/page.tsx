@@ -314,49 +314,48 @@ export default function MonthlyPayrollPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto pb-24 space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
-            <FileText className="w-8 h-8 text-indigo-400" />
+          <div className="p-3 bg-blue-500/20 rounded-lg border border-white/[0.04]">
+            <FileText className="w-8 h-8 text-blue-400" />
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              <h1 className="text-2xl sm:text-2xl font-semibold tracking-tight text-fg">
                 Monthly Payroll
               </h1>
               {payrolls.length > 0 && (
-                <span className={`px-2.5 py-1 rounded-md text-xs font-bold tracking-wider uppercase border shadow-sm ${
+                <span className={`px-2.5 py-1 rounded-md text-xs font-bold tracking-wider uppercase border  ${
                   isMonthLocked 
-                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10' 
-                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10'
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 ' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 '
                 }`}>
                   {isMonthLocked ? 'Locked' : 'Draft'}
                 </span>
               )}
             </div>
-            <p className="text-slate-400 mt-1 font-medium">Follow the steps below to process, adjust bonuses, and export payroll</p>
+            <p className="text-muted mt-1 font-medium">Follow the steps below to process, adjust bonuses, and export payroll</p>
           </div>
         </div>
       </div>
 
       {/* 5-Step Process Wizard */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-black/30 border border-white/[0.08] rounded-lg p-5 relative overflow-hidden">
         
         <div className="flex flex-col xl:flex-row gap-6 relative z-10 items-stretch">
           
           {/* Step 1 & 2: Setup & Sync */}
-          <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">1</div>
+          <div className="flex-1 bg-black/50/40 p-5 rounded-lg border border-white/[0.04] relative">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white z-10">1</div>
             <h3 className="text-sm font-bold text-white mb-4 ml-3">Select Period</h3>
             <div className="flex flex-wrap items-end gap-3 ml-3">
               <div>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[120px]"
+                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-blue-500/50 min-w-[120px]"
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                     <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM')}</option>
@@ -367,7 +366,7 @@ export default function MonthlyPayrollPage() {
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-indigo-500/50 min-w-[90px]"
+                  className="bg-black/40 border border-white/[0.08] rounded-lg px-3 py-2 text-white text-sm font-medium focus:outline-none focus:border-blue-500/50 min-w-[90px]"
                 >
                   {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -376,15 +375,15 @@ export default function MonthlyPayrollPage() {
               </div>
               <button
                 onClick={fetchPayroll}
-                className="p-2 text-slate-400 hover:text-white bg-black/40 rounded-lg transition-all border border-white/[0.04]"
+                className="p-2 text-muted hover:text-white bg-black/40 rounded-lg transition-all border border-white/[0.04]"
                 title="Refresh Data"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-400' : ''}`} />
               </button>
             </div>
 
             <div className="mt-6 ml-3">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[88px]">2</div>
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white z-10 mt-[88px]">2</div>
               <h3 className="text-sm font-bold text-white mb-3">Sync Attendance</h3>
               <button
                 onClick={handleSyncAttendance}
@@ -402,11 +401,11 @@ export default function MonthlyPayrollPage() {
           </div>
 
           {/* Step 3 & 4: Review & Recalculate */}
-          <div className="flex-1 bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">3</div>
+          <div className="flex-1 bg-black/50/40 p-5 rounded-lg border border-white/[0.04] relative flex flex-col justify-between">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white z-10">3</div>
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-2">Review & Adjust</h3>
-              <p className="text-xs text-slate-400 max-w-xs mb-3">
+              <p className="text-xs text-muted max-w-xs mb-3">
                 {isBonusModeEnabled ? (
                   <>Directly enter <strong className="text-amber-400">Bonus Days</strong> per staff in the table below, or apply bulk baseline bonuses.</>
                 ) : (
@@ -418,7 +417,7 @@ export default function MonthlyPayrollPage() {
                   type="button"
                   onClick={() => setShowBonusModal(true)}
                   disabled={payrolls.length === 0 || isMonthLocked}
-                  className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-xl transition-all border border-amber-500/30 disabled:opacity-50 shadow-sm"
+                  className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-md transition-all border border-amber-500/30 disabled:opacity-50"
                 >
                   <Gift className="w-3.5 h-3.5 text-amber-400" />
                   Distribute Baseline Bonus
@@ -427,15 +426,15 @@ export default function MonthlyPayrollPage() {
             </div>
 
             <div className="mt-6 ml-3">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10 mt-[96px]">4</div>
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white z-10 mt-[96px]">4</div>
               <h3 className="text-sm font-bold text-white mb-3">Save & Recalculate</h3>
               <button
                 onClick={handleSave}
                 disabled={saving || payrolls.length === 0 || isMonthLocked}
-                className={`flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-lg ${
+                className={`flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-lg transition-all  ${
                   saveSuccess 
                     ? 'bg-emerald-500' 
-                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400'
+                    : 'bg-accent hover:from-blue-500 hover:to-blue-400'
                 } disabled:opacity-50`}
               >
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="w-4 h-4" />}
@@ -449,8 +448,8 @@ export default function MonthlyPayrollPage() {
           </div>
 
           {/* Step 5: Lock & Export */}
-          <div className="flex-[1.2] bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
+          <div className="flex-[1.2] bg-black/50/40 p-5 rounded-lg border border-white/[0.04] relative flex flex-col justify-between">
+            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white z-10">5</div>
             <div className="ml-3">
               <h3 className="text-sm font-bold text-white mb-3">Lock & Export</h3>
               {!isMonthLocked ? (
@@ -463,7 +462,7 @@ export default function MonthlyPayrollPage() {
                   Lock Payroll
                 </button>
               ) : (
-                <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border mb-6 text-slate-400 bg-black/40 border-white/[0.08] cursor-not-allowed" title="Contact database administrator to unlock">
+                <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border mb-6 text-muted bg-black/40 border-white/[0.08] cursor-not-allowed" title="Contact database administrator to unlock">
                   <Lock className="w-4 h-4" />
                   Payroll Locked
                 </div>
@@ -478,7 +477,7 @@ export default function MonthlyPayrollPage() {
                 </button>
                 <button
                   onClick={() => handleExport('ecr-final')}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-all border border-blue-500/20"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-accent-hover/20 rounded-lg transition-all border border-blue-500/20"
                 >
                   <Download className="w-3.5 h-3.5" /> ECR (Excel)
                 </button>
@@ -496,12 +495,12 @@ export default function MonthlyPayrollPage() {
       </div>
 
       {/* Master Performance / Festival Bonus Mode Switch */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 rounded-lg bg-black/40 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5">
-          <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
+          <div className={`p-3 rounded-lg border shrink-0 transition-colors ${
             isBonusModeEnabled 
-              ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
-              : 'bg-white/[0.04] border-white/[0.08] text-slate-400'
+              ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 ' 
+              : 'bg-white/[0.04] border-white/[0.08] text-muted'
           }`}>
             <Gift className="w-5 h-5" />
           </div>
@@ -513,12 +512,12 @@ export default function MonthlyPayrollPage() {
                   <Sparkles className="w-3 h-3" /> Enabled for this Month
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/[0.04] text-slate-400 border border-white/[0.08]">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/[0.04] text-muted border border-white/[0.08]">
                   Standard Payroll (Bonus Off)
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+            <p className="text-xs text-muted mt-1 max-w-2xl leading-relaxed">
               {isBonusModeEnabled
                 ? 'Bonus columns and EPF configuration are visible. You can assign performance bonus days or flat bonuses per staff member.'
                 : 'Turn on to reward performance days or festive bonuses to your team for this month. Bonus controls and columns stay hidden when off.'}
@@ -526,7 +525,7 @@ export default function MonthlyPayrollPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 self-end sm:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
+        <div className="flex items-center gap-3 self-end sm:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-lg border border-white/[0.08]">
           <span className="text-xs font-semibold text-slate-300">
             {isBonusModeEnabled ? 'Bonus Active' : 'Include Bonus'}
           </span>
@@ -539,7 +538,7 @@ export default function MonthlyPayrollPage() {
             }`}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white  ring-0 transition duration-200 ease-in-out ${
                 isBonusModeEnabled ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
@@ -549,12 +548,12 @@ export default function MonthlyPayrollPage() {
 
       {/* Dedicated EPF Compliance & Bonus Configuration Banner (Visible only when Bonus Mode is Enabled) */}
       {isBonusModeEnabled && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/[0.08] backdrop-blur-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-200">
+        <div className="p-4 sm:p-5 rounded-lg bg-black/40 border border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in duration-200">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className={`p-3 rounded-2xl border shrink-0 transition-colors ${
+            <div className={`p-3 rounded-lg border shrink-0 transition-colors ${
               isBonusPfApplicable 
-                ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
-                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                ? 'bg-blue-500/15 border-blue-500/30 text-blue-400 ' 
+                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 '
             }`}>
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -562,7 +561,7 @@ export default function MonthlyPayrollPage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="text-sm font-bold text-white">EPF on Bonus Setting:</span>
                 {isBonusPfApplicable ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                     <Check className="w-3 h-3" /> PF Applicable (12% Deducted)
                   </span>
                 ) : (
@@ -571,7 +570,7 @@ export default function MonthlyPayrollPage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-xs text-muted mt-1 max-w-2xl leading-relaxed">
                 {isBonusPfApplicable 
                   ? 'Bonus is added into EPF Wages and attracts 12% employee PF contribution (subject to the revised ₹25,000 ceiling).'
                   : 'Standard EPFO rule: Bonuses are paid in full to employees in Net Payment without PF deduction, avoiding wage ceiling violations.'}
@@ -579,18 +578,18 @@ export default function MonthlyPayrollPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/[0.08]">
+          <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-black/50 px-4 py-2.5 rounded-lg border border-white/[0.08]">
             <span className="text-xs font-semibold text-slate-300">Deduct 12% PF:</span>
             <button
               type="button"
               disabled={isMonthLocked}
               onClick={() => setIsBonusPfApplicable(!isBonusPfApplicable)}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
-                isBonusPfApplicable ? 'bg-indigo-600' : 'bg-slate-700'
+                isBonusPfApplicable ? 'bg-accent' : 'bg-slate-700'
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white  ring-0 transition duration-200 ease-in-out ${
                   isBonusPfApplicable ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
@@ -600,9 +599,9 @@ export default function MonthlyPayrollPage() {
       )}
 
       {/* Main Table Area */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
+      <div className="bg-black/30 border border-white/[0.08] rounded-lg overflow-hidden flex flex-col relative">
         <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar px-4 pb-3">
-          <table className="glass-table text-sm text-left whitespace-nowrap">
+          <table className="data-table text-sm text-left whitespace-nowrap">
             <thead>
               <tr>
                 <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
@@ -622,8 +621,8 @@ export default function MonthlyPayrollPage() {
                 <tr>
                   <td colSpan={isBonusModeEnabled ? 8 : 7} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                      <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
+                      <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                      <p className="text-muted font-medium animate-pulse">Calculating payroll metrics...</p>
                     </div>
                   </td>
                 </tr>
@@ -631,9 +630,9 @@ export default function MonthlyPayrollPage() {
                 <tr>
                   <td colSpan={isBonusModeEnabled ? 8 : 7} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <ShieldCheck className="w-12 h-12 text-slate-600 mb-2" />
+                      <ShieldCheck className="w-12 h-12 text-subtle mb-2" />
                       <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
-                      <p className="text-slate-500 text-sm max-w-sm">There are no staff members configured for payroll this month. Head to the Staff Payroll Master to configure them.</p>
+                      <p className="text-subtle text-sm max-w-sm">There are no staff members configured for payroll this month. Head to the Staff Payroll Master to configure them.</p>
                     </div>
                   </td>
                 </tr>
@@ -651,12 +650,12 @@ export default function MonthlyPayrollPage() {
                     <tr key={p.id} className="group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-accent border border-white/[0.08] flex items-center justify-center text-white font-bold text-xs shrink-0">
                             {p.staff.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <div className="font-semibold text-slate-200">{p.staff.name}</div>
-                            <div className="text-[10px] uppercase tracking-widest text-slate-500">{p.staff.payrollInfo?.uan || 'No UAN'}</div>
+                            <div className="text-[10px] uppercase tracking-wider text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</div>
                           </div>
                         </div>
                       </td>
@@ -664,8 +663,8 @@ export default function MonthlyPayrollPage() {
                       {/* Total / Present Days */}
                       <td className="px-4 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <span className="text-slate-500 font-medium">{p.totalDays}</span>
-                          <span className="text-slate-600">/</span>
+                          <span className="text-subtle font-medium">{p.totalDays}</span>
+                          <span className="text-subtle">/</span>
                           <input
                             type="number"
                             step="0.5"
@@ -686,7 +685,7 @@ export default function MonthlyPayrollPage() {
                             }}
                             className={`w-16 bg-black/40 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
                               isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                              edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)] focus:ring-2 focus:ring-indigo-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-indigo-500/50'
+                              edits[p.id]?.presentDays !== p.presentDays ? 'border-blue-500/50 text-blue-400 focus:ring-2 focus:ring-blue-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-blue-500/50'
                             }`}
                           />
                         </div>
@@ -694,7 +693,7 @@ export default function MonthlyPayrollPage() {
                       
                       {/* Fixed CTC */}
                       <td className="px-4 py-4 text-right">
-                        <span className="text-slate-500 font-medium">₹{p.staff.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
+                        <span className="text-subtle font-medium">₹{p.staff.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
                       </td>
 
                       {/* Bonus Days & Live Computed Rupee Value */}
@@ -717,11 +716,11 @@ export default function MonthlyPayrollPage() {
                                 className={`w-14 bg-black/50 border rounded-lg px-2 py-1.5 text-center font-bold text-amber-300 focus:outline-none transition-all ${
                                   isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
                                   currentBonusDays > 0
-                                    ? 'border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.25)] focus:ring-2 focus:ring-amber-500/50 text-amber-300'
-                                    : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50 text-slate-400'
+                                    ? 'border-amber-500/60 focus:ring-2 focus:ring-amber-500/50 text-amber-300'
+                                    : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50 text-muted'
                                 }`}
                               />
-                              <span className="text-xs font-semibold text-slate-500">days</span>
+                              <span className="text-xs font-semibold text-subtle">days</span>
                             </div>
                             {currentBonusAmount > 0 && (
                               <span className="text-[11px] font-bold text-amber-400 tracking-tight">
@@ -759,7 +758,7 @@ export default function MonthlyPayrollPage() {
                             })}
                             className={`w-24 bg-black/40 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none transition-all ${
                               isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] focus:ring-2 focus:ring-rose-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-rose-500/50'
+                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 focus:ring-2 focus:ring-rose-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-rose-500/50'
                             }`}
                           />
                         </div>
@@ -767,7 +766,7 @@ export default function MonthlyPayrollPage() {
                       
                       {/* Net Payment */}
                       <td className="px-6 py-4 text-right">
-                        <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shadow-inner">
+                        <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
                           <span className="text-emerald-400 font-bold tracking-tight text-base">₹{calc.netPayment.toLocaleString()}</span>
                         </div>
                       </td>
@@ -783,14 +782,14 @@ export default function MonthlyPayrollPage() {
         <div className="md:hidden p-4 space-y-3">
           {loading && payrolls.length === 0 ? (
             <div className="py-16 flex flex-col items-center gap-4">
-              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-              <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
+              <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+              <p className="text-muted font-medium animate-pulse">Calculating payroll metrics...</p>
             </div>
           ) : payrolls.length === 0 ? (
             <div className="py-14 text-center">
-              <ShieldCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <ShieldCheck className="w-12 h-12 text-subtle mx-auto mb-3" />
               <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
-              <p className="text-slate-500 text-sm mt-1">No staff are configured for payroll this month.</p>
+              <p className="text-subtle text-sm mt-1">No staff are configured for payroll this month.</p>
             </div>
           ) : (
             payrolls.map((p) => {
@@ -815,39 +814,39 @@ export default function MonthlyPayrollPage() {
               }
 
               return (
-                <div key={p.id} className={`rounded-3xl p-4 border shadow-lg relative overflow-hidden transition-colors ${isEdited ? 'bg-indigo-500/[0.06] border-indigo-500/30' : 'bg-black/40 border-white/[0.08]'}`}>
+                <div key={p.id} className={`rounded-lg p-4 border  relative overflow-hidden transition-colors ${isEdited ? 'bg-blue-500/[0.06] border-blue-500/30' : 'bg-black/40 border-white/[0.08]'}`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/[0.08] flex items-center justify-center text-white font-black shrink-0">
+                    <div className="w-11 h-11 rounded-lg bg-slate-800 border border-white/[0.08] flex items-center justify-center text-white font-bold shrink-0">
                       {p.staff.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-white leading-tight truncate">{p.staff.name}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-slate-500 truncate">{p.staff.payrollInfo?.uan || 'No UAN'}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-subtle truncate">{p.staff.payrollInfo?.uan || 'No UAN'}</p>
                     </div>
-                    {isEdited && <span className="shrink-0 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Edited</span>}
+                    {isEdited && <span className="shrink-0 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">Edited</span>}
                   </div>
 
-                  <div className="mt-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5">
+                  <div className="mt-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3.5">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">Net Payment</p>
-                    <p className="text-2xl font-black text-emerald-400 mt-0.5">₹{calc.netPayment.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-emerald-400 mt-0.5">₹{calc.netPayment.toLocaleString()}</p>
                   </div>
 
                   <div className={`grid ${isBonusModeEnabled ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mt-3`}>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fixed CTC</p>
-                      <p className="text-[12px] font-bold text-slate-400 mt-1 truncate">₹{monthlyCtc.toLocaleString()}</p>
+                    <div className="bg-black/50 rounded-md border border-white/[0.04] p-2">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-subtle">Fixed CTC</p>
+                      <p className="text-[12px] font-bold text-muted mt-1 truncate">₹{monthlyCtc.toLocaleString()}</p>
                     </div>
                     {isBonusModeEnabled && (
-                      <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
+                      <div className="bg-black/50 rounded-md border border-white/[0.04] p-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">Bonus</p>
                         <p className="text-[12px] font-bold text-amber-300 mt-1 truncate">₹{calc.bonusAmount.toLocaleString()}</p>
                       </div>
                     )}
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Gross</p>
+                    <div className="bg-black/50 rounded-md border border-white/[0.04] p-2">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-subtle">Gross</p>
                       <p className="text-[12px] font-bold text-slate-200 mt-1 truncate">₹{calc.grossWage.toLocaleString()}</p>
                     </div>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
+                    <div className="bg-black/50 rounded-md border border-white/[0.04] p-2">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-rose-400/70">PF</p>
                       <p className="text-[12px] font-bold text-rose-400 mt-1 truncate">-₹{calc.employeeEpf.toLocaleString()}</p>
                     </div>
@@ -855,8 +854,8 @@ export default function MonthlyPayrollPage() {
 
                   <div className={`grid ${isBonusModeEnabled ? 'grid-cols-3' : 'grid-cols-2'} gap-2 mt-4`}>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Days <span className="text-slate-600">/{p.totalDays}</span></p>
-                      <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Days <span className="text-subtle">/{p.totalDays}</span></p>
+                      <div className="flex items-center rounded-md border border-white/[0.08] bg-black/50 overflow-hidden">
                         <button
                           disabled={isMonthLocked}
                           onClick={() => setPresent(currentPresentDays - 0.5)}
@@ -885,7 +884,7 @@ export default function MonthlyPayrollPage() {
                     {isBonusModeEnabled && (
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus Days</p>
-                        <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                        <div className="flex items-center rounded-md border border-white/[0.08] bg-black/50 overflow-hidden">
                           <button
                             disabled={isMonthLocked}
                             onClick={() => handleBonusDaysChange(p, Math.max(0, currentBonusDays - 0.5))}
@@ -929,7 +928,7 @@ export default function MonthlyPayrollPage() {
                             refundOfAdvance: parseFloat(e.target.value) || 0 
                           }
                         })}
-                        className="w-full h-10 rounded-xl border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50 text-xs"
+                        className="w-full h-10 rounded-md border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50 text-xs"
                       />
                     </div>
                   </div>
@@ -940,9 +939,9 @@ export default function MonthlyPayrollPage() {
         </div>
         
         {/* Helper Footer */}
-        <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-slate-500 flex items-center justify-between">
+        <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-indigo-400/70" />
+            <AlertCircle className="w-4 h-4 text-blue-400/70" />
             {isBonusModeEnabled ? (
               <span>Directly adjust <strong className="text-amber-400">Bonus Days</strong> (0-3d) per staff, and the system automatically computes exact rupees. Click Save Changes when done.</span>
             ) : (
@@ -955,36 +954,36 @@ export default function MonthlyPayrollPage() {
 
       {/* Bonus Baseline Modal */}
       {showBonusModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/[0.12] rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/[0.12] rounded-lg max-w-md w-full p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-400">
+                <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-lg text-amber-400">
                   <Gift className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">Distribute Baseline Bonus</h3>
-                  <p className="text-xs text-slate-400">Batch-apply a starting bonus to all staff, then tweak individually</p>
+                  <p className="text-xs text-muted">Batch-apply a starting bonus to all staff, then tweak individually</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowBonusModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+                className="p-1.5 text-muted hover:text-white rounded-md hover:bg-white/10 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Mode selection */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 border border-white/[0.08] rounded-2xl mb-5">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 border border-white/[0.08] rounded-lg mb-5">
               <button
                 type="button"
                 onClick={() => setBonusDistMode('DAYS')}
-                className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${
                   bonusDistMode === 'DAYS'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-amber-500 text-slate-950 '
+                    : 'text-muted hover:text-white'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -993,10 +992,10 @@ export default function MonthlyPayrollPage() {
               <button
                 type="button"
                 onClick={() => setBonusDistMode('FLAT')}
-                className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${
                   bonusDistMode === 'FLAT'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-amber-500 text-slate-950 '
+                    : 'text-muted hover:text-white'
                 }`}
               >
                 <IndianRupee className="w-3.5 h-3.5" />
@@ -1017,10 +1016,10 @@ export default function MonthlyPayrollPage() {
                         key={d}
                         type="button"
                         onClick={() => setBonusDaysInput(d)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        className={`flex-1 py-2 rounded-md text-xs font-bold border transition-all ${
                           bonusDaysInput === d
-                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
-                            : 'bg-black/30 border-white/[0.08] text-slate-400 hover:border-white/20'
+                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 '
+                            : 'bg-black/30 border-white/[0.08] text-muted hover:border-white/20'
                         }`}
                       >
                         +{d} {d === 1 ? 'Day' : 'Days'}
@@ -1028,7 +1027,7 @@ export default function MonthlyPayrollPage() {
                     ))}
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Custom Days:</span>
+                    <span className="text-xs text-muted">Custom Days:</span>
                     <input
                       type="number"
                       step="0.5"
@@ -1036,12 +1035,12 @@ export default function MonthlyPayrollPage() {
                       max="15"
                       value={bonusDaysInput}
                       onChange={(e) => setBonusDaysInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-20 bg-black/40 border border-white/[0.12] rounded-xl px-2.5 py-1.5 text-center text-sm font-bold text-white focus:outline-none focus:border-amber-500"
+                      className="w-20 bg-black/40 border border-white/[0.12] rounded-md px-2.5 py-1.5 text-center text-sm font-bold text-white focus:outline-none focus:border-amber-500"
                     />
-                    <span className="text-xs text-slate-500">days of daily rate</span>
+                    <span className="text-xs text-subtle">days of daily rate</span>
                   </div>
                 </div>
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300/90 leading-relaxed">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] text-amber-300/90 leading-relaxed">
                   💡 Sets each employee's Bonus Days to <strong>{bonusDaysInput} days</strong> and auto-multiplies by their daily wage. You can still adjust each person's days in the table afterwards.
                 </div>
               </div>
@@ -1053,14 +1052,14 @@ export default function MonthlyPayrollPage() {
                     Flat Rupee Amount per Staff
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">₹</span>
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-subtle font-bold text-sm">₹</span>
                     <input
                       type="number"
                       step="100"
                       min="0"
                       value={bonusFlatInput}
                       onChange={(e) => setBonusFlatInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-full bg-black/40 border border-white/[0.12] rounded-xl pl-8 pr-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-black/40 border border-white/[0.12] rounded-md pl-8 pr-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
                       placeholder="e.g. 1000"
                     />
                   </div>
@@ -1074,7 +1073,7 @@ export default function MonthlyPayrollPage() {
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         bonusFlatInput === amt
                           ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                          : 'bg-black/30 border-white/[0.08] text-slate-400 hover:border-white/20'
+                          : 'bg-black/30 border-white/[0.08] text-muted hover:border-white/20'
                       }`}
                     >
                       ₹{amt.toLocaleString()}
@@ -1089,7 +1088,7 @@ export default function MonthlyPayrollPage() {
               <button
                 type="button"
                 onClick={clearAllBonuses}
-                className="px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                className="px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
               >
                 Clear All Bonuses
               </button>
@@ -1097,14 +1096,14 @@ export default function MonthlyPayrollPage() {
                 <button
                   type="button"
                   onClick={() => setShowBonusModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+                  className="px-4 py-2 text-xs font-semibold text-muted hover:text-white rounded-md hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={applyBonusToAll}
-                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl shadow-lg transition-all"
+                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-md transition-all"
                 >
                   Apply to All
                 </button>
@@ -1116,16 +1115,16 @@ export default function MonthlyPayrollPage() {
 
       {/* Danger Zone */}
       {isMonthLocked && (
-        <div className="mt-8 border border-rose-500/20 rounded-3xl bg-rose-500/5 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-rose-500/5">
+        <div className="mt-8 border border-rose-500/20 rounded-lg bg-rose-500/5 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-rose-400 flex items-center gap-2">
               <AlertCircle className="w-5 h-5" /> Danger Zone
             </h3>
-            <p className="text-sm text-slate-400 mt-1">Unlocking payroll will allow manual edits and synchronization again. This should only be done if an error was made.</p>
+            <p className="text-sm text-muted mt-1">Unlocking payroll will allow manual edits and synchronization again. This should only be done if an error was made.</p>
           </div>
           <button
             onClick={handleToggleLock}
-            className="whitespace-nowrap px-6 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold rounded-xl border border-rose-500/20 transition-all flex items-center gap-2"
+            className="whitespace-nowrap px-6 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold rounded-md border border-rose-500/20 transition-all flex items-center gap-2"
           >
             <Unlock className="w-4 h-4" />
             Force Unlock Payroll

@@ -15,7 +15,7 @@ export default function DepartmentPieChart({ data }: { data: ChartData[] }) {
 
   if (activeData.length === 0) {
     return (
-      <div className="h-[300px] w-full flex items-center justify-center text-slate-500 font-medium">
+      <div className="h-[300px] w-full flex items-center justify-center text-subtle font-medium">
         No attendance data yet today
       </div>
     )
