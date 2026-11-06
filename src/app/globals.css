@@ -264,7 +264,6 @@ input[type="number"] {
   .tone-muted { --h: var(--color-muted); }
 
   .kpi-tile {
-    --h: var(--color-present);
     position: relative;
     overflow: hidden;
     display: flex;
