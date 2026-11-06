@@ -36,14 +36,15 @@ npm install
 ### 2. Environment Variables
 Create a `.env` file in the root directory (or use the existing one):
 ```env
-DATABASE_URL="file:./dev.db"
-NEXTAUTH_SECRET="super-secret-key-for-development"
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/attendance?schema=public"
+NEXTAUTH_SECRET="replace-with-a-long-random-string"
 NEXTAUTH_URL="http://localhost:3000"
 TZ="Asia/Kolkata"
 ```
+A template is committed as `.env.example`. The Prisma schema uses PostgreSQL; to use SQLite locally instead, set `provider = "sqlite"` in `prisma/schema.prisma` and `DATABASE_URL="file:./dev.db"`.
 
 ### 3. Setup the Database
-Apply the Prisma schema to create your local SQLite database:
+Apply the Prisma schema to create the database tables:
 ```bash
 npx prisma db push
 ```
