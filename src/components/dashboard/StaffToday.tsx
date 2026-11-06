@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useMemo, useState, type KeyboardEvent } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarOff, ChevronDown, Fingerprint, PencilLine, Search, Users } from "lucide-react";
+import { CalendarOff, ChevronDown, ChevronUp, Fingerprint, PencilLine, Search, Users } from "lucide-react";
 import { Avatar, Chip, ChipGroup, EmptyState, Pagination, StatusBadge, Tabs, type Tone } from "@/components/ui";
 import type { DashboardData } from "@/lib/dashboard";
 import { formatTime } from "@/lib/format";
@@ -99,13 +99,6 @@ export function StaffToday({
       return next;
     });
   }
-  function onRowKey(e: KeyboardEvent<HTMLTableRowElement>, id: string) {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      toggle(id);
-    }
-  }
 
   const filters: { id: Filter; label: string; dot?: Tone }[] = [
     { id: "all", label: "All" },
@@ -197,10 +190,7 @@ export function StaffToday({
                   return (
                     <Fragment key={s.id}>
                       <tr
-                        tabIndex={0}
-                        aria-expanded={expanded}
                         onClick={() => toggle(s.id)}
-                        onKeyDown={(e) => onRowKey(e, s.id)}
                         className={cn("cursor-pointer", expanded && "[&>td]:bg-card-hi/40")}
                       >
                         <td className="max-w-[260px]">
@@ -265,7 +255,7 @@ export function StaffToday({
                         <td className="text-right">
                           <span className="inline-flex gap-1">
                             <Link
-                              href={`/attendance/manual?staffId=${encodeURIComponent(s.id)}`}
+                              href="/attendance/manual"
                               aria-label={`Add manual punch for ${s.name}`}
                               onClick={(e) => e.stopPropagation()}
                               title="Manual punch"
@@ -283,11 +273,11 @@ export function StaffToday({
                               }}
                               className="grid size-[30px] place-items-center rounded-lg border border-transparent text-subtle transition-colors duration-150 hover:border-line hover:text-text"
                             >
-                              <ChevronDown
-                                size={16}
-                                aria-hidden="true"
-                                className={cn("transition-transform duration-150", expanded && "rotate-180")}
-                              />
+                              {expanded ? (
+                                <ChevronUp size={16} aria-hidden="true" />
+                              ) : (
+                                <ChevronDown size={16} aria-hidden="true" />
+                              )}
                             </button>
                           </span>
                         </td>
@@ -322,7 +312,7 @@ export function StaffToday({
                             ) : (
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-[12.5px] text-muted sm:pl-[62px]">
                                 <span>{workingDay ? "No punch today" : "No punch · off day"}</span>
-                                <Link href={`/attendance/manual?staffId=${encodeURIComponent(s.id)}`} className="text-acc-2 hover:underline">
+                                <Link href="/attendance/manual" className="text-acc-2 hover:underline">
                                   Add manual punch
                                 </Link>
                               </div>

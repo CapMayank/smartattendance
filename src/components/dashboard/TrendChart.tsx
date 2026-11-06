@@ -44,7 +44,11 @@ export function TrendChart({ trend, total }: { trend: TrendDay[]; total: number 
               <Cell key={d.date} fillOpacity={d.saturday ? 0.45 : 1} />
             ))}
           </Bar>
-          <Bar isAnimationActive={false} dataKey="late" name="Late" stackId="t" fill={STATUS_HEX.late} fillOpacity={0.9} radius={[5, 5, 0, 0]} maxBarSize={44} />
+          <Bar isAnimationActive={false} dataKey="late" name="Late" stackId="t" fill={STATUS_HEX.late} radius={[5, 5, 0, 0]} maxBarSize={44}>
+            {trend.map((d) => (
+              <Cell key={d.date} fillOpacity={d.saturday ? 0.45 : 0.9} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
