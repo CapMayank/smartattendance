@@ -54,7 +54,7 @@ timestamps, to avoid timezone drift.
 |---|---|---|
 | `id` | String (cuid) | |
 | `staffId` | String | relation to `Staff`, cascade delete |
-| `shiftId` | String | relation to `Shift` |
+| `shiftId` | String? | relation to `Shift`, `onDelete: Restrict`; null means no shift from this date |
 | `effectiveFrom` | String | `YYYY-MM-DD` (IST day key) |
 | `source` | String | `MANUAL`, `SUGGESTION` or `INITIAL` |
 | `createdByUserId` | String? | the signed-in user |
@@ -184,6 +184,9 @@ days). If the recalculation fails, the assignment is kept and the UI offers a
 
 `POST /api/shifts/suggestions/[id]/dismiss` sets `DISMISSED` and `dismissedUntil`.
 `GET /api/staff/[id]/shift-history` lists a teacher's assignments.
+
+Every writer of `Staff.shiftId` (staff edit, bulk assign, CSV import update path) goes
+through this change service, so assignments and `Staff.shiftId` never drift apart.
 
 Any signed-in user can use these (the app has no roles yet).
 
