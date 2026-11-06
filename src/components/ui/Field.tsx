@@ -1,5 +1,9 @@
 import {
+  Children,
+  cloneElement,
   forwardRef,
+  isValidElement,
+  useId,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -20,18 +24,32 @@ export function Field({
   error?: ReactNode;
   children: ReactNode;
 }) {
+  const uid = useId();
+  const helperId = `${uid}-helper`;
+  const errorId = `${uid}-error`;
+  const describedBy = error ? errorId : helper ? helperId : undefined;
+  const control = Children.map(children, (child) =>
+    isValidElement<{ "aria-describedby"?: string; "aria-invalid"?: boolean }>(child) && (describedBy || error)
+      ? cloneElement(child, {
+          "aria-describedby": [child.props["aria-describedby"], describedBy].filter(Boolean).join(" ") || undefined,
+          ...(error ? { "aria-invalid": true } : {}),
+        })
+      : child,
+  );
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={htmlFor} className="text-[12.5px] text-muted">
         {label}
       </label>
-      {children}
+      {control}
       {error ? (
-        <p role="alert" className="text-xs text-absent">
+        <p id={errorId} role="alert" className="text-xs text-absent">
           {error}
         </p>
       ) : helper ? (
-        <p className="text-xs text-subtle">{helper}</p>
+        <p id={helperId} className="text-xs text-subtle">
+          {helper}
+        </p>
       ) : null}
     </div>
   );

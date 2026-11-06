@@ -246,6 +246,21 @@ input[type="number"] {
     background: linear-gradient(90deg, var(--color-acc-2), var(--color-acc-1));
   }
 
+  @media (pointer: coarse) {
+    .touch-target {
+      position: relative;
+    }
+    .touch-target::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+
   .ui-dialog::backdrop {
     background: rgba(0, 0, 0, 0.7);
   }
@@ -256,11 +271,5 @@ input[type="number"] {
   }
   @keyframes skeleton-pulse {
     50% { opacity: 0.55; }
-  }
-
-  .live-pulse { animation: live-pulse 2.4s ease-out infinite; }
-  @keyframes live-pulse {
-    0% { box-shadow: 0 0 0 0 rgb(52 211 153 / 0.55); }
-    100% { box-shadow: 0 0 0 9px rgb(52 211 153 / 0); }
   }
 }

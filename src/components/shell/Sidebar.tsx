@@ -6,21 +6,10 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { ChevronDown, HelpCircle, LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { initials } from "@/lib/initials";
 import { formatTime } from "@/lib/format";
 import type { ShellData } from "@/lib/shell-data";
 import { NAV, activeHref } from "./nav";
-
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join("") || "?"
-  );
-}
 
 export function Sidebar({ shell, className }: { shell: ShellData; className?: string }) {
   const pathname = usePathname();

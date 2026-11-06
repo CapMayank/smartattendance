@@ -40,7 +40,7 @@ export function Sparkline({
       </svg>
       <span
         className="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-card"
-        style={{ left: "calc(100% - 5px)", top: ly, background: color }}
+        style={{ left: "100%", top: ly, background: color }}
       />
     </div>
   );

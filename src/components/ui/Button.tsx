@@ -14,7 +14,7 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<Variant, string> = {
-  primary: "bg-text text-ground hover:bg-white",
+  primary: "bg-text text-ground hover:bg-text/90",
   secondary: "border border-line bg-transparent text-muted hover:border-subtle hover:text-text",
   ghost: "bg-transparent text-muted hover:bg-card-hi hover:text-text",
   danger: "border border-absent/30 bg-absent/10 text-absent hover:bg-absent/20",

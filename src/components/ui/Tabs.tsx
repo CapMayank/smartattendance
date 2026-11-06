@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
+import { useId, useRef, type KeyboardEvent } from "react";
 import { cn } from "@/lib/cn";
 
 export type TabItem = { id: string; label: string; count?: number };
@@ -14,6 +14,8 @@ export function Tabs({
   value: string;
   onChange: (id: string) => void;
 }) {
+  const uid = useId();
+  const hasSelected = tabs.some((t) => t.id === value);
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   function onKeyDown(e: KeyboardEvent, index: number) {
@@ -39,11 +41,11 @@ export function Tabs({
             ref={(el) => {
               refs.current[t.id] = el;
             }}
-            id={`tab-${t.id}`}
+            id={`${uid}-tab-${t.id}`}
             role="tab"
             type="button"
             aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
+            tabIndex={selected || (!hasSelected && i === 0) ? 0 : -1}
             onClick={() => onChange(t.id)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(

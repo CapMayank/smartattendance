@@ -1,17 +1,6 @@
 import { cn } from "@/lib/cn";
+import { initials } from "@/lib/initials";
 import { toneClass, type Tone } from "./tone";
-
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join("") || "?"
-  );
-}
 
 export function Avatar({ name, status, size = 38 }: { name: string; status?: Tone; size?: 28 | 38 }) {
   return (

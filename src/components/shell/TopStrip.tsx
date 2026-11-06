@@ -1,19 +1,8 @@
 import { Search } from "lucide-react";
 import { formatTime } from "@/lib/format";
+import { initials } from "@/lib/initials";
 import type { ShellData } from "@/lib/shell-data";
 import { MobileNav } from "./MobileNav";
-
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join("") || "?"
-  );
-}
 
 export function TopStrip({ shell }: { shell: ShellData }) {
   const last = shell.recentPunches[0];
@@ -36,9 +25,9 @@ export function TopStrip({ shell }: { shell: ShellData }) {
       <div className="flex items-center gap-2.5 text-[13px] text-muted">
         {last ? (
           <>
-            <span aria-hidden="true" className="live-pulse size-2 rounded-full bg-present" />
+            <span aria-hidden="true" className="size-2 rounded-full bg-subtle" />
             <span>
-              Live · last punch <span className="num text-text">{formatTime(new Date(last.time))}</span>
+              Last punch <span className="num text-text">{formatTime(new Date(last.time))}</span>
               {last.device ? ` at ${last.device}` : ""}
             </span>
           </>
@@ -50,13 +39,12 @@ export function TopStrip({ shell }: { shell: ShellData }) {
         <Search size={18} aria-hidden="true" className="flex-none" />
         <input
           type="search"
-          aria-label="Search staff, ID, department"
-          placeholder="Search staff, ID, department"
+          readOnly
+          aria-disabled="true"
+          aria-label="Search (coming soon)"
+          placeholder="Search (coming soon)"
           className="min-w-0 flex-1 bg-transparent text-text outline-none placeholder:text-subtle"
         />
-        <kbd className="num rounded-[5px] border border-line px-1.5 py-px text-[11px] text-subtle max-[600px]:hidden">
-          Ctrl K
-        </kbd>
       </label>
     </div>
   );

@@ -30,9 +30,20 @@ export default async function RootLayout({
             <AppShell shell={shell}>{children}</AppShell>
             <Toaster 
               theme="dark" 
-              toastOptions={{ 
-                className: 'bg-card-hi border border-line text-text',
-              }} 
+              style={
+                {
+                  '--normal-bg': 'var(--color-card-hi)',
+                  '--normal-border': 'var(--color-line)',
+                  '--normal-text': 'var(--color-text)',
+                  '--success-bg': 'var(--color-card-hi)',
+                  '--success-border': 'var(--color-line)',
+                  '--success-text': 'var(--color-text)',
+                  '--error-bg': 'var(--color-card-hi)',
+                  '--error-border': 'var(--color-line)',
+                  '--error-text': 'var(--color-text)',
+                } as React.CSSProperties
+              }
+              toastOptions={{ className: 'shadow-none' }}
             />
           </div>
         </Providers>

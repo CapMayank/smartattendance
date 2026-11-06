@@ -20,6 +20,7 @@ export function Modal({
   const ref = useRef<HTMLDialogElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const downOnBackdrop = useRef(false);
+  const upOnBackdrop = useRef(false);
   const returnTo = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
@@ -52,11 +53,15 @@ export function Modal({
       onPointerDown={(e) => {
         downOnBackdrop.current = e.target === ref.current;
       }}
-      onClick={(e) => {
-        if (downOnBackdrop.current && e.target === ref.current) ref.current?.close();
-        downOnBackdrop.current = false;
+      onPointerUp={(e) => {
+        upOnBackdrop.current = e.target === ref.current;
       }}
-      className="ui-dialog m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-card p-0 text-text"
+      onClick={(e) => {
+        if (downOnBackdrop.current && upOnBackdrop.current && e.target === ref.current) ref.current?.close();
+        downOnBackdrop.current = false;
+        upOnBackdrop.current = false;
+      }}
+      className="ui-dialog m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-card-hi p-0 text-text shadow-[0_24px_60px_-12px_rgba(0,0,0,0.6)]"
     >
       <div className="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-4">
         <h2 id={titleId} className="text-[15px] font-medium">
