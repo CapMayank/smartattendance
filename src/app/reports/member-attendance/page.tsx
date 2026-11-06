@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Calendar as CalendarIcon, Filter, Clock, Users, Search, UserCheck } from 'lucide-react'
+import { Download, Calendar as CalendarIcon, Search, UserCheck, LogIn, LogOut, CheckCircle2, XCircle, CalendarDays, Moon, CircleDashed, AlertTriangle, type LucideIcon } from 'lucide-react'
 import Papa from 'papaparse'
+import { Button, Card, EmptyState, Field, Input, PageHeader, Select, Skeleton } from '@/components/ui'
+import { cn } from '@/lib/cn'
 
 type AttendanceLog = {
   id: string
@@ -50,6 +52,49 @@ const formatLogsWithDirection = (logs: AttendanceLog[]): AttendanceLog[] => {
     ...log,
     type: (index === logs.length - 1 || index % 2 === 1) ? 'OUT' : 'IN'
   }))
+}
+
+// Status pill: icon + word + tint (never colour alone).
+const statusMeta: Record<string, { tone: string; icon: LucideIcon }> = {
+  PRESENT: { tone: 'tone-present', icon: CheckCircle2 },
+  ABSENT: { tone: 'tone-absent', icon: XCircle },
+  HOLIDAY: { tone: 'tone-leave', icon: CalendarDays },
+  WEEKOFF: { tone: 'tone-muted', icon: Moon },
+}
+
+function StatusPill({ status, label }: { status: string; label: string }) {
+  const meta = statusMeta[status] ?? { tone: 'tone-late', icon: CircleDashed }
+  const Icon = meta.icon
+  return (
+    <span
+      className={cn(
+        'inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs',
+        meta.tone,
+        meta.tone === 'tone-muted' ? 'border border-line bg-card-hi text-muted' : 'tint-badge',
+      )}
+    >
+      <Icon size={13} aria-hidden="true" />
+      {label}
+    </span>
+  )
+}
+
+// Punch log pill: LogIn/LogOut icon + IN/OUT word + time (present tone for IN, muted for OUT).
+function LogPill({ type, timestamp }: { type: string; timestamp: string }) {
+  const isIn = type === 'IN'
+  const Icon = isIn ? LogIn : LogOut
+  return (
+    <span
+      className={cn(
+        'inline-flex h-[24px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[11px]',
+        isIn ? 'tone-present tint-badge' : 'tone-muted border border-line bg-card-hi text-muted',
+      )}
+    >
+      <Icon size={12} aria-hidden="true" />
+      {type}
+      <span className="num">{new Date(timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+    </span>
+  )
 }
 
 export default function MemberAttendancePage() {
@@ -167,142 +212,139 @@ export default function MemberAttendancePage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-24 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
-            <UserCheck className="w-8 h-8 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Member Attendance
-            </h1>
-            <p className="text-slate-400 mt-1 font-medium">Detailed daily logs for individual staff members.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
+    <div className="space-y-5">
+      <PageHeader
+        title="Member Attendance"
+        subtitle="Detailed daily logs for individual staff members."
+        actions={
+          <Button
+            variant="secondary"
+            icon={Download}
             onClick={exportCSV}
             disabled={!staffData || dailyRecords.length === 0}
-            className="w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5"
           >
-            <Download className="w-5 h-5" /> Export CSV
-          </button>
-        </div>
-      </div>
+            Export CSV
+          </Button>
+        }
+      />
 
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        
+      <Card className="flex flex-col !p-0">
         {/* Filters */}
-        <div className="bg-black/50 px-4 sm:px-6 py-4 sm:py-5 border-b border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex-1 flex flex-col sm:flex-row gap-4 w-full">
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-slate-400" />
+        <div className="flex flex-col items-stretch gap-4 border-b border-line-soft px-4 py-4 sm:flex-row sm:items-end sm:px-5">
+          <div className="min-w-0 flex-1">
+            <Field label="Staff member" htmlFor="member-staff">
+              <div className="relative">
+                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
+                <Select
+                  id="member-staff"
+                  value={selectedStaffId}
+                  onChange={(e) => setSelectedStaffId(e.target.value)}
+                  className="pl-10"
+                >
+                  <option value="" disabled>Select Staff Member</option>
+                  {staffList.map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.machineId} - {staff.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
-              <select
-                value={selectedStaffId}
-                onChange={(e) => setSelectedStaffId(e.target.value)}
-                className="w-full bg-black/60 border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none shadow-inner"
-              >
-                <option value="" disabled>Select Staff Member</option>
-                {staffList.map((staff) => (
-                  <option key={staff.id} value={staff.id}>
-                    {staff.machineId} - {staff.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex items-center gap-3 bg-black/40 p-2.5 rounded-xl border border-white/[0.08] shadow-inner">
-              <CalendarIcon className="w-5 h-5 text-indigo-400 ml-2" />
-              <input 
-                type="month" 
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="flex-1 min-w-0 bg-transparent border-none text-white font-medium focus:ring-0 outline-none cursor-pointer"
-              />
-            </div>
+            </Field>
+          </div>
+
+          <div className="w-full sm:w-56">
+            <Field label="Month" htmlFor="member-month">
+              <div className="relative">
+                <CalendarIcon size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
+                <Input
+                  id="member-month"
+                  type="month"
+                  className="num pl-10"
+                  value={month}
+                  onChange={(e) => setMonth(e.target.value)}
+                />
+              </div>
+            </Field>
           </div>
         </div>
 
         {/* Summary Cards */}
         {staffData && !loading && (
-          <div className="flex flex-col border-b border-white/[0.08] relative z-10 bg-black/40/40">
+          <div className="flex flex-col border-b border-line-soft">
             {payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays && (
-              <div className="bg-rose-500/10 border-b border-rose-500/20 p-4 flex items-start gap-3">
-                <div className="mt-0.5 p-1 bg-rose-500/20 rounded-md">
-                  <UserCheck className="w-4 h-4 text-rose-400" />
-                </div>
+              <div role="alert" className="flex items-start gap-3 border-b border-absent/30 bg-absent/10 p-4">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0 text-absent" aria-hidden="true" />
                 <div>
-                  <h4 className="text-sm font-bold text-rose-400">Days Mismatch Detected</h4>
-                  <p className="text-sm font-medium text-rose-300/70 mt-0.5">
-                    The system calculated <strong>{summary.totalPayrollEligibleDays}</strong> present days based on punches, but the generated payroll has been manually set to <strong>{payrollData.presentDays}</strong> present days.
+                  <h2 className="text-sm font-medium text-absent">Days Mismatch Detected</h2>
+                  <p className="mt-0.5 text-sm text-muted">
+                    The system calculated <strong className="num text-text">{summary.totalPayrollEligibleDays}</strong> present days based on punches, but the generated payroll has been manually set to <strong className="num text-text">{payrollData.presentDays}</strong> present days.
                   </p>
                 </div>
               </div>
             )}
-            
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4 p-4 sm:p-6">
-               <div className={`rounded-3xl p-4 border flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 ${payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-transparent' : 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent'}`}>
-                  <span className={`text-3xl font-black mb-1 ${payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'text-rose-400' : 'text-indigo-400'}`}>{summary.totalPayrollEligibleDays}</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'text-rose-300/70' : 'text-indigo-300/70'}`}>System Days</span>
-               </div>
-               
-               {payrollData && (
-                 <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent">
-                    <span className="text-3xl font-black text-emerald-400 mb-1">{payrollData.presentDays}</span>
-                    <span className="text-[10px] font-bold text-emerald-300/70 uppercase tracking-wider">Paid Days</span>
-                 </div>
-               )}
 
-               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                  <span className="text-3xl font-black text-emerald-400 mb-1">{summary.totalPresents}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Presents</span>
-               </div>
-               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                  <span className="text-3xl font-black text-rose-400 mb-1">{summary.totalAbsents}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Absents</span>
-               </div>
-               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                  <span className="text-3xl font-black text-amber-400 mb-1">{summary.totalHalfDays}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Half Days</span>
-               </div>
-               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                  <span className="text-3xl font-black text-orange-400 mb-1">{summary.totalLateMinutes}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Late (Mins)</span>
-               </div>
-               <div className="bg-black/40/50 rounded-3xl p-4 border border-white/[0.04] flex flex-col items-center justify-center text-center">
-                  <span className="text-3xl font-black text-indigo-400 mb-1">{(summary.totalWorkMinutes / 60).toFixed(1)}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Work Hours</span>
-               </div>
+            <div className="grid grid-cols-2 gap-3 p-4 sm:p-5 md:grid-cols-6">
+              <div className={cn(
+                'col-span-2 flex flex-col items-center justify-center rounded-xl border p-4 text-center md:col-span-1',
+                payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'border-absent/30 bg-absent/10' : 'border-acc-2/30 bg-acc-2/10',
+              )}>
+                <span className={cn('num mb-1 text-3xl', payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays ? 'text-absent' : 'text-acc-1')}>{summary.totalPayrollEligibleDays}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted">System Days</span>
+              </div>
+
+              {payrollData && (
+                <div className="col-span-2 flex flex-col items-center justify-center rounded-xl border border-present/30 bg-present/10 p-4 text-center md:col-span-1">
+                  <span className="num mb-1 text-3xl text-present">{payrollData.presentDays}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted">Paid Days</span>
+                </div>
+              )}
+
+              <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-ground p-4 text-center">
+                <span className="num mb-1 text-3xl text-present">{summary.totalPresents}</span>
+                <span className="text-xs uppercase tracking-wider text-muted">Presents</span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-ground p-4 text-center">
+                <span className="num mb-1 text-3xl text-absent">{summary.totalAbsents}</span>
+                <span className="text-xs uppercase tracking-wider text-muted">Absents</span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-ground p-4 text-center">
+                <span className="num mb-1 text-3xl text-late">{summary.totalHalfDays}</span>
+                <span className="text-xs uppercase tracking-wider text-muted">Half Days</span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-ground p-4 text-center">
+                <span className="num mb-1 text-3xl text-late">{summary.totalLateMinutes}</span>
+                <span className="text-xs uppercase tracking-wider text-muted">Late (Mins)</span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-ground p-4 text-center">
+                <span className="num mb-1 text-3xl text-acc-1">{(summary.totalWorkMinutes / 60).toFixed(1)}</span>
+                <span className="text-xs uppercase tracking-wider text-muted">Work Hours</span>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="hidden md:block overflow-x-auto min-h-[500px] relative z-10 custom-scrollbar px-4 pb-3">
-          <table className="glass-table text-left text-sm text-slate-400 min-w-[900px]">
+        <div className="table-wrap hidden min-h-[500px] md:block">
+          <table className="data-table min-w-[900px]">
             <thead>
               <tr>
-                <th className="px-6 py-3.5 sticky left-0 z-20 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">Date</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5">Payroll Day</th>
-                <th className="px-6 py-3.5">Check In</th>
-                <th className="px-6 py-3.5">Check Out</th>
-                <th className="px-6 py-3.5 text-right">Late / Work Hrs</th>
-                <th className="px-6 py-3.5">Punch Logs</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Payroll Day</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th className="text-right">Late / Work Hrs</th>
+                <th>Punch Logs</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-16">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                      <p className="text-slate-400 font-medium animate-pulse">Fetching member records...</p>
+                  <td colSpan={7}>
+                    <div className="space-y-3 p-4" role="status">
+                      <Skeleton className="h-10" />
+                      <Skeleton className="h-10" />
+                      <Skeleton className="h-10" />
+                      <p className="text-center text-sm text-muted">Fetching member records...</p>
                     </div>
                   </td>
                 </tr>
@@ -315,70 +357,59 @@ export default function MemberAttendancePage() {
 
                   return (
                     <tr key={record.id} className="group">
-                      <td className="px-6 py-4 sticky left-0 z-10 shadow-[6px_0_18px_rgba(0,0,0,0.35)]">
+                      <td>
                         <div className="flex flex-col">
-                          <span className={`font-bold text-base whitespace-nowrap ${isWeekend ? 'text-indigo-300' : 'text-slate-200'}`}>{dateStr}</span>
-                          <span className={`text-xs font-bold uppercase tracking-widest mt-1 w-fit px-1.5 py-0.5 rounded ${isWeekend ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>
+                          <span className={cn('num whitespace-nowrap', isWeekend ? 'text-acc-1' : 'text-text')}>{dateStr}</span>
+                          <span className={cn('mt-1 w-fit rounded px-1.5 py-0.5 text-xs uppercase tracking-widest', isWeekend ? 'bg-acc-3/30 text-acc-1' : 'bg-card-hi text-muted')}>
                             {dayName}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border shadow-sm ${
-                          record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' :
-                          record.status === 'ABSENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/10' :
-                          record.status === 'HOLIDAY' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10' :
-                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20 shadow-slate-500/10' :
-                          'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10'
-                        }`}>
-                          {record.status}
-                        </span>
+                      <td>
+                        <StatusPill status={record.status} label={record.status} />
                         {record.isSandwiched && (
-                          <span className="block mt-1 text-[9px] font-bold text-rose-400 uppercase tracking-wider">Sandwiched (Unpaid)</span>
+                          <span className="mt-1 block text-[10px] uppercase tracking-wider text-absent">Sandwiched (Unpaid)</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 font-bold">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border ${
-                          record.payrollEligible === 1 ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
-                          record.payrollEligible === 0.5 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                        }`}>
+                      <td>
+                        <span className={cn(
+                          'num inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs',
+                          record.payrollEligible === 1 ? 'border-acc-2/30 bg-acc-2/10 text-acc-1' :
+                          record.payrollEligible === 0.5 ? 'border-late/30 bg-late/10 text-late' :
+                          'border-line bg-card-hi text-muted',
+                        )}>
                           +{record.payrollEligible} Day
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-300">
+                      <td className="num text-text">
                         {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-300">
+                      <td className="num text-text">
                         {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="text-right">
                         <div className="flex flex-col items-end gap-1">
                           {record.status === 'ABSENT' || record.status === 'HOLIDAY' || record.status === 'WEEKOFF' ? (
-                            <span className="text-slate-600 font-bold">-</span>
+                            <span className="text-subtle">-</span>
                           ) : record.lateMinutes > 0 ? (
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">{record.lateMinutes} mins late</span>
+                            <span className="tone-late tint-badge inline-flex h-[22px] items-center rounded-full px-2 text-[11px]"><span className="num mr-1">{record.lateMinutes}</span> mins late</span>
                           ) : (
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">On time</span>
+                            <span className="tone-present tint-badge inline-flex h-[22px] items-center rounded-full px-2 text-[11px]">On time</span>
                           )}
-                          <span className="text-xs font-medium text-slate-500">{(record.workMinutes / 60).toFixed(1)} hrs</span>
+                          <span className="num text-xs text-subtle">{(record.workMinutes / 60).toFixed(1)} hrs</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td>
                         {(() => {
                           const formattedLogs = formatLogsWithDirection(record.logs);
                           return formattedLogs.length > 0 ? (
-                            <div className="flex flex-wrap gap-2 max-w-xs">
+                            <div className="flex max-w-xs flex-wrap gap-2">
                               {formattedLogs.map((log) => (
-                                <span key={log.id} className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border flex items-center gap-1 ${
-                                  log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                }`}>
-                                  {log.type === 'IN' ? '↓' : '↑'} {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                </span>
+                                <LogPill key={log.id} type={log.type} timestamp={log.timestamp} />
                               ))}
                             </div>
                           ) : (
-                            <span className="text-slate-600 text-xs font-medium">No Punches</span>
+                            <span className="text-xs text-subtle">No Punches</span>
                           );
                         })()}
                       </td>
@@ -387,10 +418,8 @@ export default function MemberAttendancePage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-16 text-center">
-                    <UserCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
-                    <p className="text-slate-500 text-sm mt-1">Select a different staff member or month.</p>
+                  <td colSpan={7} className="!p-0">
+                    <EmptyState icon={UserCheck} title="No Records Found" hint="Select a different staff member or month." />
                   </td>
                 </tr>
               )}
@@ -399,11 +428,13 @@ export default function MemberAttendancePage() {
         </div>
 
         {/* Mobile Day Cards */}
-        <div className="md:hidden relative z-10 p-4 space-y-3">
+        <div className="space-y-3 p-4 md:hidden">
           {loading ? (
-            <div className="py-16 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-              <p className="text-slate-400 font-medium animate-pulse">Fetching member records...</p>
+            <div className="space-y-3" role="status">
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+              <p className="text-center text-sm text-muted">Fetching member records...</p>
             </div>
           ) : dailyRecords.length > 0 ? (
             dailyRecords.map((record) => {
@@ -414,79 +445,68 @@ export default function MemberAttendancePage() {
               const isWeekend = dayName === 'Sun' || dayName === 'Sat'
               const noWork = record.status === 'ABSENT' || record.status === 'HOLIDAY' || record.status === 'WEEKOFF'
               const accent =
-                record.status === 'PRESENT' ? 'border-l-emerald-500/60' :
-                record.status === 'ABSENT' ? 'border-l-rose-500/60' :
-                record.status === 'HOLIDAY' ? 'border-l-indigo-500/60' :
-                record.status === 'WEEKOFF' ? 'border-l-slate-500/40' :
-                'border-l-amber-500/60'
+                record.status === 'PRESENT' ? 'border-l-present' :
+                record.status === 'ABSENT' ? 'border-l-absent' :
+                record.status === 'HOLIDAY' ? 'border-l-leave' :
+                record.status === 'WEEKOFF' ? 'border-l-muted' :
+                'border-l-late'
 
               return (
-                <div key={record.id} className={`bg-black/40 border border-white/[0.08] border-l-4 ${accent} rounded-2xl p-3.5 shadow-lg ${isWeekend ? 'bg-indigo-500/[0.04]' : ''}`}>
+                <div key={record.id} className={cn('rounded-xl border border-line border-l-4 bg-card p-3.5', accent, isWeekend && 'bg-card-hi')}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 shrink-0 text-center rounded-xl py-1.5 border ${isWeekend ? 'bg-indigo-500/15 border-indigo-500/25' : 'bg-white/[0.04] border-white/[0.06]'}`}>
-                      <p className={`text-xl font-black leading-none ${isWeekend ? 'text-indigo-300' : 'text-white'}`}>{dayNum}</p>
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-1">{monthShort}</p>
+                    <div className={cn('w-12 shrink-0 rounded-xl border py-1.5 text-center', isWeekend ? 'border-acc-2/30 bg-acc-2/10' : 'border-line bg-ground')}>
+                      <p className={cn('num text-xl leading-none', isWeekend ? 'text-acc-1' : 'text-text')}>{dayNum}</p>
+                      <p className="mt-1 text-[9px] uppercase tracking-wider text-subtle">{monthShort}</p>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                          record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                          record.status === 'ABSENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                          record.status === 'HOLIDAY' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
-                          record.status === 'WEEKOFF' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
-                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                        }`}>
-                          {record.status.replace('_', ' ')}
-                        </span>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{dayName}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill status={record.status} label={record.status.replace('_', ' ')} />
+                        <span className="text-[10px] uppercase tracking-widest text-subtle">{dayName}</span>
                       </div>
                       {record.isSandwiched && (
-                        <p className="mt-1 text-[10px] font-bold text-rose-400 uppercase tracking-wider">Sandwiched (Unpaid)</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-wider text-absent">Sandwiched (Unpaid)</p>
                       )}
                     </div>
-                    <span className={`shrink-0 px-2 py-1 rounded-lg text-xs font-bold border ${
-                      record.payrollEligible === 1 ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
-                      record.payrollEligible === 0.5 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                      'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                    }`}>
+                    <span className={cn(
+                      'num shrink-0 rounded-lg border px-2 py-1 text-xs',
+                      record.payrollEligible === 1 ? 'border-acc-2/30 bg-acc-2/10 text-acc-1' :
+                      record.payrollEligible === 0.5 ? 'border-late/30 bg-late/10 text-late' :
+                      'border-line bg-card-hi text-muted',
+                    )}>
                       +{record.payrollEligible ?? 0}
                     </span>
                   </div>
 
                   {!noWork && (
-                    <div className="grid grid-cols-3 gap-2 mt-3">
-                      <div className="bg-black/50 rounded-xl border border-white/[0.04] px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">In</p>
-                        <p className="text-[13px] font-bold text-emerald-400 whitespace-nowrap">{record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}</p>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-line bg-ground px-2.5 py-2">
+                        <p className="text-[9px] uppercase tracking-wider text-subtle">In</p>
+                        <p className="num whitespace-nowrap text-[13px] text-present">{record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}</p>
                       </div>
-                      <div className="bg-black/50 rounded-xl border border-white/[0.04] px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Out</p>
-                        <p className="text-[13px] font-bold text-rose-400 whitespace-nowrap">{record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}</p>
+                      <div className="rounded-xl border border-line bg-ground px-2.5 py-2">
+                        <p className="text-[9px] uppercase tracking-wider text-subtle">Out</p>
+                        <p className="num whitespace-nowrap text-[13px] text-absent">{record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}</p>
                       </div>
-                      <div className="bg-black/50 rounded-xl border border-white/[0.04] px-2.5 py-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Hours</p>
-                        <p className="text-[13px] font-bold text-slate-200">{(record.workMinutes / 60).toFixed(1)}</p>
+                      <div className="rounded-xl border border-line bg-ground px-2.5 py-2">
+                        <p className="text-[9px] uppercase tracking-wider text-subtle">Hours</p>
+                        <p className="num text-[13px] text-text">{(record.workMinutes / 60).toFixed(1)}</p>
                       </div>
                     </div>
                   )}
 
                   {!noWork && (
-                    <div className="flex items-center gap-2 flex-wrap mt-2.5">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
                       {record.lateMinutes > 0 ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">{record.lateMinutes} mins late</span>
+                        <span className="tone-late tint-badge inline-flex h-[22px] items-center rounded-full px-2 text-[11px]"><span className="num mr-1">{record.lateMinutes}</span> mins late</span>
                       ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">On time</span>
+                        <span className="tone-present tint-badge inline-flex h-[22px] items-center rounded-full px-2 text-[11px]">On time</span>
                       )}
                       {(() => {
                         const formattedLogs = formatLogsWithDirection(record.logs);
                         return formattedLogs.length > 0 ? formattedLogs.map((log) => (
-                          <span key={log.id} className={`px-1.5 py-0.5 text-[10px] font-bold rounded border ${
-                            log.type === 'IN' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                          }`}>
-                            {log.type === 'IN' ? '↓' : '↑'} {new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                          </span>
+                          <LogPill key={log.id} type={log.type} timestamp={log.timestamp} />
                         )) : (
-                          <span className="text-slate-600 text-[10px] font-medium">No punches</span>
+                          <span className="text-[10px] text-subtle">No punches</span>
                         );
                       })()}
                     </div>
@@ -495,14 +515,10 @@ export default function MemberAttendancePage() {
               )
             })
           ) : (
-            <div className="py-14 text-center">
-              <UserCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-300 font-semibold text-lg">No Records Found</p>
-              <p className="text-slate-500 text-sm mt-1">Select a different staff member or month.</p>
-            </div>
+            <EmptyState icon={UserCheck} title="No Records Found" hint="Select a different staff member or month." />
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
