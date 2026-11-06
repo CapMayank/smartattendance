@@ -1,4 +1,4 @@
-process.env.TZ = process.env.TZ || "Asia/Kolkata";
+process.env.TZ = "Asia/Kolkata";
 
 const WebSocket = require('ws');
 const { PrismaClient } = require('@prisma/client');

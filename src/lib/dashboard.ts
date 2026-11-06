@@ -15,6 +15,7 @@ import {
   istDayStart,
   istMinutes,
   lateMinutes,
+  normalizeAllow,
   parseHHMM,
   weekdayDelta,
 } from "@/lib/dashboard-calc";
@@ -254,7 +255,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   );
   const commonShift = commonKey ? { start: commonKey.split("|")[0], end: commonKey.split("|")[1] } : null;
   const commonStart = commonShift?.start ?? null;
-  const graceLabel = commonStart ? formatHHMM(parseHHMM(commonStart) + parseHHMM(allow)) : null;
+  const graceLabel = commonStart ? formatHHMM(parseHHMM(commonStart) + parseHHMM(normalizeAllow(allow))) : null;
 
   // ---- Departments ----
   const deptMap = new Map<string, { name: string; present: number; total: number }>();

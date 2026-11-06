@@ -59,6 +59,22 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to view th
 
 ---
 
+## Timezone
+
+The app and the websockets process always run in `Asia/Kolkata` (IST); the process `TZ` is forced in code and no longer follows the host or pm2 env.
+
+Before deploying to a host that was previously running in UTC, back up the database and check how dates are stored:
+
+```sql
+SELECT date FROM "Holiday" LIMIT 5;
+SELECT date FROM "DailyRecord" ORDER BY date DESC LIMIT 5;
+```
+
+- Values at `18:30:00` on the previous day (UTC) mean IST-midnight storage: nothing to do.
+- Values at `00:00:00` UTC mean UTC-midnight storage: existing holidays and daily records need shifting (or the affected months recalculated). Lateness figures will change for any recalculated month.
+
+---
+
 ## 🌐 Production Architecture
 
 The production environment is hosted on an Oracle Cloud Ubuntu instance using **PostgreSQL**, **PM2** (process manager), and **Nginx** (reverse proxy). 
