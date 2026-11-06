@@ -25,17 +25,22 @@ export default function LoginPage() {
     setError("")
     setSubmitting(true)
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
 
-    if (res?.error) {
-      setError("Invalid credentials")
+      if (res?.error) {
+        setError("Invalid credentials")
+        setSubmitting(false)
+      } else {
+        window.location.href = "/"
+      }
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.")
       setSubmitting(false)
-    } else {
-      window.location.href = "/"
     }
   }
 
