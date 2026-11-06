@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Download, Save, RefreshCw, AlertCircle, IndianRupee, ShieldCheck, Lock, Unlock, Gift, Sparkles, Check, PencilLine } from 'lucide-react'
+import { FileText, Download, Save, RefreshCw, AlertCircle, IndianRupee, ShieldCheck, Lock, Unlock, Gift, Sparkles, Check, PencilLine, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { Button, Card, Chip, ChipGroup, Field, Input, Modal, PageHeader, Select, StatusBadge } from '@/components/ui'
+import { Avatar, Button, Card, Chip, ChipGroup, EmptyState, Field, Input, Modal, PageHeader, Select, StatusBadge } from '@/components/ui'
 import { formatINR } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
@@ -445,45 +445,53 @@ export default function MonthlyPayrollPage() {
           </div>
 
           {/* Step 5: Lock & Export */}
-          <div className="flex-[1.2] bg-black/50/40 p-5 rounded-3xl border border-white/[0.04] relative flex flex-col justify-between">
-            <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-black/40 border-2 border-slate-700 flex items-center justify-center text-sm font-bold text-white shadow-lg z-10">5</div>
-            <div className="ml-3">
-              <h3 className="text-sm font-bold text-white mb-3">Lock & Export</h3>
+          <div className="flex flex-col justify-between gap-5 rounded-xl border border-line-soft bg-canvas p-4">
+            <div>
+              <h3 className="mb-3 flex items-center gap-2.5 text-[13.5px] font-medium text-text">
+                <span className="num grid size-6 flex-none place-items-center rounded-full border border-line bg-card-hi text-xs text-muted">5</span>
+                Lock & Export
+              </h3>
               {!isMonthLocked ? (
-                <button
+                <Button
+                  variant="danger"
+                  icon={Lock}
                   onClick={handleToggleLock}
                   disabled={payrolls.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all border disabled:opacity-50 mb-6 text-rose-400 bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20"
+                  className="mb-5"
                 >
-                  <Lock className="w-4 h-4" />
                   Lock Payroll
-                </button>
+                </Button>
               ) : (
-                <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border mb-6 text-slate-400 bg-black/40 border-white/[0.08] cursor-not-allowed" title="Contact database administrator to unlock">
-                  <Lock className="w-4 h-4" />
-                  Payroll Locked
+                <div className="mb-5 w-fit cursor-not-allowed" title="Contact database administrator to unlock">
+                  <StatusBadge status="locked">Payroll Locked</StatusBadge>
                 </div>
               )}
-              
+
               <div className="flex flex-wrap gap-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Download}
                   onClick={() => handleExport('bank-payment')}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-500/20"
                 >
-                  <Download className="w-3.5 h-3.5" /> Bank Pay
-                </button>
-                <button
+                  Bank Pay
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Download}
                   onClick={() => handleExport('ecr-final')}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-all border border-blue-500/20"
                 >
-                  <Download className="w-3.5 h-3.5" /> ECR (Excel)
-                </button>
-                <button
+                  ECR (Excel)
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={FileText}
                   onClick={() => handleExport('ecr-text')}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-all border border-purple-500/20"
                 >
-                  <FileText className="w-3.5 h-3.5" /> ECR (TXT)
-                </button>
+                  ECR (TXT)
+                </Button>
               </div>
             </div>
           </div>
@@ -609,41 +617,41 @@ export default function MonthlyPayrollPage() {
       )}
 
       {/* Main Table Area */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
-        <div className="hidden md:block flex-1 overflow-x-auto custom-scrollbar px-4 pb-3">
-          <table className="glass-table text-sm text-left whitespace-nowrap">
+      <Card className="overflow-hidden !p-0">
+        <div className="table-wrap hidden md:block">
+          <table className="data-table">
             <thead>
               <tr>
-                <th className="px-6 py-3.5 font-semibold tracking-wider">Staff Name</th>
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-center">Total / Present</th>
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Fixed CTC</th>
+                <th>Staff Name</th>
+                <th className="text-center">Total / Present</th>
+                <th className="text-right">Fixed CTC</th>
                 {isBonusModeEnabled && (
-                  <th className="px-4 py-3.5 font-semibold tracking-wider text-center text-amber-400">Bonus Days & Pay</th>
+                  <th className="text-center">Bonus Days & Pay</th>
                 )}
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-right">Gross Wage</th>
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Employee PF</th>
-                <th className="px-4 py-3.5 font-semibold tracking-wider text-right text-rose-400/80">Adv. Refund</th>
-                <th className="px-6 py-3.5 font-bold tracking-wider text-right text-emerald-400">Net Payment</th>
+                <th className="text-right">Gross Wage</th>
+                <th className="text-right">Employee PF</th>
+                <th className="text-right">Adv. Refund</th>
+                <th className="text-right">Net Payment</th>
               </tr>
             </thead>
             <tbody>
               {loading && payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={isBonusModeEnabled ? 8 : 7} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-                      <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
+                  <td colSpan={isBonusModeEnabled ? 8 : 7}>
+                    <div className="flex items-center justify-center gap-2 py-16 text-muted">
+                      <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                      Calculating payroll metrics...
                     </div>
                   </td>
                 </tr>
               ) : payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={isBonusModeEnabled ? 8 : 7} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <ShieldCheck className="w-12 h-12 text-slate-600 mb-2" />
-                      <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
-                      <p className="text-slate-500 text-sm max-w-sm">There are no staff members configured for payroll this month. Head to the Staff Payroll Master to configure them.</p>
-                    </div>
+                  <td colSpan={isBonusModeEnabled ? 8 : 7} className="whitespace-normal">
+                    <EmptyState
+                      icon={ShieldCheck}
+                      title="No Active Payrolls"
+                      hint="There are no staff members configured for payroll this month. Head to the Staff Payroll Master to configure them."
+                    />
                   </td>
                 </tr>
               ) : (
@@ -652,66 +660,65 @@ export default function MonthlyPayrollPage() {
                   const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance;
                   const currentBonusDays = isBonusModeEnabled ? (edits[p.id]?.bonusDays ?? p.bonusDays ?? 0) : 0;
                   const currentBonusAmount = isBonusModeEnabled ? (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) : 0;
-                  
+
                   const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0;
                   const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p;
 
                   return (
-                    <tr key={p.id} className="group">
-                      <td className="px-6 py-4">
+                    <tr key={p.id}>
+                      <td>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/[0.08] flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
-                            {p.staff.name.substring(0, 2).toUpperCase()}
-                          </div>
+                          <Avatar name={p.staff.name} />
                           <div>
-                            <div className="font-semibold text-slate-200">{p.staff.name}</div>
-                            <div className="text-[10px] uppercase tracking-widest text-slate-500">{p.staff.payrollInfo?.uan || 'No UAN'}</div>
+                            <div className="font-medium text-text">{p.staff.name}</div>
+                            <div className="num text-[11px] text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</div>
                           </div>
                         </div>
                       </td>
-                      
+
                       {/* Total / Present Days */}
-                      <td className="px-4 py-4 text-center">
+                      <td className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <span className="text-slate-500 font-medium">{p.totalDays}</span>
-                          <span className="text-slate-600">/</span>
-                          <input
+                          <span className="num text-subtle">{p.totalDays}</span>
+                          <span className="text-subtle">/</span>
+                          <Input
                             type="number"
                             step="0.5"
                             min="0"
                             max={p.totalDays}
                             value={currentPresentDays}
                             disabled={isMonthLocked}
+                            aria-label={`Present days for ${p.staff.name}`}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value) || 0;
                               const clamped = Math.max(0, Math.min(val, p.totalDays));
                               setEdits({
-                                ...edits, 
-                                [p.id]: { 
+                                ...edits,
+                                [p.id]: {
                                   ...(edits[p.id] || { refundOfAdvance: currentRefund, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
-                                  presentDays: clamped 
+                                  presentDays: clamped
                                 }
                               });
                             }}
-                            className={`w-16 bg-black/40 border rounded-lg px-2 py-1.5 text-center font-bold text-white focus:outline-none transition-all ${
-                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                              edits[p.id]?.presentDays !== p.presentDays ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)] focus:ring-2 focus:ring-indigo-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-indigo-500/50'
-                            }`}
+                            className={cn(
+                              'num h-8 w-16 px-2 text-center',
+                              !isMonthLocked && edits[p.id]?.presentDays !== p.presentDays && 'border-acc-2 text-acc-1'
+                            )}
                           />
                         </div>
                       </td>
-                      
+
                       {/* Fixed CTC */}
-                      <td className="px-4 py-4 text-right">
-                        <span className="text-slate-500 font-medium">₹{p.staff.payrollInfo?.monthlyCtc?.toLocaleString() || '0'}</span>
+                      <td className="text-right">
+                        <span className="num text-subtle">{formatINR(p.staff.payrollInfo?.monthlyCtc || 0)}</span>
                       </td>
 
                       {/* Bonus Days & Live Computed Rupee Value */}
                       {isBonusModeEnabled && (
-                        <td className="px-4 py-4">
+                        <td>
                           <div className="flex flex-col items-center justify-center gap-1">
-                            <div className="flex items-center justify-center gap-1">
-                              <input
+                            <div className="flex items-center justify-center gap-1.5">
+                              <Input
                                 type="number"
                                 step="0.5"
                                 min="0"
@@ -719,66 +726,64 @@ export default function MonthlyPayrollPage() {
                                 value={currentBonusDays === 0 ? '' : currentBonusDays}
                                 placeholder="0"
                                 disabled={isMonthLocked}
+                                aria-label={`Bonus days for ${p.staff.name}`}
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value) || 0;
                                   handleBonusDaysChange(p, val);
                                 }}
-                                className={`w-14 bg-black/50 border rounded-lg px-2 py-1.5 text-center font-bold text-amber-300 focus:outline-none transition-all ${
-                                  isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                                  currentBonusDays > 0
-                                    ? 'border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.25)] focus:ring-2 focus:ring-amber-500/50 text-amber-300'
-                                    : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-amber-500/50 text-slate-400'
-                                }`}
+                                className={cn(
+                                  'num h-8 w-14 px-2 text-center',
+                                  !isMonthLocked && currentBonusDays > 0 ? 'border-late/60 text-late' : 'text-muted'
+                                )}
                               />
-                              <span className="text-xs font-semibold text-slate-500">days</span>
+                              <span className="text-xs text-subtle">days</span>
                             </div>
                             {currentBonusAmount > 0 && (
-                              <span className="text-[11px] font-bold text-amber-400 tracking-tight">
-                                +₹{currentBonusAmount.toLocaleString()}
+                              <span className="num text-[11px] text-late">
+                                +{formatINR(currentBonusAmount)}
                               </span>
                             )}
                           </div>
                         </td>
                       )}
-                      
+
                       {/* Gross Wage */}
-                      <td className="px-4 py-4 text-right">
-                        <span className="text-slate-200 font-semibold">₹{calc.grossWage.toLocaleString()}</span>
+                      <td className="text-right">
+                        <span className="num text-text">{formatINR(calc.grossWage)}</span>
                       </td>
-                      
+
                       {/* Employee PF */}
-                      <td className="px-4 py-4 text-right">
-                        <span className="text-rose-400/90 font-medium">-₹{calc.employeeEpf.toLocaleString()}</span>
+                      <td className="text-right">
+                        <span className="num text-absent">-{formatINR(calc.employeeEpf)}</span>
                       </td>
-                      
+
                       {/* Advance Refund */}
-                      <td className="px-4 py-4 text-right">
+                      <td className="text-right">
                         <div className="flex items-center justify-end">
-                          <input
+                          <Input
                             type="number"
                             min="0"
                             value={currentRefund}
                             disabled={isMonthLocked}
+                            aria-label={`Advance refund for ${p.staff.name}`}
                             onChange={(e) => setEdits({
-                              ...edits, 
-                              [p.id]: { 
+                              ...edits,
+                              [p.id]: {
                                 ...(edits[p.id] || { presentDays: currentPresentDays, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
-                                refundOfAdvance: parseFloat(e.target.value) || 0 
+                                refundOfAdvance: parseFloat(e.target.value) || 0
                               }
                             })}
-                            className={`w-24 bg-black/40 border rounded-lg px-3 py-1.5 text-right font-medium text-rose-400 focus:outline-none transition-all ${
-                              isMonthLocked ? 'opacity-50 cursor-not-allowed border-white/[0.04]' :
-                              edits[p.id]?.refundOfAdvance !== p.refundOfAdvance ? 'border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] focus:ring-2 focus:ring-rose-500/50' : 'border-white/[0.08] hover:border-white/20 focus:ring-2 focus:ring-rose-500/50'
-                            }`}
+                            className={cn(
+                              'num h-8 w-24 px-3 text-right text-absent',
+                              !isMonthLocked && edits[p.id]?.refundOfAdvance !== p.refundOfAdvance && 'border-absent/60'
+                            )}
                           />
                         </div>
                       </td>
-                      
+
                       {/* Net Payment */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shadow-inner">
-                          <span className="text-emerald-400 font-bold tracking-tight text-base">₹{calc.netPayment.toLocaleString()}</span>
-                        </div>
+                      <td className="text-right">
+                        <span className="num text-[15px] font-medium text-present">{formatINR(calc.netPayment)}</span>
                       </td>
                     </tr>
                   )
@@ -789,87 +794,90 @@ export default function MonthlyPayrollPage() {
         </div>
 
         {/* Mobile Cards */}
-        <div className="md:hidden p-4 space-y-3">
+        <div className="space-y-3 p-4 md:hidden">
           {loading && payrolls.length === 0 ? (
-            <div className="py-16 flex flex-col items-center gap-4">
-              <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
-              <p className="text-slate-400 font-medium animate-pulse">Calculating payroll metrics...</p>
+            <div className="flex items-center justify-center gap-2 py-16 text-muted">
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+              Calculating payroll metrics...
             </div>
           ) : payrolls.length === 0 ? (
-            <div className="py-14 text-center">
-              <ShieldCheck className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-300 font-semibold text-lg">No Active Payrolls</p>
-              <p className="text-slate-500 text-sm mt-1">No staff are configured for payroll this month.</p>
-            </div>
+            <EmptyState
+              icon={ShieldCheck}
+              title="No Active Payrolls"
+              hint="No staff are configured for payroll this month."
+            />
           ) : (
             payrolls.map((p) => {
               const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
               const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
               const currentBonusDays = isBonusModeEnabled ? (edits[p.id]?.bonusDays ?? p.bonusDays ?? 0) : 0
               const currentBonusAmount = isBonusModeEnabled ? (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) : 0
-              const isEdited = currentPresentDays !== p.presentDays || 
-                               currentRefund !== p.refundOfAdvance || 
+              const isEdited = currentPresentDays !== p.presentDays ||
+                               currentRefund !== p.refundOfAdvance ||
                                (isBonusModeEnabled && (currentBonusAmount !== (p.bonusAmount ?? 0) || currentBonusDays !== (p.bonusDays ?? 0)))
               const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
               const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p
               const setPresent = (v: number) => {
                 const clamped = Math.max(0, Math.min(p.totalDays, v))
-                setEdits({ 
-                  ...edits, 
-                  [p.id]: { 
+                setEdits({
+                  ...edits,
+                  [p.id]: {
                     ...(edits[p.id] || { refundOfAdvance: currentRefund, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
-                    presentDays: clamped 
-                  } 
+                    presentDays: clamped
+                  }
                 })
               }
 
               return (
-                <div key={p.id} className={`rounded-3xl p-4 border shadow-lg relative overflow-hidden transition-colors ${isEdited ? 'bg-indigo-500/[0.06] border-indigo-500/30' : 'bg-black/40 border-white/[0.08]'}`}>
+                <div key={p.id} className={cn('rounded-xl border p-4 transition-colors duration-150', isEdited ? 'border-acc-3 bg-card-hi' : 'border-line bg-canvas')}>
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/[0.08] flex items-center justify-center text-white font-black shrink-0">
-                      {p.staff.name.substring(0, 2).toUpperCase()}
-                    </div>
+                    <Avatar name={p.staff.name} />
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white leading-tight truncate">{p.staff.name}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-slate-500 truncate">{p.staff.payrollInfo?.uan || 'No UAN'}</p>
+                      <p className="truncate font-medium leading-tight text-text">{p.staff.name}</p>
+                      <p className="num truncate text-[11px] text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</p>
                     </div>
-                    {isEdited && <span className="shrink-0 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Edited</span>}
+                    {isEdited && (
+                      <span className="tone-accent tint-badge inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full px-2 text-[11px]">
+                        <PencilLine size={11} aria-hidden="true" />
+                        Edited
+                      </span>
+                    )}
                   </div>
 
-                  <div className="mt-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">Net Payment</p>
-                    <p className="text-2xl font-black text-emerald-400 mt-0.5">₹{calc.netPayment.toLocaleString()}</p>
+                  <div className="mt-4 rounded-xl border border-line-soft bg-ground p-3.5">
+                    <p className="text-[11px] text-subtle">Net Payment</p>
+                    <p className="num mt-0.5 text-2xl font-medium text-present">{formatINR(calc.netPayment)}</p>
                   </div>
 
                   <div className={`grid ${isBonusModeEnabled ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mt-3`}>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fixed CTC</p>
-                      <p className="text-[12px] font-bold text-slate-400 mt-1 truncate">₹{monthlyCtc.toLocaleString()}</p>
+                    <div className="rounded-lg border border-line-soft bg-ground p-2">
+                      <p className="text-[10px] text-subtle">Fixed CTC</p>
+                      <p className="num mt-1 truncate text-[12px] text-muted">{formatINR(monthlyCtc)}</p>
                     </div>
                     {isBonusModeEnabled && (
-                      <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">Bonus</p>
-                        <p className="text-[12px] font-bold text-amber-300 mt-1 truncate">₹{calc.bonusAmount.toLocaleString()}</p>
+                      <div className="rounded-lg border border-line-soft bg-ground p-2">
+                        <p className="text-[10px] text-late">Bonus</p>
+                        <p className="num mt-1 truncate text-[12px] text-late">{formatINR(calc.bonusAmount)}</p>
                       </div>
                     )}
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Gross</p>
-                      <p className="text-[12px] font-bold text-slate-200 mt-1 truncate">₹{calc.grossWage.toLocaleString()}</p>
+                    <div className="rounded-lg border border-line-soft bg-ground p-2">
+                      <p className="text-[10px] text-subtle">Gross</p>
+                      <p className="num mt-1 truncate text-[12px] text-text">{formatINR(calc.grossWage)}</p>
                     </div>
-                    <div className="bg-black/50 rounded-xl border border-white/[0.04] p-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-rose-400/70">PF</p>
-                      <p className="text-[12px] font-bold text-rose-400 mt-1 truncate">-₹{calc.employeeEpf.toLocaleString()}</p>
+                    <div className="rounded-lg border border-line-soft bg-ground p-2">
+                      <p className="text-[10px] text-absent">PF</p>
+                      <p className="num mt-1 truncate text-[12px] text-absent">-{formatINR(calc.employeeEpf)}</p>
                     </div>
                   </div>
 
                   <div className={`grid ${isBonusModeEnabled ? 'grid-cols-3' : 'grid-cols-2'} gap-2 mt-4`}>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Days <span className="text-slate-600">/{p.totalDays}</span></p>
-                      <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                      <p className="mb-1.5 text-[11px] text-muted">Days <span className="num text-subtle">/{p.totalDays}</span></p>
+                      <div className="flex items-center overflow-hidden rounded-[10px] border border-line bg-ground">
                         <button
                           disabled={isMonthLocked}
                           onClick={() => setPresent(currentPresentDays - 0.5)}
-                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          className="h-10 w-8 text-base text-muted transition-colors duration-150 hover:text-text active:bg-card-hi disabled:opacity-40"
                           aria-label="Decrease present days"
                         >−</button>
                         <input
@@ -880,25 +888,27 @@ export default function MonthlyPayrollPage() {
                           max={p.totalDays}
                           value={currentPresentDays}
                           disabled={isMonthLocked}
+                          aria-label={`Present days for ${p.staff.name}`}
                           onChange={(e) => setPresent(parseFloat(e.target.value) || 0)}
-                          className="flex-1 min-w-0 w-full h-10 bg-transparent text-center font-bold text-white focus:outline-none disabled:opacity-50 text-xs"
+                          className="num h-10 w-full min-w-0 flex-1 bg-transparent text-center text-xs text-text disabled:opacity-50"
                         />
                         <button
                           disabled={isMonthLocked}
                           onClick={() => setPresent(currentPresentDays + 0.5)}
-                          className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                          className="h-10 w-8 text-base text-muted transition-colors duration-150 hover:text-text active:bg-card-hi disabled:opacity-40"
                           aria-label="Increase present days"
                         >+</button>
                       </div>
                     </div>
                     {isBonusModeEnabled && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/90 mb-1.5">Bonus Days</p>
-                        <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/50 overflow-hidden">
+                        <p className="mb-1.5 text-[11px] text-late">Bonus Days</p>
+                        <div className="flex items-center overflow-hidden rounded-[10px] border border-line bg-ground">
                           <button
                             disabled={isMonthLocked}
                             onClick={() => handleBonusDaysChange(p, Math.max(0, currentBonusDays - 0.5))}
-                            className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                            className="h-10 w-8 text-base text-muted transition-colors duration-150 hover:text-text active:bg-card-hi disabled:opacity-40"
+                            aria-label="Decrease bonus days"
                           >−</button>
                           <input
                             type="number"
@@ -909,23 +919,26 @@ export default function MonthlyPayrollPage() {
                             value={currentBonusDays === 0 ? '' : currentBonusDays}
                             placeholder="0"
                             disabled={isMonthLocked}
+                            aria-label={`Bonus days for ${p.staff.name}`}
                             onChange={(e) => handleBonusDaysChange(p, parseFloat(e.target.value) || 0)}
-                            className="flex-1 min-w-0 w-full h-10 bg-transparent text-center font-bold text-amber-300 focus:outline-none disabled:opacity-50 text-xs"
+                            className="num h-10 w-full min-w-0 flex-1 bg-transparent text-center text-xs text-late placeholder:text-subtle disabled:opacity-50"
                           />
                           <button
                             disabled={isMonthLocked}
                             onClick={() => handleBonusDaysChange(p, currentBonusDays + 0.5)}
-                            className="w-8 h-10 text-base font-bold text-slate-300 active:bg-white/10 disabled:opacity-40"
+                            className="h-10 w-8 text-base text-muted transition-colors duration-150 hover:text-text active:bg-card-hi disabled:opacity-40"
+                            aria-label="Increase bonus days"
                           >+</button>
                         </div>
                         {currentBonusAmount > 0 && (
-                          <p className="text-[10px] font-bold text-amber-400 mt-1 text-center">+₹{currentBonusAmount.toLocaleString()}</p>
+                          <p className="num mt-1 text-center text-[10px] text-late">+{formatINR(currentBonusAmount)}</p>
                         )}
                       </div>
                     )}
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400/80 mb-1.5">Refund (₹)</p>
-                      <input
+                      <label htmlFor={`refund-${p.id}`} className="mb-1.5 block text-[11px] text-absent">Refund (₹)</label>
+                      <Input
+                        id={`refund-${p.id}`}
                         type="number"
                         inputMode="numeric"
                         min="0"
@@ -933,12 +946,12 @@ export default function MonthlyPayrollPage() {
                         disabled={isMonthLocked}
                         onChange={(e) => setEdits({
                           ...edits,
-                          [p.id]: { 
+                          [p.id]: {
                             ...(edits[p.id] || { presentDays: currentPresentDays, bonusDays: currentBonusDays, bonusAmount: currentBonusAmount, bonusType: 'DAYS' }),
-                            refundOfAdvance: parseFloat(e.target.value) || 0 
+                            refundOfAdvance: parseFloat(e.target.value) || 0
                           }
                         })}
-                        className="w-full h-10 rounded-xl border border-white/[0.08] bg-black/50 px-2 text-right font-bold text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 disabled:opacity-50 text-xs"
+                        className="num px-2 text-right text-xs text-absent"
                       />
                     </div>
                   </div>
@@ -947,20 +960,20 @@ export default function MonthlyPayrollPage() {
             })
           )}
         </div>
-        
+
         {/* Helper Footer */}
-        <div className="p-4 border-t border-white/[0.04] bg-black/50/40 text-xs text-slate-500 flex items-center justify-between">
+        <div className="flex flex-col gap-2 border-t border-line-soft px-5 py-3 text-xs text-subtle sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-indigo-400/70" />
+            <AlertCircle size={16} className="flex-none text-acc-1" aria-hidden="true" />
             {isBonusModeEnabled ? (
-              <span>Directly adjust <strong className="text-amber-400">Bonus Days</strong> (0-3d) per staff, and the system automatically computes exact rupees. Click Save Changes when done.</span>
+              <span>Directly adjust <strong className="font-medium text-late">Bonus Days</strong> (0-3d) per staff, and the system automatically computes exact rupees. Click Save Changes when done.</span>
             ) : (
               <span>Standard payroll mode. Adjust present days or advance refunds if needed. Click Save Changes when done.</span>
             )}
           </div>
-          <span>Showing {payrolls.length} active staff records</span>
+          <span>Showing <span className="num">{payrolls.length}</span> active staff records</span>
         </div>
-      </div>
+      </Card>
 
       {/* Bonus Baseline Modal */}
       <Modal
@@ -1070,21 +1083,22 @@ export default function MonthlyPayrollPage() {
 
       {/* Danger Zone */}
       {isMonthLocked && (
-        <div className="mt-8 border border-rose-500/20 rounded-3xl bg-rose-500/5 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-rose-500/5">
+        <Card className="flex flex-col items-start justify-between gap-4 border-absent/30 sm:flex-row sm:items-center">
           <div>
-            <h3 className="text-lg font-bold text-rose-400 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" /> Danger Zone
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">Unlocking payroll will allow manual edits and synchronization again. This should only be done if an error was made.</p>
+            <h2 className="flex items-center gap-2 text-[15px] font-medium text-absent">
+              <AlertCircle size={18} aria-hidden="true" /> Danger Zone
+            </h2>
+            <p className="mt-1 text-[13px] text-muted">Unlocking payroll will allow manual edits and synchronization again. This should only be done if an error was made.</p>
           </div>
-          <button
+          <Button
+            variant="danger"
+            icon={Unlock}
             onClick={handleToggleLock}
-            className="whitespace-nowrap px-6 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold rounded-xl border border-rose-500/20 transition-all flex items-center gap-2"
+            className="whitespace-nowrap"
           >
-            <Unlock className="w-4 h-4" />
             Force Unlock Payroll
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
     </div>
   )
