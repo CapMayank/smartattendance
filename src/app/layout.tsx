@@ -31,7 +31,7 @@ export default async function RootLayout({
             <Toaster 
               theme="dark" 
               toastOptions={{ 
-                className: 'bg-black/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl',
+                className: 'bg-card-hi border border-line text-text',
               }} 
             />
           </div>

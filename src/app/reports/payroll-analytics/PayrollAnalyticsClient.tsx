@@ -5,7 +5,9 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend, PieChart, Pie, Cell
 } from 'recharts'
-import { Wallet, TrendingUp, IndianRupee, ShieldAlert, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Card, CardHeader } from '@/components/ui'
+import { chartTheme, barGradient, ACCENT_HEX, STATUS_HEX } from '@/lib/chart-theme'
+import { Wallet, TrendingUp, IndianRupee, ShieldAlert, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
 
 // Helper to format currency
 const formatCurrency = (amount: number) => {
@@ -16,9 +18,50 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#6366f1']
+const COLORS = [ACCENT_HEX.a2, STATUS_HEX.present, ACCENT_HEX.a1, STATUS_HEX.late, STATUS_HEX.leave, STATUS_HEX.absent, ACCENT_HEX.a3]
 
-export default function PayrollAnalyticsClient({ payrollData }: { payrollData: any[] }) {
+interface KPICardProps {
+  title: string
+  value: number
+  change: number
+  icon: LucideIcon
+  colorClass: string
+}
+
+const KPICard = ({ title, value, change, icon: Icon, colorClass }: KPICardProps) => {
+  const isPositive = change >= 0
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
+          isPositive ? 'bg-present/10 text-present' : 'bg-absent/10 text-absent'
+        }`}>
+          {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+          {Math.abs(change).toFixed(1)}%
+        </div>
+      </div>
+      <h3 className="text-muted text-sm font-medium">{title}</h3>
+      <p className="num text-2xl font-semibold text-text mt-1">{formatCurrency(value)}</p>
+    </Card>
+  )
+}
+
+interface PayrollRow {
+  year: number
+  month: number
+  grossWage?: number | null
+  netPayment?: number | null
+  employeeEpf?: number | null
+  employerEpf?: number | null
+  employerEps?: number | null
+  actualCtc?: number | null
+  staff?: { department?: { name?: string | null } | null } | null
+}
+
+export default function PayrollAnalyticsClient({ payrollData }: { payrollData: PayrollRow[] }) {
   
   const analytics = useMemo(() => {
     if (!payrollData || payrollData.length === 0) return null
@@ -33,7 +76,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
     const previousMonthData = previousMonthKey ? payrollData.filter(p => `${p.year}-${String(p.month).padStart(2, '0')}` === previousMonthKey) : []
 
     // 1. KPI Calculations
-    const calcKPIs = (data: any[]) => ({
+    const calcKPIs = (data: PayrollRow[]) => ({
       gross: data.reduce((sum, p) => sum + (p.grossWage || 0), 0),
       net: data.reduce((sum, p) => sum + (p.netPayment || 0), 0),
       epf: data.reduce((sum, p) => sum + (p.employeeEpf || 0) + (p.employerEpf || 0) + (p.employerEps || 0), 0),
@@ -99,30 +142,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
 
   if (!analytics) {
     return (
-      <div className="p-8 text-center bg-black/20 backdrop-blur-2xl border border-white/[0.08] rounded-3xl">
-        <p className="text-slate-400">No payroll data available for analytics yet.</p>
-      </div>
-    )
-  }
-
-  const KPICard = ({ title, value, change, icon: Icon, colorClass }: any) => {
-    const isPositive = change >= 0
-    return (
-      <div className="bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
-            <Icon className="w-6 h-6 text-white" />
-          </div>
-          <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${
-            isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-          }`}>
-            {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-            {Math.abs(change).toFixed(1)}%
-          </div>
-        </div>
-        <h3 className="text-slate-400 text-sm font-medium">{title}</h3>
-        <p className="text-2xl font-bold text-white mt-1">{formatCurrency(value)}</p>
-      </div>
+      <Card className="p-8 text-center">
+        <p className="text-muted">No payroll data available for analytics yet.</p>
+      </Card>
     )
   }
 
@@ -135,75 +157,72 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
           value={analytics.kpis.gross.value} 
           change={analytics.kpis.gross.change} 
           icon={Wallet} 
-          colorClass="bg-blue-600" 
+          colorClass="bg-acc-3" 
         />
         <KPICard 
           title="Total Net Payout" 
           value={analytics.kpis.net.value} 
           change={analytics.kpis.net.change} 
           icon={IndianRupee} 
-          colorClass="bg-emerald-600" 
+          colorClass="bg-present/80" 
         />
         <KPICard 
           title="Total PF Liability" 
           value={analytics.kpis.epf.value} 
           change={analytics.kpis.epf.change} 
           icon={ShieldAlert} 
-          colorClass="bg-rose-600" 
+          colorClass="bg-absent/80" 
         />
         <KPICard 
           title="Avg. CTC per Employee" 
           value={analytics.kpis.avgSalary.value} 
           change={analytics.kpis.avgSalary.change} 
           icon={TrendingUp} 
-          colorClass="bg-purple-600" 
+          colorClass="bg-leave/80" 
         />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         {/* Trend Chart */}
-        <div className="xl:col-span-2 bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <h3 className="text-xl font-bold text-white mb-6">Payroll Trajectory</h3>
+        <Card className="xl:col-span-2">
+          <CardHeader title="Payroll Trajectory" />
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={analytics.trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={ACCENT_HEX.a2} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={ACCENT_HEX.a2} stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={STATUS_HEX.present} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={STATUS_HEX.present} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
+                <CartesianGrid {...chartTheme.grid} vertical={false} />
+                <XAxis dataKey="name" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
                 <YAxis 
-                  stroke="rgba(255,255,255,0.5)" 
-                  tick={{fill: 'rgba(255,255,255,0.5)'}} 
+                  tick={chartTheme.axisTick} 
                   axisLine={false} 
                   tickLine={false} 
                   tickFormatter={(val) => `₹${(val/1000).toFixed(0)}k`}
                 />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: any) => formatCurrency(Number(value) || 0)}
+                <Tooltip
+                  {...chartTheme.tooltip}
+                  formatter={(value) => formatCurrency(Number(value) || 0)}
                 />
-                <Legend />
-                <Area type="monotone" dataKey="Gross" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorGross)" />
-                <Area type="monotone" dataKey="Net" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorNet)" />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Area type="monotone" dataKey="Gross" stroke={ACCENT_HEX.a2} strokeWidth={3} fillOpacity={1} fill="url(#colorGross)" />
+                <Area type="monotone" dataKey="Net" stroke={STATUS_HEX.present} strokeWidth={3} fillOpacity={1} fill="url(#colorNet)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
 
         {/* Department Pie Chart */}
-        <div className="bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col">
-          <h3 className="text-xl font-bold text-white mb-2">Cost by Department</h3>
-          <p className="text-sm text-slate-400 mb-6">Latest Month ({analytics.latestMonthKey})</p>
+        <Card className="flex flex-col">
+          <CardHeader title="Cost by Department" caption={`Latest Month (${analytics.latestMonthKey})`} />
           
           <div className="h-[300px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -222,9 +241,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-                  formatter={(value: any) => formatCurrency(Number(value) || 0)}
+                <Tooltip
+                  {...chartTheme.tooltip}
+                  formatter={(value) => formatCurrency(Number(value) || 0)}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -234,39 +253,43 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: a
             {analytics.deptData.map((dept, i) => (
               <div key={dept.name} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                <span className="text-xs text-slate-300 truncate" title={dept.name}>{dept.name}</span>
+                <span className="text-xs text-muted truncate" title={dept.name}>{dept.name}</span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Compliance Stacked Bar Chart */}
-        <div className="xl:col-span-3 bg-black/20 backdrop-blur-2xl border border-white/[0.08] p-6 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <h3 className="text-xl font-bold text-white mb-6">EPF Compliance Contributions</h3>
+        <Card className="xl:col-span-3">
+          <CardHeader title="EPF Compliance Contributions" />
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics.complianceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
+                <defs>
+                  {barGradient("gradEmployeeEpf", "accent")}
+                  {barGradient("gradEmployerEpf", "present")}
+                  {barGradient("gradEmployerEps", "late")}
+                </defs>
+                <CartesianGrid {...chartTheme.grid} vertical={false} />
+                <XAxis dataKey="name" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
                 <YAxis 
-                  stroke="rgba(255,255,255,0.5)" 
-                  tick={{fill: 'rgba(255,255,255,0.5)'}} 
+                  tick={chartTheme.axisTick} 
                   axisLine={false} 
                   tickLine={false}
                   tickFormatter={(val) => `₹${(val/1000).toFixed(0)}k`}
                 />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-                  formatter={(value: any) => formatCurrency(Number(value) || 0)}
+                <Tooltip
+                  {...chartTheme.tooltip}
+                  formatter={(value) => formatCurrency(Number(value) || 0)}
                 />
-                <Legend />
-                <Bar dataKey="Employee EPF" stackId="a" fill="#8b5cf6" radius={[0, 0, 4, 4]} />
-                <Bar dataKey="Employer EPF" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="Employer EPS" stackId="a" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="Employee EPF" stackId="a" fill="url(#gradEmployeeEpf)" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="Employer EPF" stackId="a" fill="url(#gradEmployerEpf)" />
+                <Bar dataKey="Employer EPS" stackId="a" fill="url(#gradEmployerEps)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
 
       </div>
     </div>
