@@ -16,6 +16,29 @@ export type Fixtures = {
   assignments?: { staffId: string; effectiveFrom: string; shiftId: string | null }[]
   /** Optional; stored daily records returned by `dailyRecord.findMany`. */
   dailyRecords?: { staffId: string; date: Date; status: string; lateMinutes: number }[]
+  /** Optional; stored shift suggestions. */
+  suggestions?: SuggestionRow[]
+}
+
+export type SuggestionRow = {
+  id: string
+  staffId: string
+  status: string
+  fromShiftId?: string | null
+  suggestedShiftId?: string | null
+  suggestedStart?: string
+  suggestedEnd?: string
+  medianIn?: string
+  medianOut?: string | null
+  daysObserved?: number
+  daysWithinTolerance?: number
+  lateDays?: number
+  patternSince?: string
+  direction?: string
+  dismissedUntil?: string | null
+  decidedByUserId?: string | null
+  decidedAt?: Date | null
+  createdAt?: Date
 }
 
 type TimeFilter = { gte?: Date; lte?: Date }
@@ -36,6 +59,12 @@ export function createFakePrisma(fixtures: Fixtures): {
   /** Live assignment rows (fixture rows plus any created or upserted). */
   assignments: AssignmentRow[]
   staffUpdates: StaffUpdate[]
+  /** Live shift rows (fixture shifts plus any created). */
+  shiftRows: { id: string; name: string; startTime: string; endTime: string }[]
+  /** Live suggestion rows. */
+  suggestions: SuggestionRow[]
+  /** Every policy create/update call. */
+  policyWrites: { op: 'create' | 'update'; data: Record<string, unknown> }[]
 } {
   const created: Record<string, unknown>[] = []
   const deleteCalls: unknown[] = []
@@ -43,6 +72,33 @@ export function createFakePrisma(fixtures: Fixtures): {
   // Copies, so writes never leak into fixture objects shared between tests
   const staffRows = fixtures.staff.map((s) => ({ ...s }))
   const assignments: AssignmentRow[] = (fixtures.assignments ?? []).map((a) => ({ ...a }))
+  const suggestions: SuggestionRow[] = (fixtures.suggestions ?? []).map((r) => ({ ...r }))
+  const policyWrites: { op: 'create' | 'update'; data: Record<string, unknown> }[] = []
+  let policyRow: Record<string, unknown> | null = fixtures.policy ? { ...fixtures.policy } : null
+  let shiftSeq = 0
+  let suggestionSeq = 0
+  const shiftRows: { id: string; name: string; startTime: string; endTime: string }[] = (() => {
+    if (fixtures.shifts) return fixtures.shifts.map((x) => ({ ...x }))
+    const byId = new Map<string, NonNullable<Fixtures['staff'][number]['shift']>>()
+    for (const s of fixtures.staff) if (s.shift) byId.set(s.shift.id, s.shift)
+    return [...byId.values()].map((x) => ({ ...x }))
+  })()
+
+  const matchesWhere = (row: Record<string, unknown>, where?: Record<string, unknown>) =>
+    Object.entries(where ?? {}).every(([k, v]) => row[k] === v)
+  const sortBy = <T extends Record<string, unknown>>(rows: T[], orderBy?: Record<string, 'asc' | 'desc'>) => {
+    if (!orderBy) return rows
+    const [key, dir] = Object.entries(orderBy)[0]
+    const sign = dir === 'desc' ? -1 : 1
+    return [...rows].sort((a, b) => {
+      const av = a[key] as string | Date | undefined
+      const bv = b[key] as string | Date | undefined
+      if (av === bv) return 0
+      if (av === undefined || av === null) return 1
+      if (bv === undefined || bv === null) return -1
+      return (av < bv ? -1 : 1) * sign
+    })
+  }
 
   const inRange = (t: Date, f?: TimeFilter) =>
     (!f?.gte || t.getTime() >= f.gte.getTime()) && (!f?.lte || t.getTime() <= f.lte.getTime())
@@ -99,11 +155,35 @@ export function createFakePrisma(fixtures: Fixtures): {
       update: staffUpdate,
     },
     shift: {
-      findMany: async () => {
-        if (fixtures.shifts) return fixtures.shifts
-        const byId = new Map<string, NonNullable<Fixtures['staff'][number]['shift']>>()
-        for (const s of fixtures.staff) if (s.shift) byId.set(s.shift.id, s.shift)
-        return [...byId.values()]
+      findMany: async () => shiftRows,
+      create: async ({ data }: { data: { name: string; startTime: string; endTime: string } }) => {
+        const row = { id: `new-shift-${++shiftSeq}`, ...data }
+        shiftRows.push(row)
+        return row
+      },
+    },
+    shiftSuggestion: {
+      findMany: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'> }) =>
+        sortBy(suggestions.filter((r) => matchesWhere(r, args?.where)), args?.orderBy),
+      findFirst: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'> }) =>
+        sortBy(suggestions.filter((r) => matchesWhere(r, args?.where)), args?.orderBy)[0] ?? null,
+      count: async (args?: { where?: Record<string, unknown> }) =>
+        suggestions.filter((r) => matchesWhere(r, args?.where)).length,
+      create: async ({ data }: { data: Omit<SuggestionRow, 'id'> }) => {
+        const row = { id: `sug-${++suggestionSeq}`, createdAt: new Date(), ...data }
+        suggestions.push(row)
+        return row
+      },
+      update: async ({ where, data }: { where: { id: string }; data: Partial<SuggestionRow> }) => {
+        const row = suggestions.find((r) => r.id === where.id)
+        if (!row) throw new Error(`suggestion ${where.id} not found`)
+        Object.assign(row, data)
+        return row
+      },
+      delete: async ({ where }: { where: { id: string } }) => {
+        const i = suggestions.findIndex((r) => r.id === where.id)
+        if (i < 0) throw new Error(`suggestion ${where.id} not found`)
+        return suggestions.splice(i, 1)[0]
       },
     },
     shiftAssignment: {
@@ -116,7 +196,19 @@ export function createFakePrisma(fixtures: Fixtures): {
           .filter((r) => !args?.where?.staffId || r.staffId === args.where.staffId)
           .filter((r) => inRange(r.date, args?.where?.date)),
     },
-    policy: { findFirst: async () => fixtures.policy },
+    policy: {
+      findFirst: async () => policyRow,
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        policyWrites.push({ op: 'create', data })
+        policyRow = { ...data }
+        return policyRow
+      },
+      update: async ({ data }: { where: { id?: string }; data: Record<string, unknown> }) => {
+        policyWrites.push({ op: 'update', data })
+        policyRow = { ...(policyRow ?? {}), ...data }
+        return policyRow
+      },
+    },
     holiday: {
       findMany: async (args?: { where?: { date?: TimeFilter } }) =>
         fixtures.holidays.filter((h) => inRange(h.date, args?.where?.date)),
@@ -146,5 +238,5 @@ export function createFakePrisma(fixtures: Fixtures): {
       }),
   }
 
-  return { client, created, deleteCalls, assignments, staffUpdates }
+  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites }
 }

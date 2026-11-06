@@ -5,7 +5,7 @@
 import { startOfDay, eachDayOfInterval } from 'date-fns'
 import { prisma } from '@/lib/prisma'
 import { istDateKey } from '@/lib/dashboard-calc'
-import { ALWAYS, currentShiftId, type AssignmentLite } from '@/lib/shift-lookup'
+import { ALWAYS, currentShiftId, type AssignmentLite, type ShiftLite } from '@/lib/shift-lookup'
 import {
   planShiftChange,
   summarizeChange,
@@ -68,7 +68,12 @@ async function planFor(req: ChangeRequest, now: Date): Promise<Plan> {
 }
 
 /** Evaluates the planned change in memory against stored records. Writes nothing. */
-async function summarize(req: ChangeRequest, ops: ChangeOps, now: Date): Promise<PreviewSummary> {
+async function summarize(
+  req: ChangeRequest,
+  ops: ChangeOps,
+  now: Date,
+  extraShifts: ShiftLite[] = [],
+): Promise<PreviewSummary> {
   if (ops.recalcFrom === null) return { ...EMPTY_SUMMARY, transitions: {} }
 
   const staffId = req.staffId
@@ -81,7 +86,11 @@ async function summarize(req: ChangeRequest, ops: ChangeOps, now: Date): Promise
   const assignmentsByStaff = new Map(inputs.assignmentsByStaff)
   assignmentsByStaff.set(staffId, proposed)
 
-  const computed = computeRangeRecords({ ...inputs, assignmentsByStaff }, now).map((r) => ({
+  // Shifts that do not exist yet (a proposed new shift) live in memory only
+  const shiftsById = new Map(inputs.shiftsById)
+  for (const sh of extraShifts) shiftsById.set(sh.id, sh)
+
+  const computed = computeRangeRecords({ ...inputs, assignmentsByStaff, shiftsById }, now).map((r) => ({
     dayKey: istDateKey(r.date),
     status: r.status,
     lateMinutes: r.lateMinutes,
@@ -103,11 +112,18 @@ async function summarize(req: ChangeRequest, ops: ChangeOps, now: Date): Promise
   return summarizeChange(stored, computed, lockedSkippedDays)
 }
 
-/** Dry run: what the change would do from its start date to today. Writes nothing. */
-export async function previewShiftChange(req: ChangeRequest, now: Date = new Date()): Promise<PreviewSummary> {
+/**
+ * Dry run: what the change would do from its start date to today. Writes nothing.
+ * `extraShifts` are in-memory only, for previewing a shift that has not been created yet.
+ */
+export async function previewShiftChange(
+  req: ChangeRequest,
+  now: Date = new Date(),
+  extraShifts?: ShiftLite[],
+): Promise<PreviewSummary> {
   assertRequest(req)
   const { ops } = await planFor(req, now)
-  return summarize(req, ops, now)
+  return summarize(req, ops, now, extraShifts)
 }
 
 /**
