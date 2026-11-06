@@ -41,7 +41,7 @@ function fmt(mins: number): string {
 export function roundToFive(hhmm: string): string {
   const mins = parseHHMM(hhmm)
   const r = mins % 5
-  return fmt(r >= 3 ? mins - r + 5 : mins - r)
+  return fmt(Math.min(r >= 3 ? mins - r + 5 : mins - r, MAX_MIN))
 }
 
 function median(values: number[]): number {
@@ -102,9 +102,11 @@ export function detectShiftPattern(
   const outs = sorted.flatMap((d) => (d.lastOut !== null ? [parseHHMM(d.lastOut)] : []))
   const medianOut = outs.length >= MIN_DEPARTURE_DAYS ? roundToFive(fmt(median(outs))) : null
 
-  let sinceIdx = sorted.length
+  // Latest run of in-tolerance days, even if the newest day is a one-off odd day.
+  let end = ins.length - 1
+  while (end > 0 && !within(ins[end])) end--
+  let sinceIdx = end
   while (sinceIdx > 0 && within(ins[sinceIdx - 1])) sinceIdx--
-  if (sinceIdx === sorted.length) return null
 
   return {
     medianIn: fmt(medianInMin),
