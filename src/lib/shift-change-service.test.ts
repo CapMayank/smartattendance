@@ -97,7 +97,7 @@ describe("previewShiftChange", () => {
 
   it("rejects an empty staffId", async () => {
     fake()
-    await expect(previewShiftChange(req({ staffId: "" }), NOW)).rejects.toThrow()
+    await expect(previewShiftChange(req({ staffId: "" }), NOW)).rejects.toThrow(/staffId is required/)
   })
 })
 
@@ -167,9 +167,54 @@ describe("applyShiftChange", () => {
 
   it("rejects an empty staffId before writing or recalculating", async () => {
     const f = fake()
-    await expect(applyShiftChange(req({ staffId: "" }), NOW)).rejects.toThrow()
+    await expect(applyShiftChange(req({ staffId: "" }), NOW)).rejects.toThrow(/staffId is required/)
     expect(f.assignments).toEqual([])
     expect(f.deleteCalls).toEqual([])
+  })
+})
+
+describe("start dates at the ALWAYS boundary", () => {
+  it("first change dated ALWAYS: the preview's changes equal what apply writes", async () => {
+    fake()
+    const preview = await previewShiftChange(req({ effectiveFrom: ALWAYS }), NOW)
+    expect(preview.transitions["LATE->ON_TIME"]).toBe(5)
+    const f = fake()
+    const res = await applyShiftChange(req({ effectiveFrom: ALWAYS }), NOW)
+    expect(res.summary).toEqual(preview)
+    expect(f.created).toHaveLength(preview.recalculatedDays)
+    const week = f.created.filter((r) => WEEK.some((d) => (r.date as Date).getTime() === dayStart(d).getTime()))
+    expect(week.map((r) => r.lateMinutes)).toEqual([0, 0, 0, 0, 0])
+    expect(f.assignments).toEqual([expect.objectContaining({ effectiveFrom: ALWAYS, shiftId: "s2", source: "MANUAL" })])
+  })
+
+  it("rejects a start date before ALWAYS", async () => {
+    const f = fake()
+    await expect(previewShiftChange(req({ effectiveFrom: "1999-12-31" }), NOW)).rejects.toThrow(
+      "Start date must be on or after 2000-01-01",
+    )
+    await expect(applyShiftChange(req({ effectiveFrom: "1999-12-31" }), NOW)).rejects.toThrow(
+      "Start date must be on or after 2000-01-01",
+    )
+    expect(f.assignments).toEqual([])
+    expect(f.staffUpdates).toEqual([])
+  })
+})
+
+describe("Staff.shiftId after a back-dated change", () => {
+  it("a change dated before another effective assignment keeps Staff.shiftId on today's shift", async () => {
+    const LATER = { id: "s3", name: "Later", startTime: "11:00", endTime: "17:00" }
+    const f = fake({
+      staff: [{ id: "A", name: "A", shiftId: "s3", shift: LATER }],
+      shifts: [DAY, LATE, LATER],
+      assignments: [
+        { staffId: "A", effectiveFrom: ALWAYS, shiftId: "s1" },
+        { staffId: "A", effectiveFrom: "2026-11-04", shiftId: "s3" },
+      ],
+    })
+    const res = await applyShiftChange(req({ effectiveFrom: "2026-11-01", shiftId: "s2" }), NOW)
+    expect(res.recalculated).toBe(true)
+    // The transaction writes today's shift (s3); the later sync then has nothing to fix
+    expect(f.staffUpdates).toEqual([{ where: { id: "A" }, data: { shiftId: "s3" } }])
   })
 })
 

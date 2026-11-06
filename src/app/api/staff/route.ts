@@ -3,13 +3,19 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { istDateKey } from '@/lib/dashboard-calc'
-import { applyShiftChange, isValidDayKey, syncCurrentShifts } from '@/lib/shift-change-service'
+import { ALWAYS } from '@/lib/shift-lookup'
+import { applyShiftChange, isValidDayKey, START_BEFORE_ALWAYS_ERROR, syncCurrentShifts } from '@/lib/shift-change-service'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   // Staff.shiftId follows a future-dated assignment once its start date arrives
-  await syncCurrentShifts()
+  try {
+    await syncCurrentShifts()
+  } catch (error) {
+    // A sync failure must never break the staff list
+    console.error('[staff] sync failed:', error)
+  }
   const staff = await prisma.staff.findMany({ 
     include: { department: true, designation: true, shift: true }
   })
@@ -64,6 +70,9 @@ export async function PUT(request: Request) {
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
     if (updateData.effectiveFrom !== undefined && !isValidDayKey(updateData.effectiveFrom)) {
       return NextResponse.json({ error: 'effectiveFrom must be a valid YYYY-MM-DD date' }, { status: 400 })
+    }
+    if (updateData.effectiveFrom !== undefined && updateData.effectiveFrom < ALWAYS) {
+      return NextResponse.json({ error: START_BEFORE_ALWAYS_ERROR }, { status: 400 })
     }
 
     const current = await prisma.staff.findUnique({ where: { id }, select: { shiftId: true } })

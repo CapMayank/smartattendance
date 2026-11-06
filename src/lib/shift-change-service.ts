@@ -5,7 +5,7 @@
 import { startOfDay, eachDayOfInterval } from 'date-fns'
 import { prisma } from '@/lib/prisma'
 import { istDateKey } from '@/lib/dashboard-calc'
-import { currentShiftId, type AssignmentLite } from '@/lib/shift-lookup'
+import { ALWAYS, currentShiftId, type AssignmentLite } from '@/lib/shift-lookup'
 import {
   planShiftChange,
   summarizeChange,
@@ -21,6 +21,9 @@ export type ApplyResult = {
   summary: PreviewSummary
   error?: string
 }
+
+/** A start before ALWAYS changes nothing: the INITIAL row at ALWAYS covers every real day. */
+export const START_BEFORE_ALWAYS_ERROR = `Start date must be on or after ${ALWAYS}`
 
 const EMPTY_SUMMARY: PreviewSummary = { recalculatedDays: 0, changedDays: 0, transitions: {}, lockedSkippedDays: 0 }
 
@@ -42,13 +45,26 @@ function assertRequest(req: ChangeRequest) {
   // An empty staffId would make recalculateRange recalculate every teacher
   if (typeof req.staffId !== 'string' || req.staffId.trim() === '') throw new Error('staffId is required')
   if (!isValidDayKey(req.effectiveFrom)) throw new Error('effectiveFrom must be a valid YYYY-MM-DD date')
+  if (req.effectiveFrom < ALWAYS) throw new Error(START_BEFORE_ALWAYS_ERROR)
 }
 
-async function planFor(req: ChangeRequest, now: Date): Promise<ChangeOps> {
+type Plan = { ops: ChangeOps; existing: AssignmentLite[]; staffShiftId: string | null }
+
+/** The teacher's full assignment list once the change is applied (as the database will hold it). */
+function resultingAssignments(existing: AssignmentLite[], ops: ChangeOps): AssignmentLite[] {
+  const list = existing.filter((a) => a.effectiveFrom !== ops.upsert.effectiveFrom)
+  // INITIAL on the same date as the change is replaced by the upsert, as in the database
+  if (ops.createInitial && ops.createInitial.effectiveFrom !== ops.upsert.effectiveFrom) list.push(ops.createInitial)
+  list.push({ effectiveFrom: ops.upsert.effectiveFrom, shiftId: ops.upsert.shiftId })
+  return list
+}
+
+async function planFor(req: ChangeRequest, now: Date): Promise<Plan> {
   const staff = await prisma.staff.findUnique({ where: { id: req.staffId } })
   if (!staff) throw new Error(`Staff ${req.staffId} not found`)
-  const existing = await prisma.shiftAssignment.findMany({ where: { staffId: req.staffId } })
-  return planShiftChange(existing, staff.shiftId, req, istDateKey(now))
+  const rows = await prisma.shiftAssignment.findMany({ where: { staffId: req.staffId } })
+  const existing = rows.map((a) => ({ effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }))
+  return { ops: planShiftChange(existing, staff.shiftId, req, istDateKey(now)), existing, staffShiftId: staff.shiftId }
 }
 
 /** Evaluates the planned change in memory against stored records. Writes nothing. */
@@ -61,11 +77,7 @@ async function summarize(req: ChangeRequest, ops: ChangeOps, now: Date): Promise
   const inputs = await loadRangeInputs({ startDate, endDate, staffId })
 
   // Apply the proposed assignment in memory only
-  const proposed: AssignmentLite[] = (inputs.assignmentsByStaff.get(staffId) ?? []).filter(
-    (a) => a.effectiveFrom !== ops.upsert.effectiveFrom,
-  )
-  if (ops.createInitial) proposed.push(ops.createInitial)
-  proposed.push({ effectiveFrom: ops.upsert.effectiveFrom, shiftId: ops.upsert.shiftId })
+  const proposed = resultingAssignments(inputs.assignmentsByStaff.get(staffId) ?? [], ops)
   const assignmentsByStaff = new Map(inputs.assignmentsByStaff)
   assignmentsByStaff.set(staffId, proposed)
 
@@ -94,7 +106,7 @@ async function summarize(req: ChangeRequest, ops: ChangeOps, now: Date): Promise
 /** Dry run: what the change would do from its start date to today. Writes nothing. */
 export async function previewShiftChange(req: ChangeRequest, now: Date = new Date()): Promise<PreviewSummary> {
   assertRequest(req)
-  const ops = await planFor(req, now)
+  const { ops } = await planFor(req, now)
   return summarize(req, ops, now)
 }
 
@@ -105,13 +117,16 @@ export async function previewShiftChange(req: ChangeRequest, now: Date = new Dat
  */
 export async function applyShiftChange(req: ChangeRequest, now: Date = new Date()): Promise<ApplyResult> {
   assertRequest(req)
-  const ops = await planFor(req, now)
+  const { ops, existing, staffShiftId } = await planFor(req, now)
   const summary = await summarize(req, ops, now)
   const { staffId } = req
+  // Today's shift from the full resulting history: a back-dated change may sit behind
+  // another assignment that is already effective
+  const todayShiftId = currentShiftId(resultingAssignments(existing, ops), staffShiftId, istDateKey(now))
   const createdByUserId = req.createdByUserId ?? null
 
   await prisma.$transaction(async (tx) => {
-    if (ops.createInitial) {
+    if (ops.createInitial && ops.createInitial.effectiveFrom !== ops.upsert.effectiveFrom) {
       await tx.shiftAssignment.create({
         data: {
           staffId,
@@ -134,7 +149,7 @@ export async function applyShiftChange(req: ChangeRequest, now: Date = new Date(
       },
     })
     if (ops.staffShiftId !== undefined) {
-      await tx.staff.update({ where: { id: staffId }, data: { shiftId: ops.staffShiftId } })
+      await tx.staff.update({ where: { id: staffId }, data: { shiftId: todayShiftId } })
     }
   })
 
