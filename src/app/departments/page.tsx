@@ -65,7 +65,7 @@ export default function DepartmentsPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="md:col-span-1 self-start">
-          <CardHeader title="Add departments" />
+          <CardHeader title="Add department" />
           <form onSubmit={handleCreate} className="space-y-4">
             <Field label="Department name" htmlFor="new-name">
               <Input id="new-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Engineering" required />
@@ -130,7 +130,7 @@ export default function DepartmentsPage() {
         }
       >
         <Field label="Department name" htmlFor="edit-name">
-          <Input id="edit-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus />
+          <Input id="edit-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} data-autofocus />
         </Field>
       </Modal>
     </div>

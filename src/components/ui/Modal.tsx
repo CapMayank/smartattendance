@@ -18,6 +18,7 @@ export function Modal({
   footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const returnTo = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
@@ -27,6 +28,12 @@ export function Modal({
     if (open && !dlg.open) {
       returnTo.current = document.activeElement as HTMLElement | null;
       dlg.showModal();
+      const target =
+        bodyRef.current?.querySelector<HTMLElement>("[data-autofocus]") ??
+        bodyRef.current?.querySelector<HTMLElement>(
+          "input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled])",
+        );
+      target?.focus();
     } else if (!open && dlg.open) {
       dlg.close();
     }
@@ -52,7 +59,7 @@ export function Modal({
         </h2>
         <IconButton icon={X} label="Close" className="size-8" onClick={() => ref.current?.close()} />
       </div>
-      <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
+      <div ref={bodyRef} className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
       {footer ? (
         <div className="flex flex-wrap justify-end gap-2 border-t border-line-soft px-5 py-3">{footer}</div>
       ) : null}

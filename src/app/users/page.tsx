@@ -173,7 +173,7 @@ export default function UsersPage() {
       >
         <div className="space-y-4">
           <Field label="Full name" htmlFor="edit-name">
-            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} autoFocus />
+            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} data-autofocus />
           </Field>
           <Field label="Email address" htmlFor="edit-email">
             <Input id="edit-email" type="email" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />

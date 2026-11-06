@@ -65,7 +65,7 @@ export default function DesignationsPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="md:col-span-1 self-start">
-          <CardHeader title="Add designations" />
+          <CardHeader title="Add designation" />
           <form onSubmit={handleCreate} className="space-y-4">
             <Field label="Designation name" htmlFor="new-name">
               <Input id="new-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Senior Developer" required />
@@ -130,7 +130,7 @@ export default function DesignationsPage() {
         }
       >
         <Field label="Designation name" htmlFor="edit-name">
-          <Input id="edit-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus />
+          <Input id="edit-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} data-autofocus />
         </Field>
       </Modal>
     </div>

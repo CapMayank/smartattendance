@@ -158,7 +158,7 @@ export default function ShiftsPage() {
       >
         <div className="space-y-4">
           <Field label="Shift name" htmlFor="edit-name">
-            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} autoFocus />
+            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} data-autofocus />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Start time" htmlFor="edit-start">

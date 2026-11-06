@@ -172,7 +172,7 @@ export default function DevicesPage() {
       >
         <div className="space-y-4">
           <Field label="Device name" htmlFor="edit-name">
-            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} autoFocus />
+            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} data-autofocus />
           </Field>
           <Field label="IP address" htmlFor="edit-ip">
             <Input id="edit-ip" type="text" className="num" value={editData.ipAddress} onChange={e => setEditData({...editData, ipAddress: e.target.value})} />
