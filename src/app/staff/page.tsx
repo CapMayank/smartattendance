@@ -6,6 +6,17 @@ import { Avatar, Button, Card, CardHeader, EmptyState, Field, IconButton, Input,
 import { Plus, Users, Upload, Download, FileSpreadsheet, Trash2, Pencil, Calendar } from 'lucide-react'
 import Papa from 'papaparse'
 import { toast } from 'sonner'
+import { istDateKey } from '@/lib/dashboard-calc'
+import { previewHeadline, transitionRows } from '@/lib/shift-preview-text'
+import type { PreviewSummary } from '@/lib/shift-change'
+
+const ALWAYS_DAY = '2000-01-01'
+
+type PreviewState = { key: string; status: 'ok' | 'error'; summary?: PreviewSummary; error?: string }
+type HistoryRow = { id: string; effectiveFrom: string; shiftId: string | null; shiftName: string | null; source: string }
+type PendingRecalc = { shiftId: string; startDate: string; message: string }
+
+const SOURCE_LABELS: Record<string, string> = { MANUAL: 'Manual', SUGGESTION: 'Suggestion', INITIAL: 'Initial' }
 
 type Staff = {
   id: string
@@ -35,7 +46,27 @@ export default function StaffPage() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
+  const [originalShiftId, setOriginalShiftId] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [preview, setPreview] = useState<PreviewState | null>(null)
+  const [history, setHistory] = useState<{ staffId: string; rows: HistoryRow[] | null } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [pendingRecalc, setPendingRecalc] = useState<PendingRecalc | null>(null)
+
+  const shiftChanged = editingId !== null && editData.shiftId !== originalShiftId
+  const previewKey = `${editData.shiftId}|${startDate}`
+  const todayKey = istDateKey(new Date())
+  const currentPreview = preview && preview.key === previewKey ? preview : null
+  const previewLoading = shiftChanged && !currentPreview
+  const canSave = !saving && !pendingRecalc && (!shiftChanged || currentPreview?.status === 'ok')
+
   const startEditing = (staff: Staff) => {
+    const currentShiftId = staff.shift?.name ? shifts.find(s => s.name === staff.shift?.name)?.id || '' : ''
+    setOriginalShiftId(currentShiftId)
+    setStartDate(istDateKey(new Date()))
+    setPreview(null)
+    setPendingRecalc(null)
+    setSaving(false)
     setEditingId(staff.id)
     setEditData({
       name: staff.name,
@@ -46,18 +77,71 @@ export default function StaffPage() {
     })
   }
 
-  const saveEdit = async () => {
+  // Updates the other edited fields. When the shift was changed it is already saved through the
+  // shift endpoint, so shiftId is left out and the staff endpoint sees no shift change.
+  const saveOtherFields = async () => {
+    const { shiftId: _shiftId, ...rest } = editData
+    void _shiftId
     const res = await fetch('/api/staff', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editingId, ...editData })
+      body: JSON.stringify({ id: editingId, ...(shiftChanged ? rest : editData) })
     })
     if (res.ok) {
       setEditingId(null)
+      setPendingRecalc(null)
       fetchData()
       toast.success("Staff member updated successfully")
     } else {
+      if (shiftChanged) fetchData()
       toast.error("Failed to update staff member")
+    }
+  }
+
+  // Posts the real shift change. Returns true when the days were recalculated.
+  const applyShift = async (shiftId: string, effectiveFrom: string): Promise<boolean> => {
+    const res = await fetch(`/api/staff/${editingId}/shift`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shiftId: shiftId || null, effectiveFrom })
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data) {
+      toast.error(data?.error || 'Failed to change shift')
+      return false
+    }
+    if (data.recalculated === false) {
+      fetchData()
+      setPendingRecalc({
+        shiftId,
+        startDate: effectiveFrom,
+        message: data.error
+          ? `The new shift is saved, but past days were not recalculated: ${data.error}`
+          : 'The new shift is saved, but past days were not recalculated.'
+      })
+      return false
+    }
+    return true
+  }
+
+  const saveEdit = async () => {
+    if (!canSave) return
+    setSaving(true)
+    try {
+      if (shiftChanged && !(await applyShift(editData.shiftId, startDate))) return
+      await saveOtherFields()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const retryRecalculate = async () => {
+    if (!pendingRecalc || saving) return
+    setSaving(true)
+    try {
+      if (await applyShift(pendingRecalc.shiftId, pendingRecalc.startDate)) await saveOtherFields()
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -73,6 +157,40 @@ export default function StaffPage() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  // Shift history for the open edit modal
+  useEffect(() => {
+    if (!editingId) return
+    let cancelled = false
+    fetch(`/api/staff/${editingId}/shift-history`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(rows => { if (!cancelled) setHistory({ staffId: editingId, rows: Array.isArray(rows) ? rows : null }) })
+      .catch(() => { if (!cancelled) setHistory({ staffId: editingId, rows: null }) })
+    return () => { cancelled = true }
+  }, [editingId])
+
+  // Dry-run preview whenever the shift or start date changes (debounced, stale replies ignored)
+  useEffect(() => {
+    if (!editingId || editData.shiftId === originalShiftId || !startDate || startDate < ALWAYS_DAY) return
+    let cancelled = false
+    const key = `${editData.shiftId}|${startDate}`
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/staff/${editingId}/shift`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shiftId: editData.shiftId || null, effectiveFrom: startDate, dryRun: true })
+        })
+        const data = await res.json().catch(() => null)
+        if (cancelled) return
+        if (res.ok && data && typeof data.recalculatedDays === 'number') setPreview({ key, status: 'ok', summary: data })
+        else setPreview({ key, status: 'error', error: data?.error || 'Could not load the preview' })
+      } catch {
+        if (!cancelled) setPreview({ key, status: 'error', error: 'Could not load the preview' })
+      }
+    }, 300)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [editingId, editData.shiftId, originalShiftId, startDate])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -130,7 +248,9 @@ export default function StaffPage() {
 
   const handleBulkAssignShift = async (shiftId: string) => {
     if (!shiftId) return
-    const res = await fetch('/api/staff/bulk', { 
+    const shiftName = shifts.find(s => s.id === shiftId)?.name ?? 'the selected shift'
+    if (!confirm(`Assign ${selectedIds.length} staff to ${shiftName}? It applies from today; earlier days keep their shift.`)) return
+    const res = await fetch('/api/staff/bulk', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: selectedIds, shiftId })
@@ -297,6 +417,7 @@ export default function StaffPage() {
               <Button variant="danger" icon={Trash2} onClick={handleBulkDelete} className="w-full sm:w-auto">
                 Bulk Delete
               </Button>
+              <p className="w-full text-xs text-subtle">A bulk shift applies from today. Earlier days keep their shift.</p>
             </div>
           </div>
         )}
@@ -400,7 +521,7 @@ export default function StaffPage() {
         footer={
           <>
             <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
-            <Button onClick={saveEdit}>Save Changes</Button>
+            <Button onClick={saveEdit} disabled={!canSave} loading={saving}>Save Changes</Button>
           </>
         }
       >
@@ -431,6 +552,75 @@ export default function StaffPage() {
               {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </Select>
           </Field>
+          {shiftChanged && (
+            <div className="space-y-3">
+              <Field label="Starts on" htmlFor="edit-shift-start" helper="Days before this date keep their current shift.">
+                <Input
+                  id="edit-shift-start"
+                  type="date"
+                  min={ALWAYS_DAY}
+                  value={startDate}
+                  disabled={saving || pendingRecalc !== null}
+                  onChange={e => setStartDate(e.target.value)}
+                />
+              </Field>
+              <div className="rounded-xl border border-line-soft bg-card-hi p-3 text-[13px]" aria-live="polite">
+                {!startDate || startDate < ALWAYS_DAY ? (
+                  <p role="alert" className="text-absent">Choose a start date on or after {ALWAYS_DAY}.</p>
+                ) : previewLoading ? (
+                  <p className="text-muted">Loading preview...</p>
+                ) : currentPreview?.status === 'error' ? (
+                  <p role="alert" className="text-absent">{currentPreview.error}</p>
+                ) : currentPreview?.summary ? (
+                  <div className="space-y-1">
+                    {startDate > todayKey ? (
+                      <p className="text-text">Takes effect on <span className="num">{startDate}</span>; nothing is recalculated yet.</p>
+                    ) : (
+                      <>
+                        <p className="num text-text">{previewHeadline(currentPreview.summary)}</p>
+                        {transitionRows(currentPreview.summary.transitions).length > 0 && (
+                          <ul className="space-y-0.5 text-muted">
+                            {transitionRows(currentPreview.summary.transitions).map(r => (
+                              <li key={r.label}>{r.label}: <span className="num text-text">{r.count}</span></li>
+                            ))}
+                          </ul>
+                        )}
+                        {currentPreview.summary.lockedSkippedDays > 0 && (
+                          <p className="text-muted"><span className="num">{currentPreview.summary.lockedSkippedDays}</span> locked {currentPreview.summary.lockedSkippedDays === 1 ? 'day' : 'days'} left alone</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+              {pendingRecalc && (
+                <div role="alert" className="space-y-2 rounded-xl border border-late bg-card-hi p-3 text-[13px] text-text">
+                  <p>{pendingRecalc.message}</p>
+                  <Button variant="secondary" size="sm" onClick={retryRecalculate} loading={saving}>Recalculate</Button>
+                </div>
+              )}
+            </div>
+          )}
+          <div>
+            <p className="mb-2 text-[13px] font-medium text-text">Shift history</p>
+            {!history || history.staffId !== editingId ? (
+              <Skeleton className="h-4 w-40" />
+            ) : history.rows === null ? (
+              <p className="text-[13px] text-muted">Shift history could not be loaded.</p>
+            ) : history.rows.length === 0 ? (
+              <p className="text-[13px] text-muted">No changes yet — current shift applies to all days.</p>
+            ) : (
+              <ul className="divide-y divide-line-soft rounded-xl border border-line-soft text-[13px]">
+                {history.rows.map(h => (
+                  <li key={h.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2">
+                    <span className="num text-muted">{h.effectiveFrom <= ALWAYS_DAY ? 'Always' : h.effectiveFrom}</span>
+                    <span className="min-w-0 flex-1 truncate text-text">{h.shiftName ?? 'No shift'}</span>
+                    <span className="rounded-full border border-line-soft px-2 py-0.5 text-xs text-subtle">{SOURCE_LABELS[h.source] ?? h.source}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </Modal>
     </div>
