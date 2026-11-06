@@ -163,9 +163,9 @@ export default function StaffPayrollPage() {
                     </td>
                     <td className="text-right">
                       <div className="num font-medium text-text">
-                        {formatINR(s.payrollInfo?.monthlyCtc || 0)}
+                        {formatINR(s.payrollInfo?.monthlyCtc || 0, { exact: true })}
                       </div>
-                      <div className="mt-0.5 text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12)}</span></div>
+                      <div className="mt-0.5 text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12, { exact: true })}</span></div>
                     </td>
                     <td>
                       <div className="num text-muted">
@@ -254,8 +254,8 @@ export default function StaffPayrollPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border border-line-soft bg-ground p-3">
                     <span className="mb-1 block text-[11px] text-subtle">Monthly CTC</span>
-                    <span className="num font-medium text-text">{formatINR(s.payrollInfo?.monthlyCtc || 0)}</span>
-                    <span className="mt-0.5 block text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12)}</span></span>
+                    <span className="num font-medium text-text">{formatINR(s.payrollInfo?.monthlyCtc || 0, { exact: true })}</span>
+                    <span className="mt-0.5 block text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12, { exact: true })}</span></span>
                   </div>
                   <div className="rounded-lg border border-line-soft bg-ground p-3">
                     <span className="mb-1 block text-[11px] text-subtle">Bank</span>

@@ -710,7 +710,7 @@ export default function MonthlyPayrollPage() {
 
                       {/* Fixed CTC */}
                       <td className="text-right">
-                        <span className="num text-subtle">{formatINR(p.staff.payrollInfo?.monthlyCtc || 0)}</span>
+                        <span className="num text-subtle">{formatINR(p.staff.payrollInfo?.monthlyCtc || 0, { exact: true })}</span>
                       </td>
 
                       {/* Bonus Days & Live Computed Rupee Value */}
@@ -740,7 +740,7 @@ export default function MonthlyPayrollPage() {
                             </div>
                             {currentBonusAmount > 0 && (
                               <span className="num text-[11px] text-late">
-                                +{formatINR(currentBonusAmount)}
+                                +{formatINR(currentBonusAmount, { exact: true })}
                               </span>
                             )}
                           </div>
@@ -749,12 +749,12 @@ export default function MonthlyPayrollPage() {
 
                       {/* Gross Wage */}
                       <td className="text-right">
-                        <span className="num text-text">{formatINR(calc.grossWage)}</span>
+                        <span className="num text-text">{formatINR(calc.grossWage, { exact: true })}</span>
                       </td>
 
                       {/* Employee PF */}
                       <td className="text-right">
-                        <span className="num text-absent">-{formatINR(calc.employeeEpf)}</span>
+                        <span className="num text-absent">-{formatINR(calc.employeeEpf, { exact: true })}</span>
                       </td>
 
                       {/* Advance Refund */}
@@ -783,7 +783,7 @@ export default function MonthlyPayrollPage() {
 
                       {/* Net Payment */}
                       <td className="text-right">
-                        <span className="num text-[15px] font-medium text-present">{formatINR(calc.netPayment)}</span>
+                        <span className="num text-[15px] font-medium text-present">{formatINR(calc.netPayment, { exact: true })}</span>
                       </td>
                     </tr>
                   )
@@ -846,27 +846,27 @@ export default function MonthlyPayrollPage() {
 
                   <div className="mt-4 rounded-xl border border-line-soft bg-ground p-3.5">
                     <p className="text-[11px] text-subtle">Net Payment</p>
-                    <p className="num mt-0.5 text-2xl font-medium text-present">{formatINR(calc.netPayment)}</p>
+                    <p className="num mt-0.5 text-2xl font-medium text-present">{formatINR(calc.netPayment, { exact: true })}</p>
                   </div>
 
                   <div className={`grid ${isBonusModeEnabled ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mt-3`}>
                     <div className="rounded-lg border border-line-soft bg-ground p-2">
                       <p className="text-[10px] text-subtle">Fixed CTC</p>
-                      <p className="num mt-1 truncate text-[12px] text-muted">{formatINR(monthlyCtc)}</p>
+                      <p className="num mt-1 truncate text-[12px] text-muted">{formatINR(monthlyCtc, { exact: true })}</p>
                     </div>
                     {isBonusModeEnabled && (
                       <div className="rounded-lg border border-line-soft bg-ground p-2">
                         <p className="text-[10px] text-late">Bonus</p>
-                        <p className="num mt-1 truncate text-[12px] text-late">{formatINR(calc.bonusAmount)}</p>
+                        <p className="num mt-1 truncate text-[12px] text-late">{formatINR(calc.bonusAmount, { exact: true })}</p>
                       </div>
                     )}
                     <div className="rounded-lg border border-line-soft bg-ground p-2">
                       <p className="text-[10px] text-subtle">Gross</p>
-                      <p className="num mt-1 truncate text-[12px] text-text">{formatINR(calc.grossWage)}</p>
+                      <p className="num mt-1 truncate text-[12px] text-text">{formatINR(calc.grossWage, { exact: true })}</p>
                     </div>
                     <div className="rounded-lg border border-line-soft bg-ground p-2">
                       <p className="text-[10px] text-absent">PF</p>
-                      <p className="num mt-1 truncate text-[12px] text-absent">-{formatINR(calc.employeeEpf)}</p>
+                      <p className="num mt-1 truncate text-[12px] text-absent">-{formatINR(calc.employeeEpf, { exact: true })}</p>
                     </div>
                   </div>
 
@@ -931,7 +931,7 @@ export default function MonthlyPayrollPage() {
                           >+</button>
                         </div>
                         {currentBonusAmount > 0 && (
-                          <p className="num mt-1 text-center text-[10px] text-late">+{formatINR(currentBonusAmount)}</p>
+                          <p className="num mt-1 text-center text-[10px] text-late">+{formatINR(currentBonusAmount, { exact: true })}</p>
                         )}
                       </div>
                     )}

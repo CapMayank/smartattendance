@@ -1,12 +1,16 @@
 export const SCHOOL_TZ = "Asia/Kolkata";
 
-export function formatINR(amount: number, opts: { paise?: boolean } = {}): string {
+/**
+ * en-IN rupees. Default: whole rupees. `paise`: always 2 decimals.
+ * `exact`: 0–3 decimals, for unrounded values (matches the old `toLocaleString()` digits).
+ */
+export function formatINR(amount: number, opts: { paise?: boolean; exact?: boolean } = {}): string {
   const digits = opts.paise ? 2 : 0;
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
+    maximumFractionDigits: opts.exact ? 3 : digits,
   }).format(amount);
 }
 

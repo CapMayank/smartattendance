@@ -11,6 +11,12 @@ describe("format helpers", () => {
   it("formats zero", () => {
     expect(formatINR(0)).toBe("₹0");
   });
+  it("formats exact amounts with up to 3 fraction digits", () => {
+    expect(formatINR(25000.5, { exact: true })).toBe("₹25,000.5");
+    expect(formatINR(1500.75, { exact: true })).toBe("₹1,500.75");
+    expect(formatINR(1666.6667, { exact: true })).toBe("₹1,666.667");
+    expect(formatINR(56000, { exact: true })).toBe("₹56,000");
+  });
   it("formats time in IST", () => {
     expect(formatTime(new Date("2026-11-06T04:12:00Z"))).toBe("09:42");
   });
