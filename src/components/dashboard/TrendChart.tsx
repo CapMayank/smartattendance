@@ -39,12 +39,12 @@ export function TrendChart({ trend, total }: { trend: TrendDay[]; total: number 
               return day ? `${day.weekday} ${day.label} · ${day.onTime + day.late}/${total}` : String(d);
             }}
           />
-          <Bar dataKey="onTime" name="On time" stackId="t" fill="url(#trend-acc)" radius={[2, 2, 2, 2]} maxBarSize={44}>
+          <Bar isAnimationActive={false} dataKey="onTime" name="On time" stackId="t" fill="url(#trend-acc)" radius={[2, 2, 2, 2]} maxBarSize={44}>
             {trend.map((d) => (
               <Cell key={d.date} fillOpacity={d.saturday ? 0.45 : 1} />
             ))}
           </Bar>
-          <Bar dataKey="late" name="Late" stackId="t" fill={STATUS_HEX.late} fillOpacity={0.9} radius={[5, 5, 0, 0]} maxBarSize={44} />
+          <Bar isAnimationActive={false} dataKey="late" name="Late" stackId="t" fill={STATUS_HEX.late} fillOpacity={0.9} radius={[5, 5, 0, 0]} maxBarSize={44} />
         </BarChart>
       </ResponsiveContainer>
     </div>

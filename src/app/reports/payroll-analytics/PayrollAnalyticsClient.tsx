@@ -6,7 +6,7 @@ import {
   BarChart, Bar, Legend, PieChart, Pie, Cell
 } from 'recharts'
 import { Card, CardHeader } from '@/components/ui'
-import { chartTheme, barGradient, ACCENT_HEX, STATUS_HEX } from '@/lib/chart-theme'
+import { chartTheme, barGradient, ACCENT_HEX, CATEGORY_HEX } from '@/lib/chart-theme'
 import { Wallet, TrendingUp, IndianRupee, ShieldAlert, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
 
 // Helper to format currency
@@ -18,7 +18,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount)
 }
 
-const COLORS = [ACCENT_HEX.a2, STATUS_HEX.present, ACCENT_HEX.a1, STATUS_HEX.late, STATUS_HEX.leave, STATUS_HEX.absent, ACCENT_HEX.a3]
+const COLORS = CATEGORY_HEX
 
 interface KPICardProps {
   title: string
@@ -137,7 +137,20 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
       }
     })
 
-    return { kpis, trendData, deptData, complianceData, latestMonthKey }
+    const first = trendData[0]
+    const last = trendData[trendData.length - 1]
+    const trendSummary = first && last
+      ? `Payroll trajectory, ${trendData.length} months, ${first.name} to ${last.name}. Gross ${formatCurrency(first.Gross)} to ${formatCurrency(last.Gross)}; net ${formatCurrency(first.Net)} to ${formatCurrency(last.Net)}.`
+      : 'Payroll trajectory: no data.'
+    const deptSummary = deptData.length
+      ? `Net cost by department, ${latestMonthKey}: ${deptData.map(d => `${d.name} ${formatCurrency(d.value)}`).join(', ')}.`
+      : 'Net cost by department: no data.'
+    const lastC = complianceData[complianceData.length - 1]
+    const complianceSummary = lastC
+      ? `EPF contributions over ${complianceData.length} months. ${lastC.name}: employee EPF ${formatCurrency(lastC['Employee EPF'])}, employer EPF ${formatCurrency(lastC['Employer EPF'])}, employer EPS ${formatCurrency(lastC['Employer EPS'])}.`
+      : 'EPF contributions: no data.'
+
+    return { kpis, trendData, deptData, complianceData, latestMonthKey, trendSummary, deptSummary, complianceSummary }
   }, [payrollData])
 
   if (!analytics) {
@@ -164,21 +177,21 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
           value={analytics.kpis.net.value} 
           change={analytics.kpis.net.change} 
           icon={IndianRupee} 
-          colorClass="bg-present/80" 
+          colorClass="bg-acc-3/70" 
         />
         <KPICard 
           title="Total PF Liability" 
           value={analytics.kpis.epf.value} 
           change={analytics.kpis.epf.change} 
           icon={ShieldAlert} 
-          colorClass="bg-absent/80" 
+          colorClass="bg-line" 
         />
         <KPICard 
           title="Avg. CTC per Employee" 
           value={analytics.kpis.avgSalary.value} 
           change={analytics.kpis.avgSalary.change} 
           icon={TrendingUp} 
-          colorClass="bg-leave/80" 
+          colorClass="bg-card-hi border border-line" 
         />
       </div>
 
@@ -187,7 +200,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
         {/* Trend Chart */}
         <Card className="xl:col-span-2">
           <CardHeader title="Payroll Trajectory" />
-          <div className="h-[350px] w-full">
+          <div role="figure" aria-label={analytics.trendSummary} className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={analytics.trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
@@ -196,8 +209,8 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
                     <stop offset="95%" stopColor={ACCENT_HEX.a2} stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={STATUS_HEX.present} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={STATUS_HEX.present} stopOpacity={0}/>
+                    <stop offset="5%" stopColor={ACCENT_HEX.a1} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={ACCENT_HEX.a1} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid {...chartTheme.grid} vertical={false} />
@@ -213,8 +226,8 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
                   formatter={(value) => formatCurrency(Number(value) || 0)}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="Gross" stroke={ACCENT_HEX.a2} strokeWidth={3} fillOpacity={1} fill="url(#colorGross)" />
-                <Area type="monotone" dataKey="Net" stroke={STATUS_HEX.present} strokeWidth={3} fillOpacity={1} fill="url(#colorNet)" />
+                <Area type="monotone" isAnimationActive={false} dataKey="Gross" stroke={ACCENT_HEX.a2} strokeWidth={3} fillOpacity={1} fill="url(#colorGross)" />
+                <Area type="monotone" isAnimationActive={false} dataKey="Net" stroke={ACCENT_HEX.a1} strokeWidth={3} fillOpacity={1} fill="url(#colorNet)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -224,7 +237,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
         <Card className="flex flex-col">
           <CardHeader title="Cost by Department" caption={`Latest Month (${analytics.latestMonthKey})`} />
           
-          <div className="h-[300px] w-full flex-1">
+          <div role="figure" aria-label={analytics.deptSummary} className="h-[300px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -236,6 +249,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
                   paddingAngle={5}
                   dataKey="value"
                   stroke="none"
+                  isAnimationActive={false}
                 >
                   {analytics.deptData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -262,13 +276,13 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
         {/* Compliance Stacked Bar Chart */}
         <Card className="xl:col-span-3">
           <CardHeader title="EPF Compliance Contributions" />
-          <div className="h-[350px] w-full">
+          <div role="figure" aria-label={analytics.complianceSummary} className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics.complianceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   {barGradient("gradEmployeeEpf", "accent")}
-                  {barGradient("gradEmployerEpf", "present")}
-                  {barGradient("gradEmployerEps", "late")}
+                  {barGradient("gradEmployerEpf", "accentLight")}
+                  {barGradient("gradEmployerEps", "neutral")}
                 </defs>
                 <CartesianGrid {...chartTheme.grid} vertical={false} />
                 <XAxis dataKey="name" tick={chartTheme.axisTick} axisLine={false} tickLine={false} />
@@ -283,9 +297,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
                   formatter={(value) => formatCurrency(Number(value) || 0)}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="Employee EPF" stackId="a" fill="url(#gradEmployeeEpf)" radius={[0, 0, 4, 4]} />
-                <Bar dataKey="Employer EPF" stackId="a" fill="url(#gradEmployerEpf)" />
-                <Bar dataKey="Employer EPS" stackId="a" fill="url(#gradEmployerEps)" radius={[4, 4, 0, 0]} />
+                <Bar isAnimationActive={false} dataKey="Employee EPF" stackId="a" fill="url(#gradEmployeeEpf)" radius={[0, 0, 4, 4]} />
+                <Bar isAnimationActive={false} dataKey="Employer EPF" stackId="a" fill="url(#gradEmployerEpf)" />
+                <Bar isAnimationActive={false} dataKey="Employer EPS" stackId="a" fill="url(#gradEmployerEps)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -3,6 +3,9 @@ import type { CSSProperties } from "react";
 // Recharts cannot read CSS variables in every prop, so raw hex lives only here.
 export const ACCENT_HEX = { a1: "#A5ACFF", a2: "#7B85FF", a3: "#3B3FB8" } as const;
 
+/** Decorative category ramp (accent + neutral greys) for non-status series such as departments. */
+export const CATEGORY_HEX = [ACCENT_HEX.a2, ACCENT_HEX.a1, ACCENT_HEX.a3, "#A1A1A8", "#7C7C85", "#52525B", "#3F3F46"] as const;
+
 export const STATUS_HEX: Record<"present" | "late" | "absent" | "leave", string> = {
   present: "#34D399",
   late: "#F5A524",
@@ -38,14 +41,16 @@ export const chartTheme = {
   },
 };
 
-const STOPS: Record<"accent" | "present" | "late", [string, string, string]> = {
+const STOPS: Record<"accent" | "accentLight" | "neutral" | "present" | "late", [string, string, string]> = {
   accent: [ACCENT_HEX.a1, ACCENT_HEX.a2, ACCENT_HEX.a3],
+  accentLight: ["#C7CBFF", ACCENT_HEX.a1, ACCENT_HEX.a1],
+  neutral: ["#C4C4CA", MUTED, MUTED],
   present: ["#6EE7B7", STATUS_HEX.present, STATUS_HEX.present],
   late: ["#FCD34D", STATUS_HEX.late, STATUS_HEX.late],
 };
 
 /** Vertical gradient for bars; place inside <defs> and use fill={`url(#${id})`}. */
-export function barGradient(id: string, tone: "accent" | "present" | "late") {
+export function barGradient(id: string, tone: "accent" | "accentLight" | "neutral" | "present" | "late") {
   const [top, mid, bottom] = STOPS[tone];
   return (
     <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">

@@ -65,8 +65,8 @@ export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; grace
             {...chartTheme.tooltip}
             labelFormatter={(label) => slotText(byLabel.get(String(label)), String(label))}
           />
-          <Bar dataKey="onTime" name="On time" stackId="a" fill="url(#arr-on)" radius={[6, 6, 2, 2]} maxBarSize={56} />
-          <Bar dataKey="late" name="Late" stackId="a" fill="url(#arr-late)" radius={[6, 6, 2, 2]} maxBarSize={56} />
+          <Bar isAnimationActive={false} dataKey="onTime" name="On time" stackId="a" fill="url(#arr-on)" radius={[6, 6, 2, 2]} maxBarSize={56} />
+          <Bar isAnimationActive={false} dataKey="late" name="Late" stackId="a" fill="url(#arr-late)" radius={[6, 6, 2, 2]} maxBarSize={56} />
           {anchor ? (
             <ReferenceLine
               x={anchor.x}
