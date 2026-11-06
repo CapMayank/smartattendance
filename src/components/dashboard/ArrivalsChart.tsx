@@ -4,32 +4,48 @@ import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Toolt
 import { barGradient, chartTheme, STATUS_HEX } from "@/lib/chart-theme";
 import { parseHHMM } from "@/lib/dashboard-calc";
 
-type Bin = { label: string; onTime: number; late: number };
+type Bin = { label: string; onTime: number; late: number; overflow?: "before" | "after" };
 
 const SLOT = 15;
 
-/** The bin that contains the grace time, and where inside it the line sits. */
+/** Start minute of a regular bin, or of an "after" overflow bin ("11:10+"); null for "before". */
+function binStart(b: Bin): number | null {
+  if (b.overflow === "before") return null;
+  return parseHHMM(b.overflow === "after" ? b.label.slice(0, -1) : b.label);
+}
+
+/** The bin that contains the grace time, and where inside it the line sits. Never inside an overflow bin. */
 function graceAnchor(bins: Bin[], grace: string | null) {
-  if (!grace || bins.length === 0) return null;
+  if (!grace) return null;
   const g = parseHHMM(grace);
-  for (const b of bins) {
+  const regular = bins.filter((b) => !b.overflow);
+  for (const b of regular) {
     const start = parseHHMM(b.label);
     if (g >= start && g < start + SLOT) return { x: b.label, position: g === start ? ("start" as const) : ("middle" as const) };
   }
-  const last = bins[bins.length - 1];
-  if (g === parseHHMM(last.label) + SLOT) return { x: last.label, position: "end" as const };
+  const after = bins.find((b) => b.overflow === "after");
+  if (after && binStart(after) === g) return { x: after.label, position: "start" as const };
+  const last = regular[regular.length - 1];
+  if (last && g === parseHHMM(last.label) + SLOT) return { x: last.label, position: "end" as const };
   return null;
 }
 
-function addSlot(label: string) {
-  const m = parseHHMM(label) + SLOT;
+function hhmm(m: number) {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+function slotText(b: Bin | undefined, label: string) {
+  if (!b) return label;
+  if (b.overflow === "before") return `Before ${b.label.slice(1)}`;
+  if (b.overflow === "after") return `After ${b.label.slice(0, -1)}`;
+  return `${b.label}–${hhmm(parseHHMM(b.label) + SLOT)}`;
 }
 
 export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; graceLabel: string | null }) {
   const onTime = arrivals.reduce((n, b) => n + b.onTime, 0);
   const late = arrivals.reduce((n, b) => n + b.late, 0);
   const anchor = graceAnchor(arrivals, graceLabel);
+  const byLabel = new Map(arrivals.map((b) => [b.label, b]));
   const summary =
     `Arrivals in ${SLOT}-minute slots: ${onTime} on time, ${late} late` +
     (graceLabel ? `, grace ends ${graceLabel}` : "");
@@ -47,7 +63,7 @@ export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; grace
           <YAxis allowDecimals={false} tick={chartTheme.axisTick} tickLine={false} axisLine={false} width={48} />
           <Tooltip
             {...chartTheme.tooltip}
-            labelFormatter={(label) => `${label}–${addSlot(String(label))}`}
+            labelFormatter={(label) => slotText(byLabel.get(String(label)), String(label))}
           />
           <Bar dataKey="onTime" name="On time" stackId="a" fill="url(#arr-on)" radius={[6, 6, 2, 2]} maxBarSize={56} />
           <Bar dataKey="late" name="Late" stackId="a" fill="url(#arr-late)" radius={[6, 6, 2, 2]} maxBarSize={56} />

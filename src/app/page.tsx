@@ -221,7 +221,13 @@ export default async function Dashboard({
         <Card className="min-[1240px]:col-span-5">
           <CardHeader
             title="Needs your attention"
-            caption={data.attention.length ? <span className="num">{data.attention.length} items</span> : undefined}
+            caption={
+              data.attention.length ? (
+                <span className="num">
+                  {data.attention.length} items{data.attentionMore > 0 ? ` · +${data.attentionMore} more` : ""}
+                </span>
+              ) : undefined
+            }
           />
           <AttentionList items={data.attention} />
         </Card>

@@ -9,6 +9,7 @@ import {
   isDeviceOnline,
   isLate,
   istDayStart,
+  istMinutes,
   lateMinutes,
   parseHHMM,
   weekdayDelta,
@@ -30,7 +31,8 @@ export type DashboardData = {
     /** 7 working days, oldest first. `devices` is empty: device ping history is not stored. */
     spark: { in: number[]; late: number[]; absent: number[]; devices: number[] };
   };
-  arrivals: ReturnType<typeof binArrivals>;
+  /** binArrivals bins; an extra leading/trailing bin collects arrivals outside the window (`overflow`). */
+  arrivals: (ReturnType<typeof binArrivals>[number] & { overflow?: "before" | "after" })[];
   graceLabel: string | null;
   ring: { onTime: number; late: number; absent: number };
   departments: { name: string; present: number; total: number }[];
@@ -40,6 +42,8 @@ export type DashboardData = {
     detail: string;
     href: string;
   }[];
+  /** Attention items that did not fit in the list (addition beyond the brief's type). */
+  attentionMore: number;
   trend: { date: string; label: string; weekday: string; onTime: number; late: number; saturday: boolean }[];
   staff: {
     id: string;
@@ -69,6 +73,7 @@ const MAX_ATTENTION = 5;
 /** Arrivals window around the common shift start (mockup: 08:30 shift → 07:45–09:45). */
 const ARRIVALS_BEFORE = 45;
 const ARRIVALS_AFTER = 75;
+const ARRIVAL_SLOT = 15;
 
 const keyFmt = new Intl.DateTimeFormat("en-CA", {
   timeZone: SCHOOL_TZ,
@@ -184,7 +189,8 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   }));
 
   /** present / late counts for one IST day; roster = staff created on or before that day. */
-  function dayStats(key: string) {
+  /** `cutoff` limits the day to punches at or before that instant (same time-of-day comparisons). */
+  function dayStats(key: string, cutoff?: Date) {
     let roster = 0;
     let present = 0;
     let late = 0;
@@ -193,6 +199,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
       roster++;
       const dayLogs = s.byDay.get(key);
       if (!dayLogs || dayLogs.length === 0) continue;
+      if (cutoff && dayLogs[0].timestamp.getTime() > cutoff.getTime()) continue;
       present++;
       if (isLate(dayLogs[0].timestamp, s.shiftStart, allow)) late++;
     }
@@ -243,9 +250,10 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
 
   // ---- KPIs: deltas vs same weekday last week, sparks over 7 working days ----
   const lastWeekKey = istDateKey(new Date(todayStart.getTime() - 7 * DAY_MS + DAY_MS / 2));
-  const lastWeek = dayStats(lastWeekKey);
+  // Same weekday last week, cut at the same IST time of day as now (IST has no DST, so exactly −7 days).
+  const lastWeek = dayStats(lastWeekKey, new Date(now.getTime() - 7 * DAY_MS));
   const sparkKeys = workingDayKeys.slice(0, SPARK_DAYS).reverse();
-  const sparkStats = sparkKeys.map(dayStats);
+  const sparkStats = sparkKeys.map((k) => dayStats(k));
 
   // ---- Grace: most common shift start + allow ----
   const commonStart = mostCommon(staffInfo.map((s) => s.shiftStart).filter((s): s is string => s !== null));
@@ -341,17 +349,32 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   streaks.sort((a, b) => b.n - a.n);
   lateRepeats.sort((a, b) => b.n - a.n);
 
-  const offline: DashboardData["attention"] = devices
-    .filter((d) => !isDeviceOnline(d.lastPing, now))
-    .map((d) => {
-      const sameDay = istDateKey(d.lastPing) === todayKey;
-      return {
-        kind: "device-offline",
-        title: `${d.name} device offline`,
-        detail: `Last ping ${sameDay ? "today" : labelFmt.format(keyNoon(istDateKey(d.lastPing)))} ${formatTime(d.lastPing)}`,
-        href: "/devices",
-      };
-    });
+  const offlineDevices = devices.filter((d) => !isDeviceOnline(d.lastPing, now));
+  const lastPingText = (d: Date) =>
+    `${istDateKey(d) === todayKey ? "today" : labelFmt.format(keyNoon(istDateKey(d)))} ${formatTime(d)}`;
+  const offline: DashboardData["attention"] =
+    offlineDevices.length === 0
+      ? []
+      : offlineDevices.length === 1
+        ? [
+            {
+              kind: "device-offline",
+              title: `${offlineDevices[0].name} device offline`,
+              detail: `Last ping ${lastPingText(offlineDevices[0].lastPing)}`,
+              href: "/devices",
+            },
+          ]
+        : [
+            {
+              kind: "device-offline",
+              title: `${offlineDevices.length} devices offline`,
+              detail: `${offlineDevices
+                .slice(0, 3)
+                .map((d) => d.name)
+                .join(", ")}${offlineDevices.length > 3 ? ` +${offlineDevices.length - 3}` : ""}`,
+              href: "/devices",
+            },
+          ];
 
   // Missing OUT on the previous working day (DailyRecord.date is a server-local midnight inside that IST day)
   const prevKey = pastWorking[0] ?? null;
@@ -379,7 +402,8 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     }
   }
 
-  // Keep the list varied: up to 2 of each person-kind first, then fill from what is left.
+  // Devices and the payroll-relevant missing OUT always make the cut; then up to 2 of each
+  // person-kind; then fill from what is left.
   type Ranked = DashboardData["attention"][number] & { n: number };
   const strip = (r: Ranked): DashboardData["attention"][number] => ({
     kind: r.kind,
@@ -387,12 +411,41 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     detail: r.detail,
     href: r.href,
   });
-  const primary = [...streaks.slice(0, 2).map(strip), ...lateRepeats.slice(0, 2).map(strip), ...offline, ...missing];
+  const primary = [...offline, ...missing, ...streaks.slice(0, 2).map(strip), ...lateRepeats.slice(0, 2).map(strip)];
   const extra = [...streaks.slice(2).map(strip), ...lateRepeats.slice(2).map(strip)];
   const order = { "absent-streak": 0, "late-repeat": 1, "device-offline": 2, "missing-out": 3 } as const;
   const attention = [...primary.slice(0, MAX_ATTENTION), ...extra]
     .slice(0, MAX_ATTENTION)
     .sort((a, b) => order[a.kind] - order[b.kind]);
+  const attentionMore = primary.length + extra.length - attention.length;
+
+  // Table order (mockup): present staff by first punch, then absent alphabetically (staffRows is by name).
+  const staffOrdered = [...staff].sort((a, b) => {
+    const pa = a.punches[0]?.at;
+    const pb = b.punches[0]?.at;
+    if (pa && pb) return pa < pb ? -1 : pa > pb ? 1 : 0;
+    if (pa) return -1;
+    if (pb) return 1;
+    return 0;
+  });
+
+  // Arrivals: the window around the common shift start, plus an overflow bin on each side
+  // only when some first punch falls outside it (binArrivals clamps into its end bins).
+  const arrFrom = commonStart ? parseHHMM(commonStart) - ARRIVALS_BEFORE : parseHHMM("07:45");
+  const arrTo = commonStart ? parseHHMM(commonStart) + ARRIVALS_AFTER : parseHHMM("09:45");
+  const early = firstPunches.some((p) => istMinutes(p.at) < arrFrom);
+  const lateOver = firstPunches.some((p) => istMinutes(p.at) >= arrTo);
+  const arrivals: DashboardData["arrivals"] = binArrivals(
+    firstPunches,
+    formatHHMM(arrFrom - (early ? ARRIVAL_SLOT : 0)),
+    formatHHMM(arrTo + (lateOver ? ARRIVAL_SLOT : 0)),
+    ARRIVAL_SLOT,
+  );
+  if (early) arrivals[0] = { ...arrivals[0], label: `<${formatHHMM(arrFrom)}`, overflow: "before" };
+  if (lateOver) {
+    const i = arrivals.length - 1;
+    arrivals[i] = { ...arrivals[i], label: `${formatHHMM(arrTo)}+`, overflow: "after" };
+  }
 
   return {
     kpis: {
@@ -414,19 +467,14 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
         devices: [],
       },
     },
-    arrivals: commonStart
-      ? binArrivals(
-          firstPunches,
-          formatHHMM(parseHHMM(commonStart) - ARRIVALS_BEFORE),
-          formatHHMM(parseHHMM(commonStart) + ARRIVALS_AFTER),
-        )
-      : binArrivals(firstPunches),
+    arrivals,
     graceLabel,
     ring: { onTime: inToday - lateToday, late: lateToday, absent: absentToday },
     departments,
     attention,
+    attentionMore,
     trend,
-    staff,
+    staff: staffOrdered,
     punchLog,
     workingDay,
     offDayName,
