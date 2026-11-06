@@ -4,6 +4,7 @@ import { startOfDay, endOfDay, eachDayOfInterval, isAfter } from 'date-fns'
 import { istDateKey } from '@/lib/dashboard-calc'
 import { shiftOn, type AssignmentLite, type ShiftLite } from '@/lib/shift-lookup'
 import { evaluateDay, type DayLog, type DayPolicy, type DayResult } from '@/lib/attendance-day'
+import { syncCurrentShifts } from '@/lib/shift-change-service'
 
 export type DailyRecordRow = DayResult & { staffId: string; date: Date }
 
@@ -189,6 +190,8 @@ export async function recalculateRange(opts: {
   staffId?: string
 }): Promise<{ days: number; records: number }> {
   const days = rangeDays(opts.startDate, opts.endDate).length
+  // Keep Staff.shiftId pointing at today's shift (a future-dated assignment may have arrived)
+  await syncCurrentShifts()
   const inputs = await loadRangeInputs(opts)
   const records = computeRangeRecords(inputs, new Date())
   await persistRangeRecords(inputs, records)
