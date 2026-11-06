@@ -76,6 +76,10 @@ The accent never means a status.
 | `absent` | `#F7606C` | absent, errors, destructive, device offline |
 | `leave` | `#A98BFF` | reserved for the future leave feature; also half day |
 
+Holidays and week-offs are not statuses in this sense: they use a neutral
+treatment (`card-hi` background, `muted` text, `line` border) with the existing
+"H" / "W" letter and word, so the `leave` colour stays free for leave tracking.
+
 Tinted backgrounds use the status colour at about 9% alpha, and borders at
 about 28%. Status is never shown by colour alone: it always comes with an icon
 and a word (WCAG 1.4.1).
@@ -111,8 +115,8 @@ and a word (WCAG 1.4.1).
   - At the bottom: a **Punch devices** panel listing each device with an online dot and last ping, then Help.
 - **Top strip** above the canvas:
   - Avatars of the 4 most recent punches.
-  - "Live · last punch HH:MM at <device>" with a pulse dot.
-  - Global search box (a visual placeholder for now; it filters nothing until a search feature is specced).
+  - "Last punch HH:MM at <device>" (or "No punches yet today"). The shell data only refreshes on full page loads, so it is not labelled "Live".
+  - Global search box: a read-only placeholder ("Search (coming soon)") until a search feature is specced.
 - **Canvas:** one rounded `canvas` panel per page, holding the page header and content.
 - **Below 980px:** the sidebar becomes a slide-in drawer with a scrim, opened by a menu button. Esc closes it, focus is trapped inside, and focus returns to the menu button.
 - `/login` has no shell: a centred card on `ground` with the brand mark.
@@ -155,9 +159,10 @@ and a word (WCAG 1.4.1).
 
 Sections in order:
 1. **PageHeader:** "Good morning, <name>", plus the date, time, shift and grace time.
-   Actions: department filter, more menu, "Export today".
+   The mockup's header actions (department filter, more menu, "Export today") are
+   deferred: they need new behaviour, which this visual-only redesign does not add.
 2. **Today: KPI tiles.**
-   - **In today** `n / total` (present)
+   - **In today** `n / total` (present): staff with at least one punch today, as in the mockup
    - **Late arrivals** (late)
    - **Absent** (absent)
    - **Devices online** `n / total` (accent)
