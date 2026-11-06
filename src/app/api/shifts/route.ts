@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { shiftUsageCount, shiftInUseMessage } from '@/lib/shift-delete-guard'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -43,6 +44,8 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    const inUse = await shiftUsageCount(id)
+    if (inUse > 0) return NextResponse.json({ error: shiftInUseMessage(inUse) }, { status: 409 })
     await prisma.shift.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {

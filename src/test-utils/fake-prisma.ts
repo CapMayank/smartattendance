@@ -167,9 +167,16 @@ export function createFakePrisma(fixtures: Fixtures): {
         staffRows.filter((s) => matchesId(s.id, args?.where?.id)),
       findUnique: async (args: { where: { id: string } }) => staffRows.find((s) => s.id === args.where.id) ?? null,
       update: staffUpdate,
+      count: async (args?: { where?: Record<string, unknown> }) =>
+        staffRows.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where)).length,
     },
     shift: {
       findMany: async () => shiftRows,
+      delete: async ({ where }: { where: { id: string } }) => {
+        const i = shiftRows.findIndex((r) => r.id === where.id)
+        if (i < 0) throw new Error(`shift ${where.id} not found`)
+        return shiftRows.splice(i, 1)[0]
+      },
       create: async ({ data }: { data: { name: string; startTime: string; endTime: string } }) => {
         const row = { id: `new-shift-${++shiftSeq}`, ...data }
         shiftRows.push(row)
@@ -210,6 +217,8 @@ export function createFakePrisma(fixtures: Fixtures): {
     shiftAssignment: {
       findMany: async (args?: { where?: { staffId?: string } }) =>
         assignments.filter((a) => !args?.where?.staffId || a.staffId === args.where.staffId),
+      count: async (args?: { where?: Record<string, unknown> }) =>
+        assignments.filter((a) => matchesWhere(a as unknown as Record<string, unknown>, args?.where)).length,
     },
     dailyRecord: {
       findMany: async (args?: { where?: { staffId?: string; date?: TimeFilter } }) =>
