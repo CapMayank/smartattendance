@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { startOfDay, endOfDay, eachDayOfInterval, differenceInMinutes, parse, isBefore, isAfter, format } from 'date-fns'
+import { startOfDay, endOfDay, eachDayOfInterval, isAfter } from 'date-fns'
+import { evaluateDay, type DayPolicy } from '@/lib/attendance-day'
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
@@ -41,16 +42,6 @@ export async function POST(request: Request) {
       absentIfWorkHrsLessThan: "00:00",
       allInOut: "First IN Last OUT"
     };
-
-    const parseTime = (timeStr: string) => {
-      if (!timeStr) return 0;
-      const [hrs, mins] = timeStr.split(':').map(Number);
-      return (hrs * 60) + (mins || 0);
-    };
-
-    const lateAllowMins = parseTime(policy.lateArrivalAllow as string);
-    const halfDayWorkMins = parseTime(policy.halfDayIfWorkHrsLessThan as string);
-    const absentWorkMins = parseTime(policy.absentIfWorkHrsLessThan as string);
 
     const holidays = await prisma.holiday.findMany({
       where: {
@@ -116,82 +107,20 @@ export async function POST(request: Request) {
           continue;
         }
 
-        let status = 'ABSENT';
-        let checkIn = null;
-        let checkOut = null;
-        let workMinutes = 0;
-        let lateMinutes = 0;
-
-        if (myLogs.length > 0) {
-          status = 'PRESENT';
-          
-          if (policy.allInOut === 'First IN Last OUT') {
-            checkIn = myLogs[0].timestamp;
-            checkOut = myLogs[myLogs.length - 1].timestamp;
-            
-            if (checkIn.getTime() !== checkOut.getTime()) {
-              workMinutes = differenceInMinutes(checkOut, checkIn);
-            }
-          } else {
-             // "Every IN OUT" calculation
-             let totalMinutes = 0;
-             let currentIn = null;
-             
-             const hasExplicitOut = myLogs.some(l => l.type === 'OUT');
-             const effectiveLogs = (myLogs.length > 1 && !hasExplicitOut)
-               ? myLogs.map((l, idx) => ({ ...l, type: (idx === myLogs.length - 1 || idx % 2 === 1) ? 'OUT' : 'IN' }))
-               : myLogs;
-
-             for (const log of effectiveLogs) {
-                if (log.type === 'IN') {
-                   currentIn = log.timestamp;
-                } else if (log.type === 'OUT' && currentIn) {
-                   totalMinutes += differenceInMinutes(log.timestamp, currentIn);
-                   currentIn = null; // Reset for next pair
-                }
-             }
-             
-             checkIn = myLogs[0].timestamp;
-             checkOut = myLogs[myLogs.length - 1].timestamp;
-             workMinutes = totalMinutes;
-          }
-
-          // Calculate Late Minutes based on shift
-          if (staff.shift) {
-            const shiftStart = parse(staff.shift.startTime, 'HH:mm', date);
-            const expectedArrival = new Date(shiftStart.getTime() + lateAllowMins * 60000);
-            
-            if (isAfter(checkIn, expectedArrival)) {
-              lateMinutes = differenceInMinutes(checkIn, shiftStart);
-            }
-          }
-
-          if (!isHoliday && !isWeekOff) {
-            if (workMinutes < absentWorkMins && absentWorkMins > 0) {
-               status = 'ABSENT';
-            } else if (workMinutes < halfDayWorkMins && halfDayWorkMins > 0) {
-               status = 'HALF_DAY';
-            }
-          }
-        } else {
-          // No logs. Check if it's a holiday or a week off
-          if (isHoliday) {
-            status = 'HOLIDAY';
-          } else if (isWeekOff) {
-            status = 'WEEKOFF';
-          }
-        }
+        const result = evaluateDay({
+          date,
+          logs: myLogs,
+          shift: staff.shift,
+          policy: policy as DayPolicy,
+          isHoliday,
+          isWeekOff
+        });
 
         if (!lockedKeys.has(`${staff.id}-${date.getMonth() + 1}-${date.getFullYear()}`)) {
           newRecords.push({
             staffId: staff.id,
             date: startOfDay(date),
-            status,
-            checkIn,
-            checkOut,
-            lateMinutes,
-            workMinutes,
-            overtimeMinutes: 0 // Simplification for now
+            ...result
           });
         }
       }
