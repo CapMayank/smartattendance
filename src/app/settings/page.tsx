@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Save } from 'lucide-react'
+import { Button, Card, CardHeader, Field, Input, PageHeader, Select } from '@/components/ui'
 
 type Policy = {
   id: string
@@ -67,152 +68,103 @@ export default function SettingsPage() {
   }
 
   if (!policy) {
-    return <div className="text-white text-center py-10">Loading settings...</div>
+    return <div className="py-10 text-center text-muted">Loading settings...</div>
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-indigo-500/10">
-            <Save className="w-8 h-8 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Global Policy Settings
-            </h1>
-            <p className="text-slate-400 mt-1 font-medium">Configure attendance rules, rules, and tolerances.</p>
-          </div>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
-        >
-          <Save className="w-5 h-5" />
-          {saving ? 'Saving...' : 'Save Settings'}
-        </button>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Policy settings"
+        subtitle="Configure attendance rules and tolerances."
+        actions={<Button icon={Save} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</Button>}
+      />
 
       {message && (
-        <div className={`p-4 rounded-xl text-sm font-bold flex items-center justify-center animate-in slide-in-from-top-2 shadow-lg backdrop-blur-xl ${message.includes('successfully') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 shadow-emerald-500/10' : 'bg-red-500/20 text-red-400 border border-red-500/20 shadow-red-500/10'}`}>
+        <div
+          role="status"
+          className={`flex items-center justify-center rounded-xl border px-4 py-3 text-sm ${message.includes('successfully') ? 'border-present/30 bg-present/10 text-present' : 'border-absent/30 bg-absent/10 text-absent'}`}
+        >
           {message}
         </div>
       )}
 
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] space-y-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
-        
-        {/* Punch Processing Logic */}
-        <section className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-8 w-1 bg-indigo-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-white">Device Punch Logic</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/50/30 p-6 rounded-3xl border border-white/[0.04]">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Punch Interpretation</label>
-              <select value={policy.allInOut} onChange={e => handleChange('allInOut', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner appearance-none cursor-pointer">
-                <option value="First IN Last OUT">First IN Last OUT (Default)</option>
-                <option value="All IN Last OUT">All IN Last OUT</option>
-              </select>
-              <p className="text-xs text-slate-500 ml-1 mt-2 font-medium">
-                Determines how raw biometric punches are calculated. 
-                <br/>• <span className="text-slate-400">First IN Last OUT</span>: The very first punch of the day is IN, the absolute latest is OUT.
-                <br/>• <span className="text-slate-400">All IN Last OUT</span>: Every punch except the last one is recorded as an IN.
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Weekly Off Days</label>
-              <input type="text" placeholder="e.g. 0 for Sunday, 0,6 for Sun & Sat" value={policy.weekOffDays || ''} onChange={e => handleChange('weekOffDays', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner" />
-              <p className="text-xs text-slate-500 ml-1 mt-2 font-medium">
-                Comma separated day numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday).
-                <br/>These days will be marked as <span className="text-emerald-400/80">WEEKOFF</span> instead of <span className="text-rose-400/80">ABSENT</span> if no punch is found.
-              </p>
-            </div>
-          </div>
-        </section>
+      <Card>
+        <CardHeader title="Device punch logic" caption="How raw biometric punches are read" />
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Field
+            label="Punch interpretation"
+            htmlFor="allInOut"
+            helper={
+              <>
+                Determines how raw biometric punches are calculated.
+                <br />First IN Last OUT: the very first punch of the day is IN, the absolute latest is OUT.
+                <br />All IN Last OUT: every punch except the last one is recorded as an IN.
+              </>
+            }
+          >
+            <Select id="allInOut" value={policy.allInOut} onChange={e => handleChange('allInOut', e.target.value)}>
+              <option value="First IN Last OUT">First IN Last OUT (Default)</option>
+              <option value="All IN Last OUT">All IN Last OUT</option>
+            </Select>
+          </Field>
 
-        {/* General Allowances */}
-        <section className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-8 w-1 bg-teal-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-white">Allowances & Grace Periods</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-black/50/30 p-6 rounded-3xl border border-white/[0.04]">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Early Arrival Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyArrivalAllow} onChange={e => handleChange('earlyArrivalAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-inner font-mono text-center tracking-widest text-lg" />
-              <p className="text-xs text-slate-500 ml-1 font-medium text-center">Time before shift start.</p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Late Arrival Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.lateArrivalAllow} onChange={e => handleChange('lateArrivalAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-inner font-mono text-center tracking-widest text-lg" />
-              <p className="text-xs text-slate-500 ml-1 font-medium text-center">Grace period for late entry.</p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Early Departure Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyDepartureAllow} onChange={e => handleChange('earlyDepartureAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-inner font-mono text-center tracking-widest text-lg" />
-              <p className="text-xs text-slate-500 ml-1 font-medium text-center">Grace period for leaving early.</p>
-            </div>
-          </div>
-        </section>
+          <Field
+            label="Weekly off days"
+            htmlFor="weekOffDays"
+            helper="Comma separated day numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday). These days are marked WEEKOFF instead of ABSENT if no punch is found."
+          >
+            <Input id="weekOffDays" type="text" className="num" placeholder="e.g. 0 for Sunday, 0,6 for Sun & Sat" value={policy.weekOffDays || ''} onChange={e => handleChange('weekOffDays', e.target.value)} />
+          </Field>
+        </div>
+      </Card>
 
-        {/* Overtime Policies */}
-        <section className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-8 w-1 bg-amber-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-white">Overtime Settings</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-black/50/30 p-6 rounded-3xl border border-white/[0.04]">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Max OT Allow</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.maxOtAllow} onChange={e => handleChange('maxOtAllow', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner font-mono text-center tracking-widest text-lg" />
-              <p className="text-xs text-slate-500 ml-1 font-medium text-center">Cap on daily OT.</p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">OT Threshold Hrs</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.shiftHrsForOtCalculation} onChange={e => handleChange('shiftHrsForOtCalculation', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner font-mono text-center tracking-widest text-lg" />
-              <p className="text-xs text-slate-500 ml-1 font-medium text-center">Base shift length before OT begins.</p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">OT Multiplier</label>
-              <input type="number" step="0.1" value={policy.overtimePaymentMultiplier} onChange={e => handleChange('overtimePaymentMultiplier', parseFloat(e.target.value))} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-white font-medium focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner text-center text-lg" />
-              <p className="text-xs text-slate-500 ml-1 font-medium text-center">Wage multiplier for OT hours.</p>
-            </div>
-          </div>
-        </section>
+      <Card>
+        <CardHeader title="Allowances & grace periods" />
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <Field label="Early arrival allow" htmlFor="earlyArrivalAllow" helper="Time before shift start.">
+            <Input id="earlyArrivalAllow" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyArrivalAllow} onChange={e => handleChange('earlyArrivalAllow', e.target.value)} />
+          </Field>
+          <Field label="Late arrival allow" htmlFor="lateArrivalAllow" helper="Grace period for late entry.">
+            <Input id="lateArrivalAllow" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.lateArrivalAllow} onChange={e => handleChange('lateArrivalAllow', e.target.value)} />
+          </Field>
+          <Field label="Early departure allow" htmlFor="earlyDepartureAllow" helper="Grace period for leaving early.">
+            <Input id="earlyDepartureAllow" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.earlyDepartureAllow} onChange={e => handleChange('earlyDepartureAllow', e.target.value)} />
+          </Field>
+        </div>
+      </Card>
 
-        {/* Penalties */}
-        <section className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-8 w-1 bg-rose-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-white">Penalties & Deductions</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-black/50/30 p-6 rounded-3xl border border-white/[0.04]">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1 text-center block">Half Day if Late &gt;</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.halfDayIfLateHrsGreaterThan} onChange={e => handleChange('halfDayIfLateHrsGreaterThan', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-rose-200 font-medium focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner font-mono text-center tracking-widest" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1 text-center block">Half Day if Work &lt;</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.halfDayIfWorkHrsLessThan} onChange={e => handleChange('halfDayIfWorkHrsLessThan', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-rose-200 font-medium focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner font-mono text-center tracking-widest" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1 text-center block">Absent if Late &gt;</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.absentIfLateHrsGreaterThan} onChange={e => handleChange('absentIfLateHrsGreaterThan', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-red-400 font-medium focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner font-mono text-center tracking-widest" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1 text-center block">Absent if Work &lt;</label>
-              <input type="text" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.absentIfWorkHrsLessThan} onChange={e => handleChange('absentIfWorkHrsLessThan', e.target.value)} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3.5 text-red-400 font-medium focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner font-mono text-center tracking-widest" />
-            </div>
-          </div>
-        </section>
+      <Card>
+        <CardHeader title="Overtime settings" />
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <Field label="Max OT allow" htmlFor="maxOtAllow" helper="Cap on daily OT.">
+            <Input id="maxOtAllow" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.maxOtAllow} onChange={e => handleChange('maxOtAllow', e.target.value)} />
+          </Field>
+          <Field label="OT threshold hrs" htmlFor="shiftHrsForOtCalculation" helper="Base shift length before OT begins.">
+            <Input id="shiftHrsForOtCalculation" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.shiftHrsForOtCalculation} onChange={e => handleChange('shiftHrsForOtCalculation', e.target.value)} />
+          </Field>
+          <Field label="OT multiplier" htmlFor="overtimePaymentMultiplier" helper="Wage multiplier for OT hours.">
+            <Input id="overtimePaymentMultiplier" type="number" className="num" step="0.1" value={policy.overtimePaymentMultiplier} onChange={e => handleChange('overtimePaymentMultiplier', parseFloat(e.target.value))} />
+          </Field>
+        </div>
+      </Card>
 
-      </div>
+      <Card>
+        <CardHeader title="Penalties & deductions" />
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <Field label="Half day if late >" htmlFor="halfDayIfLateHrsGreaterThan" helper="Late by more than this.">
+            <Input id="halfDayIfLateHrsGreaterThan" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.halfDayIfLateHrsGreaterThan} onChange={e => handleChange('halfDayIfLateHrsGreaterThan', e.target.value)} />
+          </Field>
+          <Field label="Half day if work <" htmlFor="halfDayIfWorkHrsLessThan" helper="Worked less than this.">
+            <Input id="halfDayIfWorkHrsLessThan" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.halfDayIfWorkHrsLessThan} onChange={e => handleChange('halfDayIfWorkHrsLessThan', e.target.value)} />
+          </Field>
+          <Field label="Absent if late >" htmlFor="absentIfLateHrsGreaterThan" helper="Late by more than this.">
+            <Input id="absentIfLateHrsGreaterThan" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.absentIfLateHrsGreaterThan} onChange={e => handleChange('absentIfLateHrsGreaterThan', e.target.value)} />
+          </Field>
+          <Field label="Absent if work <" htmlFor="absentIfWorkHrsLessThan" helper="Worked less than this.">
+            <Input id="absentIfWorkHrsLessThan" type="text" className="num" placeholder="HH:MM" pattern="[0-9]{2}:[0-9]{2}" value={policy.absentIfWorkHrsLessThan} onChange={e => handleChange('absentIfWorkHrsLessThan', e.target.value)} />
+          </Field>
+        </div>
+      </Card>
     </div>
   )
 }
