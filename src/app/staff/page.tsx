@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Users, Hash, Upload, Download, FileSpreadsheet, Trash2, Edit2, Check, X, Calendar, Settings } from 'lucide-react'
+import { Avatar, Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Skeleton } from '@/components/ui'
+import { Plus, Users, Upload, Download, FileSpreadsheet, Trash2, Pencil, Calendar } from 'lucide-react'
 import Papa from 'papaparse'
 import { toast } from 'sonner'
 
@@ -207,431 +208,231 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto min-h-screen pb-20 space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-3xl border border-white/[0.04] shadow-lg shadow-blue-500/10">
-            <Users className="w-8 h-8 text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Staff Management
-            </h1>
-            <p className="text-slate-400 mt-1 font-medium">Manage staff details, machine IDs, and shifts</p>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="Staff" subtitle="Manage staff details, machine IDs, and shifts" />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Create Form Container */}
-        <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col h-full">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
-          
-          <h2 className="text-xl font-bold text-white mb-6 relative z-10 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-blue-400" />
-            Add New Staff
-          </h2>
-          
-          <form onSubmit={handleCreate} className="relative z-10 flex-grow flex flex-col justify-between space-y-6">
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Full Name</label>
-                  <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" placeholder="e.g. John Doe" required />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Machine ID</label>
-                  <input type="text" value={formData.machineId} onChange={e => setFormData({...formData, machineId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" placeholder="e.g. 101" required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Department</label>
-                  <select value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none cursor-pointer">
-                    <option value="">No Dept...</option>
-                    {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Designation</label>
-                  <select value={formData.designationId} onChange={e => setFormData({...formData, designationId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none cursor-pointer">
-                    <option value="">No Role...</option>
-                    {desigs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Shift</label>
-                  <select value={formData.shiftId} onChange={e => setFormData({...formData, shiftId: e.target.value})} className="w-full bg-black/40 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none cursor-pointer">
-                    <option value="">No Shift...</option>
-                    {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader title="Add new staff" />
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Full name" htmlFor="new-name">
+                <Input id="new-name" type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. John Doe" required />
+              </Field>
+              <Field label="Machine ID" htmlFor="new-machine">
+                <Input id="new-machine" type="text" value={formData.machineId} onChange={e => setFormData({...formData, machineId: e.target.value})} placeholder="e.g. 101" required />
+              </Field>
             </div>
 
-            <button type="submit" className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5">
-              <Plus className="w-5 h-5" /> Add Staff Member
-            </button>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label="Department" htmlFor="new-dept">
+                <Select id="new-dept" value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})}>
+                  <option value="">No Dept...</option>
+                  {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Designation" htmlFor="new-desig">
+                <Select id="new-desig" value={formData.designationId} onChange={e => setFormData({...formData, designationId: e.target.value})}>
+                  <option value="">No Role...</option>
+                  {desigs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Shift" htmlFor="new-shift">
+                <Select id="new-shift" value={formData.shiftId} onChange={e => setFormData({...formData, shiftId: e.target.value})}>
+                  <option value="">No Shift...</option>
+                  {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </Select>
+              </Field>
+            </div>
+
+            <Button type="submit" icon={Plus} className="w-full">Add Staff Member</Button>
           </form>
-        </div>
+        </Card>
 
-        {/* Bulk Upload Widget */}
-        <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col justify-center gap-8 h-full">
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6 relative z-10">
-            <div className="p-4 bg-emerald-500/20 rounded-3xl border border-emerald-500/20 shadow-inner shrink-0">
-              <FileSpreadsheet className="w-10 h-10 text-emerald-400" />
-            </div>
+        <Card className="flex flex-col justify-center gap-5">
+          <div className="flex items-center gap-4">
+            <span className="grid size-11 flex-none place-items-center rounded-xl border border-line bg-card-hi text-muted">
+              <FileSpreadsheet size={20} aria-hidden="true" />
+            </span>
             <div>
-              <h3 className="text-xl font-bold text-white">Bulk Master Sheet Upload</h3>
-              <p className="text-slate-400 mt-1 font-medium">Import multiple staff members instantly via CSV format.</p>
+              <h2 className="text-[15px] font-medium text-text">Bulk master sheet upload</h2>
+              <p className="mt-0.5 text-[13px] text-subtle">Import multiple staff members instantly via CSV format.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-            <button
-              onClick={downloadTemplate}
-              className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl border border-white/[0.08] transition-colors"
-            >
-              <Download className="w-5 h-5" /> Download Template
-            </button>
-            <label className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5">
-              <Upload className="w-5 h-5" /> {uploading ? 'Uploading...' : 'Upload CSV File'}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button variant="secondary" icon={Download} onClick={downloadTemplate}>Download Template</Button>
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-line px-4 text-[13.5px] font-medium text-muted transition-colors duration-150 hover:border-subtle hover:text-text has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-acc-2 has-disabled:cursor-not-allowed has-disabled:opacity-50">
+              <Upload size={16} aria-hidden="true" /> {uploading ? 'Uploading...' : 'Upload CSV File'}
               <input
                 type="file"
                 accept=".csv"
-                className="hidden"
+                className="sr-only"
                 onChange={handleFileUpload}
                 ref={fileInputRef}
                 disabled={uploading}
               />
             </label>
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Staff List Table */}
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/[0.08] rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col">
-        
-        {/* Bulk Actions Header */}
+      <Card className="overflow-hidden !p-0">
         {selectedIds.length > 0 && (
-          <div className="bg-blue-500/10 px-6 py-4 flex flex-col sm:flex-row items-center justify-between border-b border-blue-500/20 animate-in slide-in-from-top-2 gap-4">
-            <span className="text-sm text-blue-200 font-bold tracking-wide shrink-0">
-              {selectedIds.length} STAFF SELECTED
+          <div className="flex flex-col items-center justify-between gap-3 border-b border-line-soft bg-card-hi px-5 py-3 sm:flex-row">
+            <span className="num shrink-0 text-[13px] text-text">
+              {selectedIds.length} staff selected
             </span>
-            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <select 
+            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+              <Select
+                aria-label="Bulk assign shift"
                 onChange={(e) => handleBulkAssignShift(e.target.value)}
                 value=""
-                className="bg-black/60 border border-blue-500/30 rounded-xl px-3 py-2 text-sm text-white font-medium focus:outline-none focus:border-blue-500 transition-colors shadow-inner w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 <option value="" disabled>Bulk Assign Shift...</option>
                 {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              
-              <button
-                onClick={handleBulkDelete}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30 rounded-xl transition-colors text-sm font-bold shadow-sm w-full sm:w-auto"
-              >
-                <Trash2 className="w-4 h-4" /> Bulk Delete
-              </button>
+              </Select>
+
+              <Button variant="danger" icon={Trash2} onClick={handleBulkDelete} className="w-full sm:w-auto">
+                Bulk Delete
+              </Button>
             </div>
           </div>
         )}
 
-        <div className="hidden md:block overflow-x-auto custom-scrollbar flex-1 px-4 pb-3">
-          <table className="glass-table text-left text-sm text-slate-400 whitespace-nowrap">
+        <div className="table-wrap">
+          <table className="data-table">
             <thead>
               <tr>
-                <th className="px-6 py-3.5 w-12 text-center">
-                  <input 
-                    type="checkbox" 
-                    className="rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer w-4 h-4"
+                <th className="w-12">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all staff"
+                    className="size-4 cursor-pointer accent-acc-2"
                     checked={staffList.length > 0 && selectedIds.length === staffList.length}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="px-6 py-3.5">Staff Name</th>
-                <th className="px-6 py-3.5">Machine ID</th>
-                <th className="px-6 py-3.5">Department / Role</th>
-                <th className="px-6 py-3.5">Shift</th>
-                <th className="px-6 py-3.5 text-right">Actions</th>
+                <th>Staff name</th>
+                <th>Machine ID</th>
+                <th>Department / Role</th>
+                <th>Shift</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <>
                   {[...Array(5)].map((_, i) => (
-                    <tr key={i} className="animate-pulse border-b border-white/[0.04]">
-                      <td className="px-6 py-4 text-center">
-                        <div className="w-4 h-4 rounded bg-white/10 mx-auto"></div>
-                      </td>
-                      <td className="px-6 py-4">
+                    <tr key={i}>
+                      <td><Skeleton className="size-4" /></td>
+                      <td>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white/10 shrink-0"></div>
-                          <div className="h-4 w-32 bg-white/10 rounded"></div>
+                          <Skeleton className="size-[38px] rounded-xl" />
+                          <Skeleton className="h-4 w-32" />
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="h-6 w-20 bg-white/5 rounded-md"></div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="h-4 w-24 bg-white/10 rounded"></div>
-                          <div className="h-3 w-16 bg-white/5 rounded"></div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="h-6 w-24 bg-white/5 rounded-md"></div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex justify-end gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-white/5"></div>
-                          <div className="w-8 h-8 rounded-lg bg-white/5"></div>
-                          <div className="w-8 h-8 rounded-lg bg-white/5"></div>
-                        </div>
-                      </td>
+                      <td><Skeleton className="h-4 w-16" /></td>
+                      <td><Skeleton className="h-4 w-28" /></td>
+                      <td><Skeleton className="h-4 w-24" /></td>
+                      <td><Skeleton className="ml-auto h-8 w-24" /></td>
                     </tr>
                   ))}
                 </>
               ) : staffList.length > 0 ? (
                 staffList.map((staff) => (
-                  <tr key={staff.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-6 py-4 text-center">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity"
+                  <tr key={staff.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${staff.name}`}
+                        className="size-4 cursor-pointer accent-acc-2"
                         checked={selectedIds.includes(staff.id)}
                         onChange={() => toggleSelect(staff.id)}
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-lg border border-white/[0.08] shrink-0">
-                          {staff.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span className="font-semibold text-slate-200 text-base">{staff.name}</span>
+                        <Avatar name={staff.name} />
+                        <span className="font-medium text-text">{staff.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/40 border border-white/[0.04] font-medium text-slate-300">
-                        <Hash className="w-3 h-3 text-blue-400" />
-                        {staff.machineId}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
+                    <td className="num text-muted">{staff.machineId}</td>
+                    <td>
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-slate-300 font-medium">{staff.department?.name || <span className="text-slate-600 italic">No Dept</span>}</span>
-                        <span className="text-xs text-slate-500 font-semibold">{staff.designation?.name || 'Unassigned Role'}</span>
+                        <span className="text-text">{staff.department?.name || <span className="text-subtle">No Dept</span>}</span>
+                        <span className="text-xs text-subtle">{staff.designation?.name || 'Unassigned Role'}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       {staff.shift ? (
-                        <span className="px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-md border border-indigo-500/20 text-xs font-semibold">
-                          {staff.shift.name}
-                        </span>
+                        <span className="text-muted">{staff.shift.name}</span>
                       ) : (
-                        <span className="text-slate-600 font-medium">-</span>
+                        <span className="text-subtle">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="View Attendance">
-                          <Calendar className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => startEditing(staff)} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Edit Staff">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(staff.id)} className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/40 border border-white/[0.04] rounded-lg transition-all shadow-sm" title="Delete Staff">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                    <td>
+                      <div className="flex items-center justify-end gap-2">
+                        <IconButton icon={Calendar} label="View Attendance" className="size-8" onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} />
+                        <IconButton icon={Pencil} label="Edit Staff" className="size-8" onClick={() => startEditing(staff)} />
+                        <IconButton icon={Trash2} label="Delete Staff" className="size-8 hover:border-absent hover:text-absent" onClick={() => handleDelete(staff.id)} />
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Users className="w-12 h-12 text-slate-600 mb-2" />
-                      <p className="text-slate-300 font-semibold text-lg">No Staff Found</p>
-                      <p className="text-slate-500 text-sm max-w-sm">Add your first staff member using the form above or import them via CSV.</p>
-                    </div>
+                  <td colSpan={6}>
+                    <EmptyState icon={Users} title="No staff found" hint="Add your first staff member using the form above or import them via CSV." />
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+      </Card>
 
-        {/* Mobile Cards View */}
-        <div className="md:hidden flex flex-col gap-4">
-          {loading ? (
-            <>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-black/40 border border-white/[0.04] rounded-3xl p-5 flex flex-col gap-4 animate-pulse">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 shrink-0"></div>
-                      <div className="flex flex-col gap-2">
-                        <div className="h-5 w-32 bg-white/10 rounded"></div>
-                        <div className="h-4 w-20 bg-white/5 rounded"></div>
-                      </div>
-                    </div>
-                    <div className="w-5 h-5 rounded bg-white/10"></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div className="bg-white/5 h-16 rounded-2xl"></div>
-                    <div className="bg-white/5 h-16 rounded-2xl"></div>
-                  </div>
-                </div>
-              ))}
-            </>
-          ) : staffList.length > 0 ? (
-            staffList.map((staff) => (
-              <div key={staff.id} className="bg-black/40 border border-white/[0.08] rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden shadow-lg group">
-                {/* Decorative background glow */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
-                
-                <div className="flex items-start justify-between relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg font-black text-white shadow-lg border border-white/[0.08] shrink-0">
-                      {staff.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white text-lg leading-tight">{staff.name}</span>
-                      <span className="text-sm font-medium text-slate-400">{staff.designation?.name || 'Unassigned'}</span>
-                    </div>
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    className="rounded border-white/20 bg-black/60 text-blue-500 focus:ring-blue-500 w-5 h-5 cursor-pointer mt-1"
-                    checked={selectedIds.includes(staff.id)}
-                    onChange={() => toggleSelect(staff.id)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-2 relative z-10">
-                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Machine ID</span>
-                    <div className="inline-flex items-center gap-1.5 font-bold text-slate-300">
-                      <Hash className="w-3.5 h-3.5 text-blue-400" />
-                      {staff.machineId}
-                    </div>
-                  </div>
-                  <div className="bg-black/50 p-3 rounded-2xl border border-white/[0.04]">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Department</span>
-                    <span className="font-bold text-slate-300 truncate block">
-                      {staff.department?.name || 'None'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/[0.08] relative z-10">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Shift</span>
-                    {staff.shift ? (
-                      <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20 text-xs font-bold">
-                        {staff.shift.name}
-                      </span>
-                    ) : (
-                      <span className="text-slate-600 font-medium text-xs">-</span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => router.push(`/reports/member-attendance?staffId=${staff.id}`)} className="p-2.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm" title="View Attendance">
-                      <Calendar className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => startEditing(staff)} className="p-2.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm" title="Edit Staff">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDelete(staff.id)} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 bg-black/60 border border-white/[0.08] rounded-xl transition-all shadow-sm">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-12 text-center bg-black/40 rounded-3xl border border-white/[0.08]">
-              <div className="flex flex-col items-center gap-3">
-                <Users className="w-12 h-12 text-slate-600 mb-2" />
-                <p className="text-slate-300 font-bold text-lg">No Staff Found</p>
-                <p className="text-slate-500 text-sm">Add your first staff member.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Modern Edit Modal */}
-      {editingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in">
-          <div className="bg-black/60 backdrop-blur-2xl border border-white/[0.08] rounded-3xl w-full max-w-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col">
-            <div className="px-6 py-5 border-b border-white/[0.08] flex justify-between items-center bg-black/50">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-blue-400" /> Edit Staff Member
-              </h3>
-              <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Full Name</label>
-                <input type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" />
-              </div>
-              
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Machine ID</label>
-                <input type="text" value={editData.machineId} onChange={e => setEditData({...editData, machineId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Department</label>
-                  <select value={editData.departmentId} onChange={e => setEditData({...editData, departmentId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none">
-                    <option value="">No Dept</option>
-                    {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Designation</label>
-                  <select value={editData.designationId} onChange={e => setEditData({...editData, designationId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none">
-                    <option value="">No Role</option>
-                    {desigs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Assigned Shift</label>
-                <select value={editData.shiftId} onChange={e => setEditData({...editData, shiftId: e.target.value})} className="w-full bg-black/60 border border-white/[0.08] rounded-xl px-4 py-3 text-white font-medium focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner appearance-none">
-                  <option value="">No Shift</option>
-                  {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-white/[0.08] flex gap-3 bg-black/30">
-              <button onClick={() => setEditingId(null)} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-colors border border-white/[0.04]">
-                Cancel
-              </button>
-              <button onClick={saveEdit} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5">
-                <Check className="w-5 h-5" /> Save Changes
-              </button>
-            </div>
+      <Modal
+        open={editingId !== null}
+        onClose={() => setEditingId(null)}
+        title="Edit staff member"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
+            <Button onClick={saveEdit}>Save Changes</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Full name" htmlFor="edit-name">
+            <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+          </Field>
+          <Field label="Machine ID" htmlFor="edit-machine">
+            <Input id="edit-machine" type="text" value={editData.machineId} onChange={e => setEditData({...editData, machineId: e.target.value})} />
+          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Department" htmlFor="edit-dept">
+              <Select id="edit-dept" value={editData.departmentId} onChange={e => setEditData({...editData, departmentId: e.target.value})}>
+                <option value="">No Dept</option>
+                {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </Select>
+            </Field>
+            <Field label="Designation" htmlFor="edit-desig">
+              <Select id="edit-desig" value={editData.designationId} onChange={e => setEditData({...editData, designationId: e.target.value})}>
+                <option value="">No Role</option>
+                {desigs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </Select>
+            </Field>
           </div>
+          <Field label="Assigned shift" htmlFor="edit-shift">
+            <Select id="edit-shift" value={editData.shiftId} onChange={e => setEditData({...editData, shiftId: e.target.value})}>
+              <option value="">No Shift</option>
+              {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </Select>
+          </Field>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }
