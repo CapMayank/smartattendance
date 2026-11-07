@@ -101,14 +101,16 @@ Size estimate: about 5 KB per thumbnail, roughly 30,000 punches in 90 days, abou
 
 A cleanup deletes `PunchPhoto` rows older than 90 days where `isProfile = false`. It is throttled to
 at most once every 6 hours (claimed atomically through a nullable `Policy.photoCleanupRanAt`, the same
-pattern as shift detection) and is triggered when the Staff page loads. `PHOTO_RETENTION_DAYS = 90`
+pattern as shift detection) and is triggered when the Staff page loads (`POST /api/photos/cleanup`,
+session required, fire-and-forget). The same run deletes orphan profile copies: `isProfile = true` rows that no
+Staff row references and that are older than 1 day (a pin race can leave these). `PHOTO_RETENTION_DAYS = 90`
 lives in one config file.
 
 ## 10. Errors and edge cases
 
 - No `image` in the record, or an invalid one: the punch is saved normally, with no photo.
 - Unknown machine ID: nothing stored (as today).
-- Redelivery of the same `sendlog`: the `logId` unique constraint prevents a second photo.
+- Redelivery of the same `sendlog`: `AttendanceLog` has no unique key, so a redelivered machine message already creates a duplicate punch; it also stores a duplicate thumbnail until retention removes it.
 - Deleting a teacher deletes their photos (cascade).
 - Deploy order: `prisma db push` runs before the new ws-server code starts, as for the shift feature.
 

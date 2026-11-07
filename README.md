@@ -97,6 +97,22 @@ A teacher's shift is a history of dated assignments, and each day is judged by t
 
 ---
 
+## Punch photos
+
+Biometric machines can send a photo with each punch. The websocket server stores a small thumbnail (longest side 160 px, JPEG quality 60, at most 2 MB accepted, JPEG only) in the `PunchPhoto` table, separate from `AttendanceLog`. A missing, invalid or oversized photo never blocks the punch or its acknowledgement.
+
+**Retention:** punch photos are deleted after 90 days (`PHOTO_CONFIG.retentionDays` in `src/lib/photo-config.ts`). Cleanup runs at most once every 6 hours and is triggered when the Staff page loads (`POST /api/photos/cleanup`, signed-in users only). It also removes orphan profile copies (a profile copy that no teacher uses and that is more than a day old).
+
+**Profile picture:** each teacher's latest punch photo becomes their profile picture automatically (it only moves forward in time, so an offline backfill never replaces a newer one). An admin can pin any recent punch photo from the Staff dialog; a pinned picture is never changed by later punches. "Remove picture" unpins it, and the next punch sets a new one. The profile picture is a separate copy, so it is kept after the original punch photo is deleted by retention.
+
+**Access and logs:** photos are served only to signed-in users. The websocket server no longer logs raw messages: log lines carry the command, device serial, record count and per-record `enrollid` and `time`, and any `image` value or string over 200 characters is replaced by `<redacted N chars>`.
+
+**Redelivery:** if a machine redelivers the same message, a duplicate punch is already created today (`AttendanceLog` has no unique key), so a duplicate thumbnail is stored as well, until retention removes it.
+
+**Deploy:** run `prisma db push` (additive: the `PunchPhoto` table, two nullable/default columns on `Staff` and `Policy.photoCleanupRanAt`), then restart `websockets` under pm2. The existing `websockets-out.log` may still contain old photos and should be truncated by the owner.
+
+---
+
 ## 🌐 Production Architecture
 
 The production environment is hosted on an Oracle Cloud Ubuntu instance using **PostgreSQL**, **PM2** (process manager), and **Nginx** (reverse proxy). 
