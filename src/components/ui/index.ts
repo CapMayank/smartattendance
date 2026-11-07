@@ -12,6 +12,7 @@ export { Tabs } from "./Tabs";
 export { Field, Input, Select, Textarea } from "./Field";
 export { Modal } from "./Modal";
 export { Avatar } from "./Avatar";
+export { PhotoLightbox } from "./PhotoLightbox";
 export { ProgressTrack } from "./ProgressTrack";
 export { Pagination } from "./Pagination";
 export { EmptyState } from "./EmptyState";
