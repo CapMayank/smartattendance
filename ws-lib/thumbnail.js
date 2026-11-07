@@ -1,6 +1,6 @@
 'use strict';
 
-const sharp = require('sharp');
+// sharp is loaded lazily inside makeThumbnail so a missing native binary can never stop ws-server from starting.
 
 const MAX_DECODED_BYTES = 2 * 1024 * 1024;
 // Base64 of MAX_DECODED_BYTES, plus slack for padding/whitespace.
@@ -14,6 +14,7 @@ const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 async function makeThumbnail(base64) {
   try {
     if (typeof base64 !== 'string') return null;
+    const sharp = require('sharp');
     // Check length BEFORE decoding so huge strings are never decoded.
     if (base64.length === 0 || base64.length > MAX_BASE64_LENGTH) return null;
     if (!BASE64_RE.test(base64)) return null;
