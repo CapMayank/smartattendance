@@ -3,6 +3,7 @@
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { barGradient, chartTheme, STATUS_HEX } from "@/lib/chart-theme";
 import { parseHHMM } from "@/lib/dashboard-calc";
+import { formatHHmm } from "@/lib/format";
 
 type Bin = { label: string; onTime: number; late: number; overflow?: "before" | "after" };
 
@@ -31,14 +32,20 @@ function graceAnchor(bins: Bin[], grace: string | null) {
 }
 
 function hhmm(m: number) {
-  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  return formatHHmm(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+}
+
+// Bin labels are 24h "HH:mm" (optionally with a leading "<" / trailing ">" overflow marker); show them as 12h.
+function disp(label: string) {
+  const m = /^(\D*)(\d{1,2}:\d{2})(\D*)$/.exec(label);
+  return m ? `${m[1]}${formatHHmm(m[2])}${m[3]}` : label;
 }
 
 function slotText(b: Bin | undefined, label: string) {
   if (!b) return label;
-  if (b.overflow === "before") return `Before ${b.label.slice(1)}`;
-  if (b.overflow === "after") return `After ${b.label.slice(0, -1)}`;
-  return `${b.label}–${hhmm(parseHHMM(b.label) + SLOT)}`;
+  if (b.overflow === "before") return `Before ${disp(b.label.slice(1))}`;
+  if (b.overflow === "after") return `After ${disp(b.label.slice(0, -1))}`;
+  return `${disp(b.label)}–${hhmm(parseHHMM(b.label) + SLOT)}`;
 }
 
 export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; graceLabel: string | null }) {
@@ -48,7 +55,7 @@ export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; grace
   const byLabel = new Map(arrivals.map((b) => [b.label, b]));
   const summary =
     `Arrivals in ${SLOT}-minute slots: ${onTime} on time, ${late} late` +
-    (graceLabel ? `, grace ends ${graceLabel}` : "");
+    (graceLabel ? `, grace ends ${disp(graceLabel)}` : "");
 
   return (
     <div role="figure" aria-label={summary} className="h-[200px]">
@@ -59,7 +66,7 @@ export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; grace
             {barGradient("arr-late", "late")}
           </defs>
           <CartesianGrid vertical={false} {...chartTheme.grid} />
-          <XAxis dataKey="label" tick={chartTheme.axisTick} tickLine={false} axisLine={{ stroke: chartTheme.grid.stroke }} />
+          <XAxis dataKey="label" tickFormatter={(l) => disp(String(l))} tick={chartTheme.axisTick} tickLine={false} axisLine={{ stroke: chartTheme.grid.stroke }} />
           <YAxis allowDecimals={false} tick={chartTheme.axisTick} tickLine={false} axisLine={false} width={48} />
           <Tooltip
             {...chartTheme.tooltip}
@@ -74,7 +81,7 @@ export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; grace
               stroke={STATUS_HEX.late}
               strokeWidth={1.5}
               strokeDasharray="4 4"
-              label={{ value: `Grace ends ${graceLabel}`, position: "insideTopLeft", fill: STATUS_HEX.late, fontSize: 11, offset: 6, dy: -16 }}
+              label={{ value: `Grace ends ${disp(String(graceLabel))}`, position: "insideTopLeft", fill: STATUS_HEX.late, fontSize: 11, offset: 6, dy: -16 }}
             />
           ) : null}
         </BarChart>

@@ -1,5 +1,5 @@
 import { istMinutes, parseHHMM } from "@/lib/dashboard-calc";
-import { formatTime } from "@/lib/format";
+import { formatTime, formatHHmm } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export type TimelinePunch = { at: string; type: "IN" | "OUT"; device: string | null };
@@ -85,7 +85,7 @@ export function PunchTimeline({
       {hours.map((h, i) =>
         i % step === 0 ? (
           <span key={h} className="num absolute -bottom-0.5 -translate-x-1/2 text-[10.5px] text-subtle" style={{ left: pos(h) }}>
-            {String(Math.floor(h / 60)).padStart(2, "0")}:00
+            {formatHHmm(`${String(Math.floor(h / 60)).padStart(2, "0")}:00`)}
           </span>
         ) : null,
       )}

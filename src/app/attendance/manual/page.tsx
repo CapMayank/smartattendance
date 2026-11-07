@@ -57,7 +57,7 @@ export default function ManualPunchPage() {
     setIsLoading(true)
     try {
       // Create full ISO timestamp
-      const timestamp = new Date(`${singleDate}T${singleTime}`).toISOString()
+      const timestamp = new Date(`${singleDate}T${singleTime}:00+05:30`).toISOString()
       
       const res = await fetch('/api/punches', {
         method: 'POST',

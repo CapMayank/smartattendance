@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatINR, formatTime, formatTimeSeconds, formatDateLong, formatPing } from "./format";
+import { formatINR, formatTime, formatTimeSeconds, formatDateLong, formatPing, formatTimeOpt, formatHHmm, formatDate } from "./format";
 
 describe("format helpers", () => {
   it("formats INR with en-IN grouping", () => {
@@ -18,19 +18,32 @@ describe("format helpers", () => {
     expect(formatINR(56000, { exact: true })).toBe("₹56,000");
   });
   it("formats time in IST", () => {
-    expect(formatTime(new Date("2026-11-06T04:12:00Z"))).toBe("09:42");
+    expect(formatTime(new Date("2026-11-06T04:12:00Z"))).toBe("9:42 am");
+    expect(formatTime(new Date("2026-11-06T10:00:00Z"))).toBe("3:30 pm");
   });
   it("formats time with seconds in IST", () => {
-    expect(formatTimeSeconds(new Date("2026-11-06T04:12:07Z"))).toBe("09:42:07");
-    expect(formatTimeSeconds(new Date("2026-11-06T18:30:00Z"))).toBe("00:00:00");
+    expect(formatTimeSeconds(new Date("2026-11-06T04:12:07Z"))).toBe("9:42:07 am");
+    expect(formatTimeSeconds(new Date("2026-11-06T18:30:00Z"))).toBe("12:00:00 am");
+    expect(formatTimeSeconds(new Date("2026-11-06T06:30:00Z"))).toBe("12:00:00 pm");
+  });
+  it("formatTimeOpt handles empty and invalid", () => {
+    expect(formatTimeOpt(null)).toBe("-");
+    expect(formatTimeOpt("garbage")).toBe("-");
+    expect(formatTimeOpt("2026-11-06T04:00:00Z")).toBe("9:30 am");
+  });
+  it("formats stored HH:mm and dates", () => {
+    expect(formatHHmm("09:55")).toBe("9:55 am");
+    expect(formatHHmm("17:00")).toBe("5:00 pm");
+    expect(formatHHmm("00:05")).toBe("12:05 am");
+    expect(formatDate(new Date("2026-11-05T19:00:00Z"))).toBe("06 Nov 2026");
   });
   it("formats long date in IST", () => {
     expect(formatDateLong(new Date("2026-11-05T19:00:00Z"))).toBe("Friday, 6 November 2026");
   });
   it("formats a ping from the same IST day as time only", () => {
-    expect(formatPing(new Date("2026-11-06T04:12:00Z"), new Date("2026-11-06T10:00:00Z"))).toBe("09:42");
+    expect(formatPing(new Date("2026-11-06T04:12:00Z"), new Date("2026-11-06T10:00:00Z"))).toBe("9:42 am");
   });
   it("formats a ping from an earlier IST day with date and time", () => {
-    expect(formatPing(new Date("2026-11-03T12:42:00Z"), new Date("2026-11-06T10:00:00Z"))).toBe("3 Nov 18:12");
+    expect(formatPing(new Date("2026-11-03T12:42:00Z"), new Date("2026-11-06T10:00:00Z"))).toBe("3 Nov 6:12 pm");
   });
 });

@@ -7,7 +7,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import { Card, CardHeader, EmptyState, KpiTile, SectionLabel, PageHeader } from "@/components/ui";
 import { getDashboardData, istDateKey, type DashboardData } from "@/lib/dashboard";
 import { istMinutes, turnoutPercent } from "@/lib/dashboard-calc";
-import { formatDateLong, formatTime } from "@/lib/format";
+import { formatDateLong, formatTime, formatHHmm } from "@/lib/format";
 import { ArrivalsChart } from "@/components/dashboard/ArrivalsChart";
 import { StatusRing } from "@/components/dashboard/StatusRing";
 import { TrendChart } from "@/components/dashboard/TrendChart";
@@ -79,7 +79,7 @@ export default async function Dashboard({
   const subtitle = [
     formatDateLong(now),
     formatTime(now),
-    shift ? `Shift ${shift.start}–${shift.end}` : null,
+    shift ? `Shift ${formatHHmm(shift.start)}–${formatHHmm(shift.end)}` : null,
     data.graceLabel ? `Grace till ${data.graceLabel}` : null,
     workingDay ? null : `${data.offDayName} · no attendance expected`,
   ]

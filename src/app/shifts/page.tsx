@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Skeleton } from '@/components/ui'
 import { previewHeadline, transitionRows } from '@/lib/shift-preview-text'
 import type { PreviewSummary } from '@/lib/shift-change'
+import { formatHHmm } from '@/lib/format'
 
 type Shift = {
   id: string
@@ -320,7 +321,7 @@ export default function ShiftsPage() {
                   <p className="text-[13px] text-muted">
                     Usually arrives about <span className="num text-text">{sg.medianIn}</span>{' '}
                     (<span className="num">{sg.daysWithinTolerance} of {sg.daysObserved}</span> days within 15 minutes),
-                    shift is <span className="num text-text">{fromShift ? `${fromShift.startTime}–${fromShift.endTime}` : (sg.fromShiftName ?? 'not set')}</span>,
+                    shift is <span className="num text-text">{fromShift ? `${formatHHmm(fromShift.startTime)}–${formatHHmm(fromShift.endTime)}` : (sg.fromShiftName ?? 'not set')}</span>,
                     late on <span className="num text-text">{sg.lateDays}</span> of <span className="num text-text">{sg.daysObserved}</span> days.
                   </p>
                   <p className="text-[13px] text-text">
@@ -398,8 +399,8 @@ export default function ShiftsPage() {
                           <span className="font-medium text-text">{shift.name}</span>
                         </div>
                       </td>
-                      <td className="num text-muted">{shift.startTime}</td>
-                      <td className="num text-muted">{shift.endTime}</td>
+                      <td className="num text-muted">{formatHHmm(shift.startTime)}</td>
+                      <td className="num text-muted">{formatHHmm(shift.endTime)}</td>
                       <td>
                         <div className="flex items-center justify-end gap-2">
                           <IconButton icon={Pencil} label="Edit" className="size-8" onClick={() => startEditing(shift)} />

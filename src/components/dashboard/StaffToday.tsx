@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CalendarOff, ChevronDown, ChevronUp, Fingerprint, PencilLine, Search, Users } from "lucide-react";
 import { Avatar, Chip, ChipGroup, EmptyState, Pagination, StatusBadge, Tabs, type Tone } from "@/components/ui";
 import type { DashboardData } from "@/lib/dashboard";
-import { formatTime } from "@/lib/format";
+import { formatTime, formatHHmm } from "@/lib/format";
 import { parseHHMM } from "@/lib/dashboard-calc";
 import { cn } from "@/lib/cn";
 import { staffPhotoUrl } from "@/lib/photo-url";
@@ -297,7 +297,7 @@ export function StaffToday({
                                   <span>
                                     Shift{" "}
                                     <b className="num font-medium text-text">
-                                      {s.shift ? `${s.shift.start}–${s.shift.end}` : "None assigned"}
+                                      {s.shift ? `${formatHHmm(s.shift.start)}–${formatHHmm(s.shift.end)}` : "None assigned"}
                                     </b>
                                   </span>
                                   <span>

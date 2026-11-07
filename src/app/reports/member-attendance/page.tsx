@@ -7,6 +7,7 @@ import { Avatar, Button, Card, EmptyState, Field, Input, PageHeader, Select, Ske
 import { cn } from '@/lib/cn'
 import { staffPhotoUrl } from '@/lib/photo-url'
 import { StatusPill } from '@/components/attendance/StatusPill'
+import { formatTime, formatDate } from '@/lib/format'
 
 type AttendanceLog = {
   id: string
@@ -70,7 +71,7 @@ function LogPill({ type, timestamp }: { type: string; timestamp: string }) {
     >
       <Icon size={12} aria-hidden="true" />
       {type}
-      <span className="num">{new Date(timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+      <span className="num">{formatTime(new Date(timestamp))}</span>
     </span>
   )
 }
@@ -161,14 +162,14 @@ export default function MemberAttendancePage() {
       // Format logs as a readable string with proper IN/OUT direction
       const formattedLogs = formatLogsWithDirection(r.logs)
       const logsStr = formattedLogs.map(log => 
-        `${log.type}: ${new Date(log.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+        `${log.type}: ${formatTime(new Date(log.timestamp))}`
       ).join(' | ');
 
       return {
-        'Date': new Date(r.date).toLocaleDateString(),
+        'Date': formatDate(new Date(r.date)),
         'Status': r.status,
-        'Check In': r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
-        'Check Out': r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
+        'Check In': r.checkIn ? formatTime(new Date(r.checkIn)) : '-',
+        'Check Out': r.checkOut ? formatTime(new Date(r.checkOut)) : '-',
         'Late By (Minutes)': r.lateMinutes,
         'Total Work Hours': (r.workMinutes / 60).toFixed(2),
         'Payroll Eligible (Days)': r.payrollEligible ?? '-',
@@ -371,10 +372,10 @@ export default function MemberAttendancePage() {
                         </span>
                       </td>
                       <td className="num text-text">
-                        {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
+                        {record.checkIn ? formatTime(new Date(record.checkIn)) : '-'}
                       </td>
                       <td className="num text-text">
-                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
+                        {record.checkOut ? formatTime(new Date(record.checkOut)) : '-'}
                       </td>
                       <td className="text-right">
                         <div className="flex flex-col items-end gap-1">
@@ -470,11 +471,11 @@ export default function MemberAttendancePage() {
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       <div className="rounded-xl border border-line bg-ground px-2.5 py-2">
                         <p className="text-[9px] uppercase tracking-wider text-subtle">In</p>
-                        <p className="num whitespace-nowrap text-[13px] text-present">{record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}</p>
+                        <p className="num whitespace-nowrap text-[13px] text-present">{record.checkIn ? formatTime(new Date(record.checkIn)) : '-'}</p>
                       </div>
                       <div className="rounded-xl border border-line bg-ground px-2.5 py-2">
                         <p className="text-[9px] uppercase tracking-wider text-subtle">Out</p>
-                        <p className="num whitespace-nowrap text-[13px] text-absent">{record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}</p>
+                        <p className="num whitespace-nowrap text-[13px] text-absent">{record.checkOut ? formatTime(new Date(record.checkOut)) : '-'}</p>
                       </div>
                       <div className="rounded-xl border border-line bg-ground px-2.5 py-2">
                         <p className="text-[9px] uppercase tracking-wider text-subtle">Hours</p>

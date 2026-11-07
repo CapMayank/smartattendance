@@ -14,20 +14,27 @@ export function formatINR(amount: number, opts: { paise?: boolean; exact?: boole
   }).format(amount);
 }
 
-const timeFmt = new Intl.DateTimeFormat("en-GB", {
+const timeFmt = new Intl.DateTimeFormat("en-US", {
   timeZone: SCHOOL_TZ,
-  hour: "2-digit",
+  hour: "numeric",
   minute: "2-digit",
-  hourCycle: "h23",
+  hourCycle: "h12",
 });
 
-const timeSecondsFmt = new Intl.DateTimeFormat("en-GB", {
+const timeSecondsFmt = new Intl.DateTimeFormat("en-US", {
   timeZone: SCHOOL_TZ,
-  hour: "2-digit",
+  hour: "numeric",
   minute: "2-digit",
   second: "2-digit",
-  hourCycle: "h23",
+  hourCycle: "h12",
 });
+
+// Built from parts so the output is always "9:42 am" (no locale-specific narrow spaces / casing).
+function to12h(fmt: Intl.DateTimeFormat, d: Date): string {
+  const p = Object.fromEntries(fmt.formatToParts(d).map((x) => [x.type, x.value]));
+  const secs = p.second ? `:${p.second}` : "";
+  return `${p.hour}:${p.minute}${secs} ${String(p.dayPeriod).toLowerCase()}`;
+}
 
 const dateLongFmt = new Intl.DateTimeFormat("en-GB", {
   timeZone: SCHOOL_TZ,
@@ -37,14 +44,36 @@ const dateLongFmt = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
-/** "HH:mm" in IST */
+/** "9:42 am" in IST */
 export function formatTime(d: Date): string {
-  return timeFmt.format(d);
+  return to12h(timeFmt, d);
 }
 
-/** "HH:mm:ss" in IST */
+/** "9:42:07 am" in IST */
 export function formatTimeSeconds(d: Date): string {
-  return timeSecondsFmt.format(d);
+  return to12h(timeSecondsFmt, d);
+}
+
+/** formatTime for an ISO string / Date that may be missing; "-" when empty or invalid. */
+export function formatTimeOpt(v?: string | Date | null): string {
+  if (!v) return "-";
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? "-" : formatTime(d);
+}
+
+const dateShortFmt = new Intl.DateTimeFormat("en-GB", { timeZone: SCHOOL_TZ, day: "2-digit", month: "short", year: "numeric" });
+
+/** "06 Nov 2026" in IST */
+export function formatDate(d: Date): string {
+  return dateShortFmt.format(d);
+}
+
+/** Stored 24h "HH:mm" (shift times) -> "9:55 am". Returns the input unchanged if it isn't HH:mm. */
+export function formatHHmm(s: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s ?? "");
+  if (!m) return s;
+  const h = Number(m[1]);
+  return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h < 12 ? "am" : "pm"}`;
 }
 
 /** "Friday, 6 November 2026" in IST */

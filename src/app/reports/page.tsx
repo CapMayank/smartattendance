@@ -6,7 +6,7 @@ import { FileText, Download, Calendar as CalendarIcon, BarChart3, Plus, Trash2, 
 import Papa from 'papaparse'
 import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, PhotoLightbox, Select, Skeleton, Tabs } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { formatTime, formatTimeSeconds } from '@/lib/format'
+import { formatTime, formatTimeSeconds, formatDate } from '@/lib/format'
 import { punchPhotoUrl, staffPhotoUrl } from '@/lib/photo-url'
 import { StatusPill } from '@/components/attendance/StatusPill'
 
@@ -64,7 +64,7 @@ type MonthlyRecord = {
 }
 
 const timeFmt = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'
+  iso ? formatTime(new Date(iso)) : '-'
 
 type DayKind = 'present' | 'absent' | 'half' | 'holiday' | 'weekoff' | 'none'
 
@@ -309,7 +309,7 @@ export default function ReportsPage() {
     if (!selectedStaffId || !newPunchTime) return
     setIsPunchLoading(true)
     try {
-      const timestamp = new Date(`${date}T${newPunchTime}`).toISOString()
+      const timestamp = new Date(`${date}T${newPunchTime}:00+05:30`).toISOString()
       const res = await fetch('/api/punches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -383,10 +383,10 @@ export default function ReportsPage() {
         'Department': r.staff.department?.name || '-',
         'Designation / Role': r.staff.designation?.name || '-',
         'Shift': r.staff.shift?.name || '-',
-        'Date': new Date(r.date).toLocaleDateString(),
+        'Date': formatDate(new Date(r.date)),
         'Status': r.status,
-        'Check In': r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
-        'Check Out': r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-',
+        'Check In': r.checkIn ? formatTime(new Date(r.checkIn)) : '-',
+        'Check Out': r.checkOut ? formatTime(new Date(r.checkOut)) : '-',
         'Late By (Minutes)': r.lateMinutes,
         'Total Work Hours': (r.workMinutes / 60).toFixed(2)
       }))
@@ -412,8 +412,8 @@ export default function ReportsPage() {
           if (!dayData) {
             row[colName] = '-';
           } else if (dayData.checkIn) {
-            const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+            const inTime = formatTime(new Date(dayData.checkIn));
+            const outTime = dayData.checkOut ? formatTime(new Date(dayData.checkOut)) : '-';
             let statusSuffix = '';
             if (dayData.status === 'HALF_DAY') statusSuffix = ' (HD)';
             if (dayData.status === 'ABSENT') statusSuffix = ' (A)';
@@ -586,10 +586,10 @@ export default function ReportsPage() {
                         <StatusPill status={record.status} />
                       </td>
                       <td className="num text-text">
-                        {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
+                        {record.checkIn ? formatTime(new Date(record.checkIn)) : '-'}
                       </td>
                       <td className="num text-text">
-                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}
+                        {record.checkOut ? formatTime(new Date(record.checkOut)) : '-'}
                       </td>
                       <td className="text-right">
                         <div className="flex flex-col items-end gap-1">
@@ -650,8 +650,8 @@ export default function ReportsPage() {
                         if (!dayData) return <td key={day} className="text-subtle">-</td>;
 
                         if (dayData.checkIn) {
-                          const inTime = new Date(dayData.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                          const outTime = dayData.checkOut ? new Date(dayData.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+                          const inTime = formatTime(new Date(dayData.checkIn));
+                          const outTime = dayData.checkOut ? formatTime(new Date(dayData.checkOut)) : '-';
 
                           let bgClass = "bg-present/5";
                           let statusLabel = <span className="mt-1 text-[10px] font-semibold text-present">P</span>;
