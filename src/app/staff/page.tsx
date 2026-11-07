@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Avatar, Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Skeleton } from '@/components/ui'
-import { Plus, Users, Upload, Download, FileSpreadsheet, Trash2, Pencil, Calendar } from 'lucide-react'
+import { formatPing } from '@/lib/format'
+import { Plus, Users, Camera, Upload, Download, FileSpreadsheet, Trash2, Pencil, Calendar } from 'lucide-react'
 import Papa from 'papaparse'
 import { toast } from 'sonner'
 import { istDateKey } from '@/lib/dashboard-calc'
@@ -14,6 +15,7 @@ const ALWAYS_DAY = '2000-01-01'
 
 type PreviewState = { key: string; status: 'ok' | 'error'; summary?: PreviewSummary; error?: string }
 type HistoryRow = { id: string; effectiveFrom: string; shiftId: string | null; shiftName: string | null; source: string }
+type PunchPhoto = { id: string; takenAt: string }
 type PendingRecalc = { shiftId: string; startDate: string; message: string }
 
 const SOURCE_LABELS: Record<string, string> = { MANUAL: 'Manual', SUGGESTION: 'Suggestion', INITIAL: 'Initial' }
@@ -23,6 +25,7 @@ type Staff = {
   machineId: string
   name: string
   shiftId?: string | null
+  hasPhoto?: boolean
   department?: { name: string }
   designation?: { name: string }
   shift?: { name: string, startTime: string, endTime: string }
@@ -53,6 +56,13 @@ export default function StaffPage() {
   const [history, setHistory] = useState<{ staffId: string; rows: HistoryRow[] | null } | null>(null)
   const [saving, setSaving] = useState(false)
   const [pendingRecalc, setPendingRecalc] = useState<PendingRecalc | null>(null)
+
+  const [photoVer, setPhotoVer] = useState(() => Date.now())
+  const [photos, setPhotos] = useState<{ staffId: string; items: PunchPhoto[] | null } | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [viewPhoto, setViewPhoto] = useState<PunchPhoto | null>(null)
+  const editingStaff = staffList.find(s => s.id === editingId) ?? null
+  const photoSrc = (s: Staff) => (s.hasPhoto ? `/api/staff/${s.id}/photo?v=${photoVer}` : undefined)
 
   const shiftChanged = editingId !== null && editData.shiftId !== originalShiftId
   const previewKey = `${editData.shiftId}|${startDate}`
@@ -193,6 +203,44 @@ export default function StaffPage() {
     }, 300)
     return () => { cancelled = true; clearTimeout(timer) }
   }, [editingId, editData.shiftId, originalShiftId, startDate])
+
+  // Recent punch photos for the open edit modal
+  useEffect(() => {
+    if (!editingId) return
+    let cancelled = false
+    fetch(`/api/staff/${editingId}/photos?limit=12`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(rows => { if (!cancelled) setPhotos({ staffId: editingId, items: Array.isArray(rows) ? rows : null }) })
+      .catch(() => { if (!cancelled) setPhotos({ staffId: editingId, items: null }) })
+    return () => { cancelled = true }
+  }, [editingId])
+
+  const changeProfilePhoto = async (pin: boolean) => {
+    if (!editingId || photoBusy) return
+    setPhotoBusy(true)
+    const failMsg = pin ? 'Failed to set profile picture' : 'Failed to remove picture'
+    try {
+      const res = pin
+        ? await fetch(`/api/staff/${editingId}/photo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoId: viewPhoto?.id })
+          })
+        : await fetch(`/api/staff/${editingId}/photo`, { method: 'DELETE' })
+      if (!res.ok) {
+        toast.error(failMsg)
+        return
+      }
+      toast.success(pin ? 'Profile picture updated' : 'Profile picture removed')
+      setPhotoVer(Date.now())
+      setViewPhoto(null)
+      await fetchData()
+    } catch {
+      toast.error(failMsg)
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -477,7 +525,7 @@ export default function StaffPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-3">
-                        <Avatar name={staff.name} />
+                        <Avatar name={staff.name} src={photoSrc(staff)} />
                         <span className="font-medium text-text">{staff.name}</span>
                       </div>
                     </td>
@@ -528,6 +576,12 @@ export default function StaffPage() {
         }
       >
         <div className="space-y-4">
+          {editingStaff && (
+            <div className="flex items-center gap-3">
+              <Avatar name={editingStaff.name} src={photoSrc(editingStaff)} />
+              <p className="text-[13px] text-muted">{editingStaff.hasPhoto ? 'Profile picture' : 'No profile picture yet'}</p>
+            </div>
+          )}
           <Field label="Full name" htmlFor="edit-name">
             <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
           </Field>
@@ -604,6 +658,38 @@ export default function StaffPage() {
             </div>
           )}
           <div>
+            <p className="mb-2 text-[13px] font-medium text-text">Recent punches</p>
+            {!photos || photos.staffId !== editingId ? (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-hidden="true">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square w-full" />)}
+              </div>
+            ) : photos.items === null ? (
+              <p className="text-[13px] text-muted">Punch photos could not be loaded.</p>
+            ) : photos.items.length === 0 ? (
+              <EmptyState icon={Camera} title="No punch photos yet" />
+            ) : (
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {photos.items.map(p => {
+                  const label = formatPing(new Date(p.takenAt), new Date())
+                  return (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        aria-label={`View punch photo from ${label}`}
+                        onClick={() => setViewPhoto(p)}
+                        className="flex min-h-10 w-full flex-col items-center gap-1 rounded-lg border border-line-soft bg-card p-1 text-[11.5px] text-muted transition-colors hover:border-subtle hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acc-2"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/api/photos/${p.id}`} alt="" width={160} height={160} loading="lazy" className="aspect-square w-full rounded-md object-cover" />
+                        <span className="num">{label}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+          <div>
             <p className="mb-2 text-[13px] font-medium text-text">Shift history</p>
             {!history || history.staffId !== editingId ? (
               <Skeleton className="h-4 w-40" />
@@ -624,6 +710,29 @@ export default function StaffPage() {
             )}
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={viewPhoto !== null}
+        onClose={() => setViewPhoto(null)}
+        title={viewPhoto ? `Punch photo, ${formatPing(new Date(viewPhoto.takenAt), new Date())}` : 'Punch photo'}
+        footer={
+          <>
+            {editingStaff?.hasPhoto && (
+              <Button variant="danger" onClick={() => changeProfilePhoto(false)} disabled={photoBusy}>Remove picture</Button>
+            )}
+            <Button onClick={() => changeProfilePhoto(true)} disabled={photoBusy} loading={photoBusy}>Use as profile picture</Button>
+          </>
+        }
+      >
+        {viewPhoto && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/api/photos/${viewPhoto.id}`}
+            alt={`Punch photo of ${editingStaff?.name ?? 'staff member'} at ${formatPing(new Date(viewPhoto.takenAt), new Date())}`}
+            className="mx-auto max-h-[60vh] w-full rounded-xl object-contain"
+          />
+        )}
       </Modal>
     </div>
   )
