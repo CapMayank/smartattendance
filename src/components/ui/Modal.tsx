@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { IconButton } from "./IconButton";
+import { isOwnDialogEvent } from "./dialog-events";
 
 export function Modal({
   open,
@@ -45,19 +46,21 @@ export function Modal({
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      onClose={() => {
+      onClose={(e) => {
+        // A nested dialog (e.g. a photo lightbox) closing must not close this one.
+        if (!isOwnDialogEvent(e)) return;
         returnTo.current?.focus();
         returnTo.current = null;
         onClose();
       }}
       onPointerDown={(e) => {
-        downOnBackdrop.current = e.target === ref.current;
+        downOnBackdrop.current = isOwnDialogEvent(e);
       }}
       onPointerUp={(e) => {
-        upOnBackdrop.current = e.target === ref.current;
+        upOnBackdrop.current = isOwnDialogEvent(e);
       }}
       onClick={(e) => {
-        if (downOnBackdrop.current && upOnBackdrop.current && e.target === ref.current) ref.current?.close();
+        if (downOnBackdrop.current && upOnBackdrop.current && isOwnDialogEvent(e)) ref.current?.close();
         downOnBackdrop.current = false;
         upOnBackdrop.current = false;
       }}
