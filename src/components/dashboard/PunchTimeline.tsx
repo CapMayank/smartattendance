@@ -1,11 +1,17 @@
 import { istMinutes, parseHHMM } from "@/lib/dashboard-calc";
-import { formatTime, formatHHmm } from "@/lib/format";
+import { formatTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export type TimelinePunch = { at: string; type: "IN" | "OUT"; device: string | null };
 
 const AXIS_START = 7 * 60;
 const AXIS_END = 16 * 60;
+
+// Compact axis label ("9 am", "12 pm") so neighbouring ticks never touch.
+function hourLabel(mins: number) {
+  const h = Math.floor(mins / 60) % 24;
+  return `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? "am" : "pm"}`;
+}
 
 export function formatDuration(mins: number) {
   return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m`;
@@ -54,7 +60,7 @@ export function PunchTimeline({
   const step = hours.length > 12 ? 2 : 1;
 
   return (
-    <div className="relative mx-2 h-16 min-w-[560px] sm:mx-[54px] sm:ml-[62px]" aria-hidden="true">
+    <div className="relative mx-2 h-[88px] min-w-[560px] sm:mx-[54px] sm:ml-[62px]" aria-hidden="true">
       <div className="absolute inset-x-0 top-[22px] h-1.5 rounded-md bg-card-hi" />
       {shiftMin && shiftMin.end > shiftMin.start ? (
         <div
@@ -73,7 +79,7 @@ export function PunchTimeline({
         <div key={i} className="absolute top-3.5 flex -translate-x-1/2 flex-col items-center" style={{ left: pos(m.min) }}>
           <i className={cn("mt-px block size-3.5 rounded-full border-[3px] border-canvas", m.type === "IN" ? "bg-present" : "bg-muted")} />
           {showLabels ? (
-            <span className="num mt-2.5 whitespace-nowrap text-[11px] text-muted">
+            <span className={cn("num whitespace-nowrap text-[11px] text-muted", i % 2 === 0 ? "mt-2.5" : "mt-[26px]")}>
               {formatTime(new Date(m.at))} {m.type}
             </span>
           ) : null}
@@ -85,7 +91,7 @@ export function PunchTimeline({
       {hours.map((h, i) =>
         i % step === 0 ? (
           <span key={h} className="num absolute -bottom-0.5 -translate-x-1/2 text-[10.5px] text-subtle" style={{ left: pos(h) }}>
-            {formatHHmm(`${String(Math.floor(h / 60)).padStart(2, "0")}:00`)}
+            {hourLabel(h)}
           </span>
         ) : null,
       )}
