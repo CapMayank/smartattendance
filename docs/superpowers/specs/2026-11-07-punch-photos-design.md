@@ -72,7 +72,10 @@ the chosen photo into its own `PunchPhoto` row with `isProfile = true`.
 
 In the `sendlog` handler, after the punch is saved:
 - If `record.image` is a non-empty string, decode it, check it is a JPEG (magic bytes `FF D8`) and at
-  most 2 MB decoded, and create a thumbnail with `sharp`: longest side 160 px, JPEG quality 60.
+  most 2 MB decoded, and create a thumbnail with `sharp`: EXIF rotation applied, longest side 400 px (never enlarged),
+  gentle auto-contrast (`normalise()`), a light sharpen (`sharpen({ sigma: 0.6 })`), JPEG quality 75,
+  metadata dropped. (Revised from 160 px / quality 60 so the photo is clear when opened large;
+  photos stored before the change stay 160 px.)
 - Store a `PunchPhoto` for that punch. A failure to decode or store a photo is logged (without the
   data) and never blocks the punch or its ACK.
 - If the teacher has no pinned profile photo, make this photo the profile picture (one automatic
@@ -80,7 +83,7 @@ In the `sendlog` handler, after the punch is saved:
   forward: a punch older than the current profile photo (an offline backfill) does not replace it.
 
 `sharp` becomes an explicit dependency (already present through Next.js).
-Size estimate: about 5 KB per thumbnail, roughly 30,000 punches in 90 days, about 150 MB.
+Size estimate: about 18 KB per thumbnail, roughly 30,000 punches in 90 days, about 540 MB.
 
 ## 7. Endpoints (all require a signed-in user)
 
@@ -117,7 +120,7 @@ lives in one config file.
 ## 11. Testing
 
 - `redactForLog`: image key, long strings, nested records; short values unchanged.
-- Thumbnail creation: a valid JPEG shrinks to 160 px; non-JPEG, empty and oversized input rejected.
+- Thumbnail creation: a valid JPEG shrinks to 400 px (smaller ones are not enlarged); a low-contrast image is stretched; non-JPEG, empty and oversized input rejected.
 - Ingest: photo stored with the punch; a photo failure does not block the punch; a duplicate logId stores one
   photo; an unpinned profile follows the newest photo; a pinned one does not; an older backfill does
   not replace a newer profile photo.
@@ -138,5 +141,5 @@ lives in one config file.
 
 - **Deploy:** additive schema through the existing `prisma db push`; ws-server restarts under pm2.
 - **Privacy:** photos are personal data: never public, never logged, expire after 90 days.
-- **Storage:** about 150 MB at steady state; retention bounds it.
+- **Storage:** about 540 MB at steady state (400 px thumbnails); retention bounds it.
 - **Ingest risk:** a photo problem must never lose a punch (guarded and tested).

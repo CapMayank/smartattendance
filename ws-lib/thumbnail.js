@@ -6,11 +6,12 @@ const MAX_DECODED_BYTES = 2 * 1024 * 1024;
 // Base64 of MAX_DECODED_BYTES, plus slack for padding/whitespace.
 const MAX_BASE64_LENGTH = Math.ceil((MAX_DECODED_BYTES * 4) / 3) + 8;
 const MAX_INPUT_PIXELS = 40 * 1000 * 1000;
-const THUMB_SIZE = 160;
-const THUMB_QUALITY = 60;
+const THUMB_SIZE = 400;
+const THUMB_QUALITY = 75;
+const SHARPEN_SIGMA = 0.6;
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
-// Returns a JPEG Buffer (longest side <= 160) or null. Never throws.
+// Returns a JPEG Buffer (longest side <= 400) or null. Never throws.
 // `onReject(reason)` is called once per rejection with one of: not-a-string, empty, too-large,
 // not-base64, not-jpeg, sharp-unavailable, sharp-failed. It never receives image data.
 async function makeThumbnail(base64, onReject) {
@@ -44,6 +45,9 @@ async function makeThumbnail(base64, onReject) {
       return await sharp(buf, { limitInputPixels: MAX_INPUT_PIXELS })
         .rotate()
         .resize({ width: THUMB_SIZE, height: THUMB_SIZE, fit: 'inside', withoutEnlargement: true })
+        // Gentle auto-contrast and a light sharpen so faces stay clear at 400 px.
+        .normalise()
+        .sharpen({ sigma: SHARPEN_SIGMA })
         .jpeg({ quality: THUMB_QUALITY })
         .toBuffer();
     } catch {

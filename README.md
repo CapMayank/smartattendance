@@ -99,7 +99,7 @@ A teacher's shift is a history of dated assignments, and each day is judged by t
 
 ## Punch photos
 
-Biometric machines can send a photo with each punch. The websocket server stores a small thumbnail (longest side 160 px, JPEG quality 60, at most 2 MB accepted, JPEG only) in the `PunchPhoto` table, separate from `AttendanceLog`. A missing, invalid or oversized photo never blocks the punch or its acknowledgement: photos from a message are processed one by one only after the ACK has been sent. A rejected photo is logged as one line naming the reason (for example `not-jpeg` or `too-large`), at most once per reason every 5 minutes, never with the image.
+Biometric machines can send a photo with each punch. The websocket server stores a thumbnail (longest side 400 px and never enlarged, gentle auto-contrast and a light sharpen, JPEG quality 75, metadata dropped; at most 2 MB accepted, JPEG only; about 18 KB each, roughly 540 MB at the 90-day limit; photos stored before this change stay 160 px) in the `PunchPhoto` table, separate from `AttendanceLog`. A missing, invalid or oversized photo never blocks the punch or its acknowledgement: photos from a message are processed one by one only after the ACK has been sent. A rejected photo is logged as one line naming the reason (for example `not-jpeg` or `too-large`), at most once per reason every 5 minutes, never with the image.
 
 **Retention:** punch photos are deleted after 90 days (`PHOTO_CONFIG.retentionDays` in `src/lib/photo-config.ts`). Cleanup runs at most once every 6 hours and is triggered when the Staff page loads (`POST /api/photos/cleanup`, signed-in users only). It also removes orphan profile copies (a profile copy that no teacher uses and that is more than a day old).
 

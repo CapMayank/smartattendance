@@ -12,12 +12,59 @@ async function jpeg(w: number, h: number) {
 }
 
 describe("makeThumbnail", () => {
-  it("resizes a 640x480 JPEG to longest side 160", async () => {
+  it("resizes a 640x480 JPEG to longest side 400", async () => {
     const out = await makeThumbnail((await jpeg(640, 480)).toString("base64"));
     expect(Buffer.isBuffer(out)).toBe(true);
     const meta = await sharp(out).metadata();
     expect(meta.format).toBe("jpeg");
-    expect(Math.max(meta.width!, meta.height!)).toBe(160);
+    expect(Math.max(meta.width!, meta.height!)).toBe(400);
+    expect(Math.min(meta.width!, meta.height!)).toBe(300);
+  });
+
+  it("resizes a portrait 480x1200 JPEG to longest side 400", async () => {
+    const meta = await sharp(await makeThumbnail((await jpeg(480, 1200)).toString("base64"))).metadata();
+    expect(meta.height).toBe(400);
+    expect(meta.width).toBe(160);
+  });
+
+  it("keeps a 300x200 JPEG at its own size (no enlargement up to 400)", async () => {
+    const meta = await sharp(await makeThumbnail((await jpeg(300, 200)).toString("base64"))).metadata();
+    expect(meta.format).toBe("jpeg");
+    expect([meta.width, meta.height]).toEqual([300, 200]);
+  });
+
+  it("stretches a low-contrast image with auto-contrast", async () => {
+    // Horizontal grey ramp from 100 to 150: a dull, low-contrast picture
+    const width = 200;
+    const height = 100;
+    const raw = Buffer.alloc(width * height * 3);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const v = 100 + Math.round((50 * x) / (width - 1));
+        raw.fill(v, (y * width + x) * 3, (y * width + x) * 3 + 3);
+      }
+    }
+    const input = await sharp(raw, { raw: { width, height, channels: 3 } }).jpeg({ quality: 95 }).toBuffer();
+    const before = (await sharp(input).stats()).channels[0];
+    const out = await makeThumbnail(input.toString("base64"));
+    expect(Buffer.isBuffer(out)).toBe(true);
+    const meta = await sharp(out).metadata();
+    expect(meta.format).toBe("jpeg");
+    expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(400);
+    expect(meta.width).toBe(width);
+    const after = (await sharp(out).stats()).channels[0];
+    expect(before.max - before.min).toBeLessThan(60);
+    expect(after.max - after.min).toBeGreaterThan(before.max - before.min + 100);
+  });
+
+  it("drops metadata from the output", async () => {
+    const withExif = await sharp({ create: { width: 64, height: 48, channels: 3, background: "#3366cc" } })
+      .withMetadata({ exif: { IFD0: { Copyright: "secret" } } })
+      .jpeg()
+      .toBuffer();
+    expect((await sharp(withExif).metadata()).exif).toBeDefined();
+    const meta = await sharp(await makeThumbnail(withExif.toString("base64"))).metadata();
+    expect(meta.exif).toBeUndefined();
   });
 
   it("does not enlarge small images", async () => {
