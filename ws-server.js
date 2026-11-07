@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const fs = require('fs');
 const path = require('path');
+const { redactForLog, summarizeMessage } = require('./ws-lib/redact');
 
 function getISTTimeStr() {
   const d = new Date();
@@ -39,14 +40,15 @@ wss.on('connection', function connection(ws, req) {
 
   ws.on('message', async function incoming(message) {
     const rawData = message.toString();
-    console.log(`\n📦 [Biometric WS] RECEIVED DATA:`);
-    console.log(rawData);
-
     let data;
     try {
       data = JSON.parse(rawData);
+      console.log(`
+📦 [Biometric WS] RECEIVED: ${summarizeMessage(data)}`);
     } catch (e) {
       data = {};
+      console.log(`
+📦 [Biometric WS] unparsable message (${rawData.length} chars)`);
     }
 
     // Update Device lastPing or auto-register if it doesn't exist
@@ -157,7 +159,7 @@ wss.on('connection', function connection(ws, req) {
           const timestampStr = record.verifytime || record.time || record.timestamp || record.datetime;
           
           if (!machineUserId || !timestampStr) {
-             console.log(`⚠️ [Biometric WS] Incomplete record found, skipping:`, record);
+             console.log(`⚠️ [Biometric WS] Incomplete record found, skipping:`, redactForLog(record));
              continue;
           }
 
@@ -240,7 +242,7 @@ wss.on('connection', function connection(ws, req) {
       }
       else {
         // Unknown command
-        console.log(`⚠️ [Biometric WS] Unknown command received: ${data.cmd}`);
+        console.log(`⚠️ [Biometric WS] Unknown command received`);
         // Try to acknowledge it anyway to keep device happy
         if (data.cmd) {
            const ack = { ret: data.cmd, result: true };
