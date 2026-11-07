@@ -118,7 +118,7 @@ lives in one config file.
 
 - `redactForLog`: image key, long strings, nested records; short values unchanged.
 - Thumbnail creation: a valid JPEG shrinks to 160 px; non-JPEG, empty and oversized input rejected.
-- Ingest: photo stored with the punch; a photo failure does not block the punch; redelivery stores one
+- Ingest: photo stored with the punch; a photo failure does not block the punch; a duplicate logId stores one
   photo; an unpinned profile follows the newest photo; a pinned one does not; an older backfill does
   not replace a newer profile photo.
 - Endpoints: unauthenticated 401; pin copies the photo; delete unpins; the listing is limited.
