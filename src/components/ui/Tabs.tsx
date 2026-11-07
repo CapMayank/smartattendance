@@ -32,7 +32,7 @@ export function Tabs({
   }
 
   return (
-    <div role="tablist" className="flex gap-7 overflow-x-auto border-b border-line">
+    <div role="tablist" className="flex gap-7 overflow-x-auto overflow-y-hidden border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((t, i) => {
         const selected = t.id === value;
         return (
