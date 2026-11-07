@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { createFakePrisma, type Fixtures } from "../src/test-utils/fake-prisma";
 
 const require = createRequire(import.meta.url);
-const { storePunchPhoto } = require("./photo-ingest.js");
+const { storePunchPhoto, processPhotosAfterAck, collectPhoto, logRejection, resetRejectionLog } = require("./photo-ingest.js");
 const thumbnail = require("./thumbnail.js");
 
 const T1 = new Date("2026-11-07T03:00:00Z");
@@ -24,6 +24,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  resetRejectionLog();
 });
 
 function setup(staffExtra: { profilePhotoId?: string | null; profilePhotoPinned?: boolean } = {}) {
@@ -213,5 +214,102 @@ describe("storePunchPhoto", () => {
     const line = String(logSpy.mock.calls[0][0]);
     expect(line.length).toBeLessThan(200);
     expect(line).not.toContain(image.slice(0, 40));
+  });
+});
+
+describe("thumbnail rejection logging", () => {
+  it("logs one clipped line per reason, at most once per 5 minutes per reason", () => {
+    let now = 1_000_000;
+    const clock = () => now;
+    logRejection("not-jpeg", clock);
+    logRejection("not-jpeg", clock);
+    logRejection("too-large", clock);
+    expect(logSpy.mock.calls.map((c) => c[0])).toEqual([
+      "[photo] thumbnail rejected: not-jpeg",
+      "[photo] thumbnail rejected: too-large",
+    ]);
+    now += 5 * 60 * 1000 - 1;
+    logRejection("not-jpeg", clock);
+    expect(logSpy).toHaveBeenCalledTimes(2);
+    now += 1;
+    logRejection("not-jpeg", clock);
+    expect(logSpy).toHaveBeenCalledTimes(3);
+    for (const c of logSpy.mock.calls) expect(c).toHaveLength(1);
+  });
+
+  it("clips an unexpected reason", () => {
+    logRejection("r".repeat(500), () => 0);
+    expect(String(logSpy.mock.calls[0][0]).length).toBeLessThan(120);
+  });
+
+  it("storePunchPhoto logs the rejection reason once and never the image", async () => {
+    const { prisma } = setup();
+    const png = (await sharp({ create: { width: 8, height: 8, channels: 3, background: "#fff" } }).png().toBuffer()).toString("base64");
+    const clock = () => 42;
+    await storePunchPhoto(prisma, { staff: staffArg(), log: { id: "l1", timestamp: T1 }, image: png }, { now: clock });
+    await storePunchPhoto(prisma, { staff: staffArg(), log: { id: "l2", timestamp: T1 }, image: png }, { now: clock });
+    expect(logSpy.mock.calls.map((c) => c[0])).toEqual(["[photo] thumbnail rejected: not-jpeg"]);
+  });
+});
+
+describe("collectPhoto", () => {
+  it("keeps only records with a non-empty string image", () => {
+    const items: unknown[] = [];
+    const staff = staffArg();
+    const log = { id: "l1", timestamp: T1 };
+    for (const img of [undefined, null, "", 42, { a: 1 }]) collectPhoto(items, { staff, log, image: img });
+    expect(items).toHaveLength(0);
+    collectPhoto(items, { staff, log, image: "abc" });
+    expect(items).toEqual([{ staff, log, image: "abc" }]);
+  });
+});
+
+describe("processPhotosAfterAck", () => {
+  it("runs after the caller sent the ACK, sequentially and in order", async () => {
+    const events: string[] = [];
+    const items = [1, 2, 3].map((n) => ({ staff: staffArg(), log: { id: `l${n}`, timestamp: T1 }, image: `img${n}` }));
+    let active = 0;
+    const store = async (_p: unknown, item: { log: { id: string } }) => {
+      active++;
+      expect(active).toBe(1);
+      events.push(`start ${item.log.id}`);
+      await new Promise((r) => setTimeout(r, 5));
+      events.push(`end ${item.log.id}`);
+      active--;
+    };
+    // The caller pattern in ws-server.js: send the ACK, then process the collected photos.
+    const ws = { send: (msg: string) => events.push(`ack ${msg}`) };
+    ws.send("sendlog");
+    await processPhotosAfterAck({}, items, store);
+    expect(events).toEqual([
+      "ack sendlog",
+      "start l1", "end l1",
+      "start l2", "end l2",
+      "start l3", "end l3",
+    ]);
+  });
+
+  it("isolates failures: a throwing or rejecting item never stops the rest or throws", async () => {
+    const seen: string[] = [];
+    const store = async (_p: unknown, item: { log: { id: string } }) => {
+      seen.push(item.log.id);
+      if (item.log.id === "l1") throw new Error("boom");
+      if (item.log.id === "l2") return Promise.reject(new Error("nope"));
+    };
+    const items = ["l1", "l2", "l3"].map((id) => ({ staff: staffArg(), log: { id, timestamp: T1 }, image: "x" }));
+    await expect(processPhotosAfterAck({}, items, store)).resolves.toBeUndefined();
+    expect(seen).toEqual(["l1", "l2", "l3"]);
+    for (const c of logSpy.mock.calls) expect(String(c[0])).toMatch(/^\[photo\] ingest failed: /);
+  });
+
+  it("tolerates a missing or non-array item list", async () => {
+    await expect(processPhotosAfterAck({}, undefined)).resolves.toBeUndefined();
+    await expect(processPhotosAfterAck({}, null)).resolves.toBeUndefined();
+  });
+
+  it("stores real photos through storePunchPhoto by default", async () => {
+    const { fake, prisma } = setup();
+    await processPhotosAfterAck(prisma, [{ staff: staffArg(), log: { id: "l1", timestamp: T1 }, image }]);
+    expect(fake.punchPhotos.filter((p) => !p.isProfile)).toHaveLength(1);
   });
 });

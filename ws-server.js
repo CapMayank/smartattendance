@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { redactForLog, summarizeMessage, clip, clipJson } = require('./ws-lib/redact');
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS entry run by pm2
-const { storePunchPhoto } = require('./ws-lib/photo-ingest');
+const { collectPhoto, processPhotosAfterAck } = require('./ws-lib/photo-ingest');
 
 function getISTTimeStr() {
   const d = new Date();
@@ -156,6 +156,8 @@ wss.on('connection', function connection(ws, req) {
         }
         
         let savedCount = 0;
+        // Photos are handled only after the ACK below, so they can never delay or alter it.
+        const photoItems = [];
 
         if (records.length === 0 || data.count === 0) {
             console.log(`ℹ️ [Biometric WS] Empty sendlog received.`);
@@ -225,8 +227,7 @@ wss.on('connection', function connection(ws, req) {
             }
           });
 
-          // Never throws; a bad or missing photo never blocks the punch or its ACK.
-          await storePunchPhoto(prisma, { staff, log, image: record.image });
+          collectPhoto(photoItems, { staff, log, image: record.image });
           
           console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${clip(machineUserId)}) at ${punchTime.toISOString()} (${type})`);
           savedCount++;
@@ -248,6 +249,13 @@ wss.on('connection', function connection(ws, req) {
           const ack = { ret: data.cmd, result: true };
           ws.send(JSON.stringify(ack));
           console.log(`📤 [Biometric WS] Sent generic ACK:`, clipJson(ack));
+        }
+
+        // After the ACK: sequential, in order; never throws.
+        try {
+          await processPhotosAfterAck(prisma, photoItems);
+        } catch (e) {
+          console.log(`[photo] ingest failed: ${clip(e && e.message)}`);
         }
 
       }

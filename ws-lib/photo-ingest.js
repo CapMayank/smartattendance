@@ -6,12 +6,34 @@ const { clip } = require('./redact');
 
 const isUniqueViolation = (e) => Boolean(e && e.code === 'P2002');
 
+const REJECTION_LOG_INTERVAL_MS = 5 * 60 * 1000;
+// reason -> last time it was logged (ms). Module-level so the limit spans messages.
+const rejectionLoggedAt = new Map();
+
+// Logs one clipped line per thumbnail rejection reason, at most once per 5 minutes per reason.
+function logRejection(reason, now = Date.now) {
+  try {
+    const key = clip(reason, 40);
+    const t = now();
+    const last = rejectionLoggedAt.get(key);
+    if (last !== undefined && t - last < REJECTION_LOG_INTERVAL_MS) return;
+    rejectionLoggedAt.set(key, t);
+    console.log(`[photo] thumbnail rejected: ${key}`);
+  } catch {
+    // Logging must never affect ingest.
+  }
+}
+
+function resetRejectionLog() {
+  rejectionLoggedAt.clear();
+}
+
 // Stores the punch photo for a saved AttendanceLog and, for an unpinned teacher, moves the
 // profile picture forward to it. Runs after the punch is saved; never throws.
-async function storePunchPhoto(prisma, { staff, log, image } = {}) {
+async function storePunchPhoto(prisma, { staff, log, image } = {}, { now = Date.now } = {}) {
   try {
     // Called through the module object so tests can replace it.
-    const data = await thumbnail.makeThumbnail(image);
+    const data = await thumbnail.makeThumbnail(image, (reason) => logRejection(reason, now));
     if (!data) return;
 
     const staffId = staff.id;
@@ -69,4 +91,30 @@ async function storePunchPhoto(prisma, { staff, log, image } = {}) {
   }
 }
 
-module.exports = { storePunchPhoto };
+// Queues a saved punch's photo for processing after the ACK; only non-empty string images.
+function collectPhoto(items, { staff, log, image } = {}) {
+  try {
+    if (typeof image === 'string' && image.length > 0) items.push({ staff, log, image });
+  } catch {
+    // Never let photo bookkeeping affect the punch loop.
+  }
+}
+
+// Called by ws-server.js only AFTER it has sent the ACK, so a slow or failing photo can never
+// delay or alter it. Processes items one at a time, in order; never throws.
+async function processPhotosAfterAck(prisma, items, store = storePunchPhoto) {
+  try {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      try {
+        await store(prisma, item);
+      } catch (e) {
+        console.log(`[photo] ingest failed: ${clip(e && e.message)}`);
+      }
+    }
+  } catch (e) {
+    console.log(`[photo] ingest failed: ${clip(e && e.message)}`);
+  }
+}
+
+module.exports = { storePunchPhoto, processPhotosAfterAck, collectPhoto, logRejection, resetRejectionLog };
