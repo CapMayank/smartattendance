@@ -27,6 +27,7 @@ type Staff = {
   name: string
   shiftId?: string | null
   hasPhoto?: boolean
+  profilePhotoId?: string | null
   department?: { name: string }
   designation?: { name: string }
   shift?: { name: string, startTime: string, endTime: string }
@@ -58,12 +59,11 @@ export default function StaffPage() {
   const [saving, setSaving] = useState(false)
   const [pendingRecalc, setPendingRecalc] = useState<PendingRecalc | null>(null)
 
-  const [photoVer, setPhotoVer] = useState(() => Date.now())
   const [photos, setPhotos] = useState<{ staffId: string; items: PunchPhoto[] | null } | null>(null)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [viewPhoto, setViewPhoto] = useState<PunchPhoto | null>(null)
   const editingStaff = staffList.find(s => s.id === editingId) ?? null
-  const photoSrc = (s: Staff) => (s.hasPhoto ? `/api/staff/${s.id}/photo?v=${photoVer}` : undefined)
+  const photoSrc = (s: Staff) => (s.hasPhoto ? `/api/staff/${s.id}/photo?v=${s.profilePhotoId ?? ''}` : undefined)
 
   const shiftChanged = editingId !== null && editData.shiftId !== originalShiftId
   const previewKey = `${editData.shiftId}|${startDate}`
@@ -234,14 +234,15 @@ export default function StaffPage() {
         return
       }
       toast.success(pin ? 'Profile picture updated' : 'Profile picture removed')
-      setPhotoVer(Date.now())
       setViewPhoto(null)
-      await fetchData()
     } catch {
       toast.error(failMsg)
+      return
     } finally {
       setPhotoBusy(false)
     }
+    // Refresh separately: a failed refetch must not be reported as a failed pin/remove
+    try { await fetchData() } catch { /* the list refreshes on the next load */ }
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -582,6 +583,9 @@ export default function StaffPage() {
             <div className="flex items-center gap-3">
               <Avatar name={editingStaff.name} src={photoSrc(editingStaff)} />
               <p className="text-[13px] text-muted">{editingStaff.hasPhoto ? 'Profile picture' : 'No profile picture yet'}</p>
+              {editingStaff.hasPhoto && (
+                <Button variant="secondary" size="sm" className="ml-auto min-h-10" onClick={() => changeProfilePhoto(false)} disabled={photoBusy}>Remove picture</Button>
+              )}
             </div>
           )}
           <Field label="Full name" htmlFor="edit-name">
@@ -720,9 +724,6 @@ export default function StaffPage() {
         title={viewPhoto ? `Punch photo, ${formatPing(new Date(viewPhoto.takenAt), new Date())}` : 'Punch photo'}
         footer={
           <>
-            {editingStaff?.hasPhoto && (
-              <Button variant="danger" onClick={() => changeProfilePhoto(false)} disabled={photoBusy}>Remove picture</Button>
-            )}
             <Button onClick={() => changeProfilePhoto(true)} disabled={photoBusy} loading={photoBusy}>Use as profile picture</Button>
           </>
         }
