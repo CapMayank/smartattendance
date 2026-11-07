@@ -5,6 +5,8 @@ export type Fixtures = {
     shiftId: string | null
     createdAt?: Date
     shift: { id: string; name: string; startTime: string; endTime: string } | null
+    profilePhotoId?: string | null
+    profilePhotoPinned?: boolean
   }[]
   policy: Record<string, unknown> | null
   holidays: { date: Date; name: string }[]
@@ -51,7 +53,19 @@ type AssignmentRow = {
   createdByUserId?: string | null
 }
 type AssignmentData = AssignmentRow & { source: string }
-type StaffUpdate = { where: { id: string }; data: { shiftId?: string | null } }
+type StaffUpdate = {
+  where: { id: string }
+  data: { shiftId?: string | null; profilePhotoId?: string | null; profilePhotoPinned?: boolean }
+}
+export type PunchPhotoRow = {
+  id: string
+  staffId: string
+  logId: string | null
+  takenAt: Date
+  data: Buffer
+  isProfile: boolean
+  createdAt?: Date
+}
 
 export function createFakePrisma(fixtures: Fixtures): {
   client: unknown
@@ -66,6 +80,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   suggestions: SuggestionRow[]
   /** Every policy create/update call. */
   policyWrites: { op: 'create' | 'update'; data: Record<string, unknown> }[]
+  /** Live punch photo rows (push to seed). */
+  punchPhotos: PunchPhotoRow[]
 } {
   const created: Record<string, unknown>[] = []
   const deleteCalls: unknown[] = []
@@ -77,6 +93,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   const policyWrites: { op: 'create' | 'update'; data: Record<string, unknown> }[] = []
   let policyRow: Record<string, unknown> | null = fixtures.policy ? { ...fixtures.policy } : null
   let shiftSeq = 0
+  const punchPhotos: PunchPhotoRow[] = []
+  let photoSeq = 0
   let suggestionSeq = 0
   const shiftRows: { id: string; name: string; startTime: string; endTime: string }[] = (() => {
     if (fixtures.shifts) return fixtures.shifts.map((x) => ({ ...x }))
@@ -138,6 +156,31 @@ export function createFakePrisma(fixtures: Fixtures): {
     const row = staffRows.find((s) => s.id === arg.where.id)
     if (!row) throw new Error(`staff ${arg.where.id} not found`)
     if (arg.data.shiftId !== undefined) row.shiftId = arg.data.shiftId
+    if (arg.data.profilePhotoId !== undefined) row.profilePhotoId = arg.data.profilePhotoId
+    if (arg.data.profilePhotoPinned !== undefined) row.profilePhotoPinned = arg.data.profilePhotoPinned
+    return row
+  }
+
+  // Prisma treats an unset optional column as null; fixtures leave them undefined.
+  const staffMatches = (row: Record<string, unknown>, where: Record<string, unknown>) =>
+    Object.entries(where).every(([k, v]) => {
+      const actual = row[k] ?? (k === 'profilePhotoPinned' ? false : null)
+      return v === null ? actual === null : matchValue(actual, v)
+    })
+
+  // P2002 mirrors Prisma's unique-constraint error code on PunchPhoto.logId.
+  const punchPhotoCreate = async ({ data }: { data: Omit<PunchPhotoRow, 'id'> & { id?: string } }) => {
+    if (data.logId && punchPhotos.some((p) => p.logId === data.logId)) {
+      throw Object.assign(new Error('Unique constraint failed on the fields: (`logId`)'), { code: 'P2002' })
+    }
+    const row: PunchPhotoRow = {
+      id: data.id ?? `photo-${++photoSeq}`,
+      createdAt: new Date(),
+      ...data,
+      logId: data.logId ?? null,
+      isProfile: data.isProfile ?? false,
+    }
+    punchPhotos.push(row)
     return row
   }
 
@@ -170,6 +213,11 @@ export function createFakePrisma(fixtures: Fixtures): {
         staffRows.filter((s) => matchesId(s.id, args?.where?.id)),
       findUnique: async (args: { where: { id: string } }) => staffRows.find((s) => s.id === args.where.id) ?? null,
       update: staffUpdate,
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: StaffUpdate['data'] }) => {
+        const rows = staffRows.filter((r) => staffMatches(r as unknown as Record<string, unknown>, where))
+        for (const r of rows) await staffUpdate({ where: { id: r.id }, data })
+        return { count: rows.length }
+      },
       count: async (args?: { where?: Record<string, unknown> }) =>
         staffRows.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where)).length,
     },
@@ -255,6 +303,24 @@ export function createFakePrisma(fixtures: Fixtures): {
         return { count: 1 }
       },
     },
+    punchPhoto: {
+      create: punchPhotoCreate,
+      findUnique: async ({ where }: { where: { id: string } }) => punchPhotos.find((p) => p.id === where.id) ?? null,
+      findFirst: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'> }) =>
+        sortBy(punchPhotos.filter((p) => matchesWhere(p, args?.where)), args?.orderBy)[0] ?? null,
+      findMany: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'> }) =>
+        sortBy(punchPhotos.filter((p) => matchesWhere(p, args?.where)), args?.orderBy),
+      delete: async ({ where }: { where: { id: string } }) => {
+        const i = punchPhotos.findIndex((p) => p.id === where.id)
+        if (i < 0) throw Object.assign(new Error(`punchPhoto ${where.id} not found`), { code: 'P2025' })
+        return punchPhotos.splice(i, 1)[0]
+      },
+      deleteMany: async ({ where }: { where?: Record<string, unknown> } = {}) => {
+        const doomed = punchPhotos.filter((p) => matchesWhere(p, where))
+        for (const p of doomed) punchPhotos.splice(punchPhotos.indexOf(p), 1)
+        return { count: doomed.length }
+      },
+    },
     holiday: {
       findMany: async (args?: { where?: { date?: TimeFilter } }) =>
         fixtures.holidays.filter((h) => inRange(h.date, args?.where?.date)),
@@ -267,7 +333,31 @@ export function createFakePrisma(fixtures: Fixtures): {
       findMany: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where),
       findFirst: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where)[0] ?? null,
     },
-    $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+      // Roll back photo rows and staff photo pointers when the callback throws.
+      const photoSnapshot = punchPhotos.map((p) => ({ ...p }))
+      const pointerSnapshot = staffRows.map((s) => ({
+        id: s.id,
+        profilePhotoId: s.profilePhotoId,
+        profilePhotoPinned: s.profilePhotoPinned,
+      }))
+      try {
+        return await runTransaction(fn)
+      } catch (e) {
+        punchPhotos.splice(0, punchPhotos.length, ...photoSnapshot)
+        for (const snap of pointerSnapshot) {
+          const row = staffRows.find((s) => s.id === snap.id)
+          if (row) {
+            row.profilePhotoId = snap.profilePhotoId
+            row.profilePhotoPinned = snap.profilePhotoPinned
+          }
+        }
+        throw e
+      }
+    },
+  }
+
+  const runTransaction = (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
         dailyRecord: {
           deleteMany: async (arg: unknown) => {
@@ -280,9 +370,17 @@ export function createFakePrisma(fixtures: Fixtures): {
           },
         },
         shiftAssignment: { create: assignmentCreate, upsert: assignmentUpsert },
-        staff: { update: staffUpdate },
-      }),
-  }
+        staff: {
+          update: staffUpdate,
+          // Delegate at call time so tests can override the client methods.
+          findUnique: (arg: { where: { id: string } }) => client.staff.findUnique(arg),
+          updateMany: (arg: { where: Record<string, unknown>; data: StaffUpdate['data'] }) =>
+            client.staff.updateMany(arg),
+        },
+        get punchPhoto() {
+          return client.punchPhoto
+        },
+      })
 
-  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites }
+  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos }
 }

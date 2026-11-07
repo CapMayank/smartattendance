@@ -6,6 +6,8 @@ const prisma = new PrismaClient();
 const fs = require('fs');
 const path = require('path');
 const { redactForLog, summarizeMessage, clip, clipJson } = require('./ws-lib/redact');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS entry run by pm2
+const { storePunchPhoto } = require('./ws-lib/photo-ingest');
 
 function getISTTimeStr() {
   const d = new Date();
@@ -215,13 +217,16 @@ wss.on('connection', function connection(ws, req) {
             }
           }
 
-          await prisma.attendanceLog.create({
+          const log = await prisma.attendanceLog.create({
             data: {
               staffId: staff.id,
               timestamp: punchTime,
               type: type,
             }
           });
+
+          // Never throws; a bad or missing photo never blocks the punch or its ACK.
+          await storePunchPhoto(prisma, { staff, log, image: record.image });
           
           console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${clip(machineUserId)}) at ${punchTime.toISOString()} (${type})`);
           savedCount++;
