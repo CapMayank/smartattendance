@@ -666,6 +666,20 @@ describe("approving a suggestion after the teacher's shift changed", () => {
     expect(f.suggestions[0].status).toBe("PENDING")
   })
 
+  it("a retry still completes when the teacher is already on the suggested shift", async () => {
+    const f = approveFake({
+      staff: [{ id: "A", name: "Asha", shiftId: "s2", shift: LATE }],
+      shifts: [DAY, LATE],
+      suggestions: [{ ...SUG, suggestedShiftId: "s2" }],
+      assignments: [
+        { staffId: "A", effectiveFrom: "2000-01-01", shiftId: "s1" },
+        { staffId: "A", effectiveFrom: "2026-11-02", shiftId: "s2" },
+      ],
+    })
+    await approveSuggestion("g1", "2026-11-02", {})
+    expect(f.suggestions[0].status).toBe("APPROVED")
+  })
+
   it("the matching case still approves", async () => {
     const f = approveFake({ assignments: [{ staffId: "A", effectiveFrom: "2000-01-01", shiftId: "s1" }] })
     await approveSuggestion("g1", "2026-11-02", {})

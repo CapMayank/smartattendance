@@ -390,7 +390,13 @@ export async function approveSuggestion(
 export const SHIFT_CHANGED_ERROR = "This teacher's shift changed since the suggestion was made. Use Check now to refresh."
 
 /** 409 when the teacher's shift today is no longer the one the suggestion was made from. */
-async function assertShiftUnchanged(s: { staffId: string; fromShiftId: string | null }): Promise<void> {
+async function assertShiftUnchanged(s: {
+  staffId: string
+  fromShiftId: string | null
+  suggestedShiftId: string | null
+  suggestedStart: string
+  suggestedEnd: string
+}): Promise<void> {
   const [staff, rows] = await Promise.all([
     prisma.staff.findUnique({ where: { id: s.staffId } }),
     prisma.shiftAssignment.findMany({ where: { staffId: s.staffId } }),
@@ -398,7 +404,11 @@ async function assertShiftUnchanged(s: { staffId: string; fromShiftId: string | 
   if (!staff) throw new SuggestionError('Suggestion not found', 404)
   const assignments = rows.map((a) => ({ effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }))
   const current = currentShiftId(assignments, staff.shiftId, istDateKey(new Date()))
-  if (current !== (s.fromShiftId ?? null)) throw new SuggestionError(SHIFT_CHANGED_ERROR, 409)
+  if (current === (s.fromShiftId ?? null)) return
+  // Already on the suggested shift: a retry of a half-finished approve resumes idempotently
+  const target = await existingTargetShiftId(s)
+  if (target !== null && current === target) return
+  throw new SuggestionError(SHIFT_CHANGED_ERROR, 409)
 }
 
 /** The suggested shift, else an existing shift with the same times (avoids duplicates on retry), else null. */
