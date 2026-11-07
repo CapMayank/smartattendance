@@ -211,7 +211,10 @@ export function createFakePrisma(fixtures: Fixtures): {
     staff: {
       findMany: async (args?: { where?: { id?: string | { in?: string[] } } }) =>
         staffRows.filter((s) => matchesId(s.id, args?.where?.id)),
-      findUnique: async (args: { where: { id: string } }) => staffRows.find((s) => s.id === args.where.id) ?? null,
+      findUnique: async (args: { where: { id: string } }) => {
+        const row = staffRows.find((s) => s.id === args.where.id)
+        return row ? { ...row } : null // a snapshot, like Prisma, never the live row
+      },
       update: staffUpdate,
       updateMany: async ({ where, data }: { where: Record<string, unknown>; data: StaffUpdate['data'] }) => {
         const rows = staffRows.filter((r) => staffMatches(r as unknown as Record<string, unknown>, where))
@@ -308,8 +311,8 @@ export function createFakePrisma(fixtures: Fixtures): {
       findUnique: async ({ where }: { where: { id: string } }) => punchPhotos.find((p) => p.id === where.id) ?? null,
       findFirst: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'> }) =>
         sortBy(punchPhotos.filter((p) => matchesWhere(p, args?.where)), args?.orderBy)[0] ?? null,
-      findMany: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'> }) =>
-        sortBy(punchPhotos.filter((p) => matchesWhere(p, args?.where)), args?.orderBy),
+      findMany: async (args?: { where?: Record<string, unknown>; orderBy?: Record<string, 'asc' | 'desc'>; take?: number }) =>
+        sortBy(punchPhotos.filter((p) => matchesWhere(p, args?.where)), args?.orderBy).slice(0, args?.take),
       delete: async ({ where }: { where: { id: string } }) => {
         const i = punchPhotos.findIndex((p) => p.id === where.id)
         if (i < 0) throw Object.assign(new Error(`punchPhoto ${where.id} not found`), { code: 'P2025' })

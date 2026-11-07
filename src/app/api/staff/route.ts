@@ -23,7 +23,8 @@ export async function GET() {
   // Sort numerically by machineId so they appear in logical order everywhere (e.g. dropdowns)
   staff.sort((a, b) => a.machineId.localeCompare(b.machineId, undefined, { numeric: true }))
   
-  return NextResponse.json(staff)
+  // profilePhotoId is a scalar column, so no image bytes are loaded for the list
+  return NextResponse.json(staff.map((s) => ({ ...s, hasPhoto: s.profilePhotoId !== null })))
 }
 
 export async function POST(request: Request) {
