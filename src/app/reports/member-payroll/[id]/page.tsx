@@ -3,12 +3,11 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, FileText, Calendar as CalendarIcon, AlertTriangle, Loader2, PencilLine, Printer } from 'lucide-react'
-import { Button, Avatar, EmptyState, IconButton, StatusBadge } from '@/components/ui'
+import { Button, EmptyState, IconButton, StatusBadge } from '@/components/ui'
 import { IntimeMark } from '@/components/brand/Brand'
 import { APP_NAME, APP_TAGLINE, SCHOOL_NAME, SCHOOL_PLACE, SCHOOL_SHORT } from '@/lib/brand'
 import { amountInWords } from '@/lib/amount-in-words'
 import { formatINR, SCHOOL_TZ } from '@/lib/format'
-import { staffPhotoUrl } from '@/lib/photo-url'
 import { cn } from '@/lib/cn'
 
 type PayrollDetail = {
@@ -176,12 +175,9 @@ export default function PayslipPage() {
 
         {/* Employee */}
         <section className="border-b border-line px-6 py-5 sm:px-8">
-          <div className="mb-4 flex items-center gap-3.5">
-            <Avatar name={staff.name} src={staffPhotoUrl(staff)} />
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold text-text">{staff.name}</p>
-              <p className="truncate text-[13px] text-muted">{staff.designation?.name || 'No designation'}</p>
-            </div>
+          <div className="mb-4 min-w-0">
+            <p className="truncate text-[15px] font-semibold text-text">{staff.name}</p>
+            <p className="truncate text-[13px] text-muted">{staff.designation?.name || 'No designation'}</p>
           </div>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
             <Meta label="Employee ID" mono>{staff.machineId}</Meta>
