@@ -43,12 +43,10 @@ wss.on('connection', function connection(ws, req) {
     let data;
     try {
       data = JSON.parse(rawData);
-      console.log(`
-📦 [Biometric WS] RECEIVED: ${summarizeMessage(data)}`);
+      console.log(`\n📦 [Biometric WS] RECEIVED: ${summarizeMessage(data)}`);
     } catch (e) {
       data = {};
-      console.log(`
-📦 [Biometric WS] unparsable message (${rawData.length} chars)`);
+      console.log(`\n📦 [Biometric WS] unparsable message (${rawData.length} chars)`);
     }
 
     // Update Device lastPing or auto-register if it doesn't exist
