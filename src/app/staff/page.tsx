@@ -11,6 +11,7 @@ import { istDateKey } from '@/lib/dashboard-calc'
 import { previewHeadline, transitionRows } from '@/lib/shift-preview-text'
 import type { PreviewSummary } from '@/lib/shift-change'
 import { triggerPhotoCleanup } from '@/lib/photo-cleanup-client'
+import { staffPhotoUrl } from '@/lib/photo-url'
 
 const ALWAYS_DAY = '2000-01-01'
 
@@ -63,7 +64,6 @@ export default function StaffPage() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const [viewPhoto, setViewPhoto] = useState<PunchPhoto | null>(null)
   const editingStaff = staffList.find(s => s.id === editingId) ?? null
-  const photoSrc = (s: Staff) => (s.hasPhoto ? `/api/staff/${s.id}/photo?v=${s.profilePhotoId ?? ''}` : undefined)
 
   const shiftChanged = editingId !== null && editData.shiftId !== originalShiftId
   const previewKey = `${editData.shiftId}|${startDate}`
@@ -528,7 +528,7 @@ export default function StaffPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-3">
-                        <Avatar name={staff.name} src={photoSrc(staff)} />
+                        <Avatar name={staff.name} src={staffPhotoUrl(staff)} />
                         <span className="font-medium text-text">{staff.name}</span>
                       </div>
                     </td>
@@ -581,7 +581,7 @@ export default function StaffPage() {
         <div className="space-y-4">
           {editingStaff && (
             <div className="flex items-center gap-3">
-              <Avatar name={editingStaff.name} src={photoSrc(editingStaff)} />
+              <Avatar name={editingStaff.name} src={staffPhotoUrl(editingStaff)} />
               <p className="text-[13px] text-muted">{editingStaff.hasPhoto ? 'Profile picture' : 'No profile picture yet'}</p>
               {editingStaff.hasPhoto && (
                 <Button variant="secondary" size="sm" className="ml-auto min-h-10" onClick={() => changeProfilePhoto(false)} disabled={photoBusy}>Remove picture</Button>

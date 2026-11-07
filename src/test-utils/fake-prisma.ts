@@ -339,7 +339,18 @@ export function createFakePrisma(fixtures: Fixtures): {
         fixtures.lockedPayrolls.filter((p) => !args?.where?.staffId || p.staffId === args.where.staffId),
     },
     attendanceLog: {
-      findMany: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where),
+      findMany: async (args?: {
+        where?: { timestamp?: TimeFilter; staffId?: string }
+        include?: { photo?: { select?: { id?: boolean } } }
+      }) => {
+        const logs = sortedLogs(args?.where)
+        if (!args?.include?.photo) return logs
+        // Mirrors `include: { photo: { select: { id: true } } }`: only the linked photo's id, never its bytes.
+        return logs.map((l) => {
+          const photo = punchPhotos.find((p) => p.logId === l.id)
+          return { ...l, photo: photo ? { id: photo.id } : null }
+        })
+      },
       findFirst: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where)[0] ?? null,
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {

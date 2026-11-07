@@ -8,6 +8,7 @@ import type { DashboardData } from "@/lib/dashboard";
 import { formatTime } from "@/lib/format";
 import { parseHHMM } from "@/lib/dashboard-calc";
 import { cn } from "@/lib/cn";
+import { staffPhotoUrl } from "@/lib/photo-url";
 import { PunchTimeline, formatDuration } from "./PunchTimeline";
 
 type Row = DashboardData["staff"][number];
@@ -198,7 +199,7 @@ export function StaffToday({
                             <Avatar
                               name={s.name}
                               status={avatarTone(s.status, workingDay)}
-                              src={s.photoId ? `/api/staff/${s.id}/photo?v=${s.photoId}` : undefined}
+                              src={staffPhotoUrl({ id: s.id, profilePhotoId: s.photoId })}
                             />
                             <div className="min-w-0">
                               <b className="block truncate font-medium text-text">{s.name}</b>

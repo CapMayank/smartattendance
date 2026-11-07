@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
     const date = parseISO(dateStr)
 
-    const logs = await prisma.attendanceLog.findMany({
+    const rows = await prisma.attendanceLog.findMany({
       where: {
         staffId,
         timestamp: {
@@ -28,8 +28,11 @@ export async function GET(req: Request) {
           lte: endOfDay(date)
         }
       },
-      orderBy: { timestamp: 'asc' }
+      orderBy: { timestamp: 'asc' },
+      // Only the linked photo's id: the image bytes are never loaded here.
+      include: { photo: { select: { id: true } } }
     })
+    const logs = rows.map(({ photo, ...log }) => ({ ...log, photoId: photo?.id ?? null }))
 
     const hasExplicitOut = logs.some(l => l.type === 'OUT');
     const hasExplicitIn = logs.some(l => l.type === 'IN');
