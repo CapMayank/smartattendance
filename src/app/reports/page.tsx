@@ -6,7 +6,7 @@ import { FileText, Download, Calendar as CalendarIcon, BarChart3, Plus, Trash2, 
 import Papa from 'papaparse'
 import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, PhotoLightbox, Select, Skeleton, Tabs } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { formatTime } from '@/lib/format'
+import { formatTime, formatTimeSeconds } from '@/lib/format'
 import { punchPhotoUrl, staffPhotoUrl } from '@/lib/photo-url'
 import { StatusPill } from '@/components/attendance/StatusPill'
 
@@ -901,7 +901,7 @@ export default function ReportsPage() {
                     <PunchThumb punch={punch} name={selectedStaffName} onOpen={() => setViewPunch(punch)} />
                     <PunchTypePill type={punch.type} />
                     <span className="num text-sm text-text">
-                      {new Date(punch.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                      {formatTimeSeconds(new Date(punch.timestamp))}
                     </span>
                   </div>
                   <IconButton

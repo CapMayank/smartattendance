@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatINR, formatTime, formatDateLong, formatPing } from "./format";
+import { formatINR, formatTime, formatTimeSeconds, formatDateLong, formatPing } from "./format";
 
 describe("format helpers", () => {
   it("formats INR with en-IN grouping", () => {
@@ -19,6 +19,10 @@ describe("format helpers", () => {
   });
   it("formats time in IST", () => {
     expect(formatTime(new Date("2026-11-06T04:12:00Z"))).toBe("09:42");
+  });
+  it("formats time with seconds in IST", () => {
+    expect(formatTimeSeconds(new Date("2026-11-06T04:12:07Z"))).toBe("09:42:07");
+    expect(formatTimeSeconds(new Date("2026-11-06T18:30:00Z"))).toBe("00:00:00");
   });
   it("formats long date in IST", () => {
     expect(formatDateLong(new Date("2026-11-05T19:00:00Z"))).toBe("Friday, 6 November 2026");

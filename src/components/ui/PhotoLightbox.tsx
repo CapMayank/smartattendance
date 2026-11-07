@@ -30,12 +30,16 @@ export function PhotoLightbox({
     <span className="contents" onClick={stop} onKeyDown={stop} onPointerDown={stop} onPointerUp={stop}>
       <Modal open onClose={onClose} title={whenText ? "Punch photo" : "Photo"}>
         <figure className="flex flex-col items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt={whenText ? `Punch photo of ${name} at ${whenText}` : `Photo of ${name}`}
-            className="block max-h-[60vh] w-full rounded-xl bg-card object-contain"
-          />
+          {/* Natural size (400 px for new photos), never stretched to the dialog width; tiny legacy
+              160 px photos get a modest minimum so they stay recognisable without much blur. */}
+          <div className="flex w-full justify-center rounded-xl bg-ground p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={whenText ? `Punch photo of ${name} at ${whenText}` : `Photo of ${name}`}
+              className="block h-auto max-h-[60vh] w-auto max-w-full min-w-[min(240px,100%)] rounded-lg object-contain"
+            />
+          </div>
           <figcaption className="text-center text-[13px] text-muted">
             <b className="block font-medium text-text">{name}</b>
             {whenText ? <span className="num">Punched at {whenText}</span> : null}

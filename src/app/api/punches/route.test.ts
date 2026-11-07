@@ -55,15 +55,12 @@ describe("GET /api/punches", () => {
     ])
   })
 
-  it("never returns the nested photo object or image bytes", async () => {
+  it("returns exactly the log fields plus photoId, never the nested photo object", async () => {
     seed([{ id: "l1", staffId: "s1", timestamp: at("09:00"), type: "IN" }])
     fake.punchPhotos.push({ id: "ph1", staffId: "s1", logId: "l1", takenAt: at("09:00"), data: Buffer.from([0xff, 0xd8, 9]), isProfile: false })
 
-    const text = await (await get()).text()
-    const [row] = JSON.parse(text)
-    expect(row).not.toHaveProperty("photo")
-    expect(row).not.toHaveProperty("data")
-    expect(text).not.toContain("data")
+    const [row] = await (await get()).json()
+    expect(Object.keys(row).sort()).toEqual(["id", "photoId", "staffId", "timestamp", "type"])
   })
 
   it("asks Prisma only for the photo id", async () => {

@@ -14,6 +14,12 @@ export function Avatar({ name, status, size = 38, src }: { name: string; status?
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [viewing, setViewing] = useState(false);
+  // A new or removed src closes the viewer, so it cannot linger or reopen later by itself.
+  const [viewedSrc, setViewedSrc] = useState(src);
+  if (viewedSrc !== src) {
+    setViewedSrc(src);
+    setViewing(false);
+  }
   const showImg = Boolean(src) && failedSrc !== src;
   // Clickable only once the photo has really loaded; initials stay decorative.
   const viewable = showImg && loadedSrc === src;
@@ -68,7 +74,7 @@ export function Avatar({ name, status, size = 38, src }: { name: string; status?
           />
         ) : null}
       </span>
-      {viewing && src ? <PhotoLightbox src={src} name={name} onClose={() => setViewing(false)} /> : null}
+      {viewing && viewable && src ? <PhotoLightbox src={src} name={name} onClose={() => setViewing(false)} /> : null}
     </>
   );
 }

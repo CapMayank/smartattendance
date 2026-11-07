@@ -21,6 +21,14 @@ const timeFmt = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
+const timeSecondsFmt = new Intl.DateTimeFormat("en-GB", {
+  timeZone: SCHOOL_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
 const dateLongFmt = new Intl.DateTimeFormat("en-GB", {
   timeZone: SCHOOL_TZ,
   weekday: "long",
@@ -32,6 +40,11 @@ const dateLongFmt = new Intl.DateTimeFormat("en-GB", {
 /** "HH:mm" in IST */
 export function formatTime(d: Date): string {
   return timeFmt.format(d);
+}
+
+/** "HH:mm:ss" in IST */
+export function formatTimeSeconds(d: Date): string {
+  return timeSecondsFmt.format(d);
 }
 
 /** "Friday, 6 November 2026" in IST */
