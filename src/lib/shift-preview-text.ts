@@ -33,6 +33,6 @@ export function transitionRows(transitions: Record<string, number>): { label: st
 }
 
 export function previewHeadline(s: PreviewSummary): string {
-  const days = `${s.recalculatedDays} working ${s.recalculatedDays === 1 ? "day" : "days"} recalculated`
+  const days = `${s.recalculatedDays} ${s.recalculatedDays === 1 ? "day" : "days"} recalculated`
   return `${days} · ${s.changedDays} change`
 }

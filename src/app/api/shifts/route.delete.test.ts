@@ -18,7 +18,7 @@ const shifts = [
   { id: "S2", name: "Unused", startTime: "10:00", endTime: "18:00" },
 ]
 
-function setup(extra: { staffShiftId?: string | null; assignmentShiftId?: string; suggestedShiftId?: string; suggestionStatus?: string } = {}) {
+function setup(extra: { staffShiftId?: string | null; assignmentShiftId?: string; suggestedShiftId?: string; suggestionStatus?: string; suggestionUpdatedAt?: Date } = {}) {
   const f = createFakePrisma({
     staff: [{ id: "A", name: "A", shiftId: extra.staffShiftId ?? null, shift: null }],
     policy: null,
@@ -30,7 +30,15 @@ function setup(extra: { staffShiftId?: string | null; assignmentShiftId?: string
       ? [{ staffId: "A", effectiveFrom: "2026-11-01", shiftId: extra.assignmentShiftId }]
       : [],
     suggestions: extra.suggestedShiftId
-      ? [{ id: "g1", staffId: "A", status: extra.suggestionStatus ?? "PENDING", suggestedShiftId: extra.suggestedShiftId }]
+      ? [
+          {
+            id: "g1",
+            staffId: "A",
+            status: extra.suggestionStatus ?? "PENDING",
+            suggestedShiftId: extra.suggestedShiftId,
+            updatedAt: extra.suggestionUpdatedAt ?? new Date(),
+          },
+        ]
       : [],
   })
   holder.client = f.client
@@ -91,9 +99,19 @@ describe.each([
     expect(f.shiftRows.map((s) => s.id)).toEqual(["S2"])
   })
 
-  it("an APPROVING suggestion still blocks deletion", async () => {
-    setup({ suggestedShiftId: "S1", suggestionStatus: "APPROVING" })
+  it("a fresh APPROVING suggestion (under 5 minutes) still blocks deletion", async () => {
+    setup({ suggestedShiftId: "S1", suggestionStatus: "APPROVING", suggestionUpdatedAt: new Date(Date.now() - 60000) })
     expect((await call("S1")).status).toBe(409)
+  })
+
+  it("a stuck APPROVING suggestion (older than 5 minutes) does not block deletion", async () => {
+    const f = setup({
+      suggestedShiftId: "S1",
+      suggestionStatus: "APPROVING",
+      suggestionUpdatedAt: new Date(Date.now() - 10 * 60000),
+    })
+    expect((await call("S1")).status).toBe(200)
+    expect(f.shiftRows.map((s) => s.id)).toEqual(["S2"])
   })
 
   it("still deletes an unused shift", async () => {

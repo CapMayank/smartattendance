@@ -29,8 +29,19 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const data = await request.json()
-    const shift = await prisma.shift.create({ data })
+    const body = await request.json().catch(() => null)
+    const field = (key: string): string | null => {
+      const v = body && typeof body === 'object' ? (body as Record<string, unknown>)[key] : undefined
+      return typeof v === 'string' && v.trim() !== '' ? v.trim() : null
+    }
+    const name = field('name')
+    const startTime = field('startTime')
+    const endTime = field('endTime')
+    if (!name || !startTime || !endTime) {
+      return NextResponse.json({ error: 'name, startTime and endTime are required' }, { status: 400 })
+    }
+    // Only these three fields: every other property in the body is ignored
+    const shift = await prisma.shift.create({ data: { name, startTime, endTime } })
     return NextResponse.json(shift, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create shift' }, { status: 500 })

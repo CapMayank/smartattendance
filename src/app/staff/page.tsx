@@ -22,6 +22,7 @@ type Staff = {
   id: string
   machineId: string
   name: string
+  shiftId?: string | null
   department?: { name: string }
   designation?: { name: string }
   shift?: { name: string, startTime: string, endTime: string }
@@ -61,7 +62,8 @@ export default function StaffPage() {
   const canSave = !saving && !pendingRecalc && (!shiftChanged || currentPreview?.status === 'ok')
 
   const startEditing = (staff: Staff) => {
-    const currentShiftId = staff.shift?.name ? shifts.find(s => s.name === staff.shift?.name)?.id || '' : ''
+    // The teacher's own shiftId (as the API returns it), not a lookup by shift name
+    const currentShiftId = staff.shiftId ?? ''
     setOriginalShiftId(currentShiftId)
     setStartDate(istDateKey(new Date()))
     setPreview(null)
@@ -73,19 +75,19 @@ export default function StaffPage() {
       machineId: staff.machineId,
       departmentId: staff.department?.name ? depts.find(d => d.name === staff.department?.name)?.id || '' : '',
       designationId: staff.designation?.name ? desigs.find(d => d.name === staff.designation?.name)?.id || '' : '',
-      shiftId: staff.shift?.name ? shifts.find(s => s.name === staff.shift?.name)?.id || '' : ''
+      shiftId: currentShiftId
     })
   }
 
-  // Updates the other edited fields. When the shift was changed it is already saved through the
-  // shift endpoint, so shiftId is left out and the staff endpoint sees no shift change.
+  // Updates the other edited fields. shiftId is always left out (the server reads an omitted
+  // shiftId as "no change"); the shift changes only through the dedicated shift endpoint.
   const saveOtherFields = async () => {
     const { shiftId: _shiftId, ...rest } = editData
     void _shiftId
     const res = await fetch('/api/staff', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editingId, ...(shiftChanged ? rest : editData) })
+      body: JSON.stringify({ id: editingId, ...rest })
     })
     if (res.ok) {
       setEditingId(null)

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { istDateKey } from '@/lib/dashboard-calc'
 import { applyShiftChange } from '@/lib/shift-change-service'
+import { resolveCsvShift } from '@/lib/csv-shift'
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
     if (!Array.isArray(data)) return NextResponse.json({ error: 'Invalid data format' }, { status: 400 })
 
     let processedCount = 0
+    let recalculationFailed = 0
     const todayKey = istDateKey(new Date())
 
     // Fetch existing default shift to fall back on if needed
@@ -23,19 +25,19 @@ export async function POST(request: Request) {
         data: { name: 'General Shift', startTime: '09:55', endTime: '17:00' }
       })
     }
+    const shiftsByName = new Map<string, string>()
+    for (const s of await prisma.shift.findMany()) if (!shiftsByName.has(s.name)) shiftsByName.set(s.name, s.id)
 
     for (const row of data) {
       const name = row['Name']?.trim()
       const machineId = row['Machine ID']?.toString().trim()
       const deptName = row['Department']?.trim()
       const desigName = row['Designation']?.trim()
-      const shiftName = row['Shift']?.trim()
 
       if (!name || !machineId) continue // Skip invalid rows
 
       let departmentId = null
       let designationId = null
-      let shiftId = defaultShift.id
 
       // Smart Upsert Department
       if (deptName) {
@@ -51,16 +53,17 @@ export async function POST(request: Request) {
         designationId = desig.id
       }
 
-      // Find Shift by Name
-      if (shiftName) {
-        const shift = await prisma.shift.findFirst({ where: { name: shiftName } })
-        if (shift) shiftId = shift.id
-        // We don't auto-create shifts purely by name because we don't know the times, we just fallback to default.
-      }
-
       // Upsert Staff. An existing teacher's shift changes through the shift change
-      // service (dated history + recalculation); only a new teacher gets shiftId directly.
+      // service (dated history + recalculation), and only when the row names a known,
+      // different shift; only a new teacher gets shiftId directly (default: General Shift).
       const existing = await prisma.staff.findUnique({ where: { machineId }, select: { id: true, shiftId: true } })
+      const decision = resolveCsvShift({
+        isNew: !existing,
+        existingShiftId: existing?.shiftId ?? null,
+        shiftCell: row['Shift'],
+        shiftsByName,
+        defaultShiftId: defaultShift.id,
+      })
       await prisma.staff.upsert({
         where: { machineId },
         update: {
@@ -73,23 +76,24 @@ export async function POST(request: Request) {
           name,
           departmentId,
           designationId,
-          shiftId
+          shiftId: decision.action === 'set' ? decision.shiftId : defaultShift.id
         }
       })
-      if (existing && existing.shiftId !== shiftId) {
-        await applyShiftChange({
+      if (existing && decision.action === 'set') {
+        const result = await applyShiftChange({
           staffId: existing.id,
-          shiftId,
+          shiftId: decision.shiftId,
           effectiveFrom: todayKey,
           source: 'MANUAL',
           createdByUserId: session.user?.id,
         })
+        if (!result.recalculated) recalculationFailed++
       }
 
       processedCount++
     }
 
-    return NextResponse.json({ success: true, processedCount })
+    return NextResponse.json({ success: true, processedCount, recalculationFailed })
   } catch (error) {
     console.error('Bulk Import Error:', error)
     return NextResponse.json({ error: 'Failed to process bulk import' }, { status: 500 })

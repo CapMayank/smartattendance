@@ -17,10 +17,10 @@ describe("shift preview text", () => {
   })
   it("builds the headline", () => {
     expect(previewHeadline({ recalculatedDays: 14, changedDays: 10, transitions: {}, lockedSkippedDays: 0 })).toBe(
-      "14 working days recalculated · 10 change",
+      "14 days recalculated · 10 change",
     )
     expect(previewHeadline({ recalculatedDays: 1, changedDays: 0, transitions: {}, lockedSkippedDays: 0 })).toBe(
-      "1 working day recalculated · 0 change",
+      "1 day recalculated · 0 change",
     )
   })
 })
