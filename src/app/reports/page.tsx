@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileText, Download, Calendar as CalendarIcon, BarChart3, Plus, Trash2, Settings2, ChevronDown, LogIn, LogOut, Timer } from 'lucide-react'
 import Papa from 'papaparse'
-import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Skeleton, Tabs } from '@/components/ui'
+import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, PhotoLightbox, Select, Skeleton, Tabs } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { formatTime } from '@/lib/format'
+import { punchPhotoUrl, staffPhotoUrl } from '@/lib/photo-url'
 import { StatusPill } from '@/components/attendance/StatusPill'
 
 type DailyRecord = {
@@ -18,12 +20,23 @@ type DailyRecord = {
   lateMinutes: number
   workMinutes: number
   staff: {
+    id: string
     name: string
     machineId: string
+    profilePhotoId?: string | null
     department: { name: string } | null
     designation: { name: string } | null
     shift: { name: string } | null
   }
+}
+
+/** One raw punch from GET /api/punches; photoId is the linked punch photo, if any. */
+type RawPunch = {
+  id: string
+  staffId: string
+  timestamp: string
+  type: string
+  photoId: string | null
 }
 
 type MonthlyRecord = {
@@ -31,6 +44,7 @@ type MonthlyRecord = {
     id: string
     name: string
     machineId: string
+    profilePhotoId?: string | null
     department: { name: string } | null
     designation: { name: string } | null
     shift: { name: string } | null
@@ -90,6 +104,26 @@ function PunchTypePill({ type }: { type: string }) {
   )
 }
 
+// 40 px thumbnail of a punch photo that opens it large; nothing when the punch has no photo
+// (or the thumbnail fails to load). Rows share a min height, so nothing shifts.
+function PunchThumb({ punch, name, onOpen }: { punch: RawPunch; name: string; onOpen: () => void }) {
+  const [failed, setFailed] = useState(false)
+  const src = punchPhotoUrl(punch.photoId)
+  if (!src || failed) return null
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`View punch photo of ${name} at ${formatTime(new Date(punch.timestamp))}`}
+      title="View punch photo"
+      className="size-10 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-line bg-card-hi focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acc-2"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" width={40} height={40} loading="lazy" onError={() => setFailed(true)} className="size-full object-cover" />
+    </button>
+  )
+}
+
 function MonthlyMobileCard({
   record,
   month,
@@ -110,18 +144,29 @@ function MonthlyMobileCard({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-card">
-      <button
+      {/* The whole header toggles on tap; the name button is the keyboard and screen reader toggle.
+          It is not one big button, because the profile photo is a button of its own. */}
+      <div
         onClick={() => setOpen(o => !o)}
-        className="w-full p-4 text-left transition-colors duration-150 hover:bg-card-hi"
-        aria-expanded={open}
+        className="w-full cursor-pointer p-4 text-left transition-colors duration-150 hover:bg-card-hi"
       >
         <div className="flex items-center gap-3">
-          <Avatar name={record.staff.name} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-medium leading-tight text-text">{record.staff.name}</p>
-            <p className="mt-0.5 truncate text-xs text-subtle">{record.staff.designation?.name || 'No Role'}</p>
-          </div>
-          <ChevronDown size={18} aria-hidden="true" className={cn('shrink-0 text-muted transition-transform duration-150', open && 'rotate-180')} />
+          <Avatar name={record.staff.name} src={staffPhotoUrl(record.staff)} />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpen(o => !o)
+            }}
+            aria-expanded={open}
+            className="flex min-h-10 min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acc-2"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium leading-tight text-text">{record.staff.name}</span>
+              <span className="mt-0.5 block truncate text-xs text-subtle">{record.staff.designation?.name || 'No Role'}</span>
+            </span>
+            <ChevronDown size={18} aria-hidden="true" className={cn('shrink-0 text-muted transition-transform duration-150', open && 'rotate-180')} />
+          </button>
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-2">
@@ -142,7 +187,7 @@ function MonthlyMobileCard({
             <p className="mt-1 text-[10px] uppercase tracking-wider text-muted">Hours</p>
           </div>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="border-t border-line-soft px-4 pb-4 pt-1">
@@ -238,7 +283,8 @@ export default function ReportsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
   const [selectedStaffName, setSelectedStaffName] = useState<string>('')
-  const [rawPunches, setRawPunches] = useState<any[]>([])
+  const [rawPunches, setRawPunches] = useState<RawPunch[]>([])
+  const [viewPunch, setViewPunch] = useState<RawPunch | null>(null)
   const [newPunchTime, setNewPunchTime] = useState('')
   const [newPunchType, setNewPunchType] = useState('IN')
   const [isPunchLoading, setIsPunchLoading] = useState(false)
@@ -527,7 +573,7 @@ export default function ReportsPage() {
                     >
                       <td>
                         <div className="flex items-center gap-3">
-                          <Avatar name={record.staff.name} />
+                          <Avatar name={record.staff.name} src={staffPhotoUrl(record.staff)} />
                           <div className="flex flex-col">
                             <span className="whitespace-nowrap font-medium text-text">{record.staff.name}</span>
                             <span className="mt-0.5 whitespace-nowrap text-xs text-subtle">
@@ -587,7 +633,7 @@ export default function ReportsPage() {
                     >
                       <td>
                         <div className="flex items-center gap-3">
-                          <Avatar name={record.staff.name} />
+                          <Avatar name={record.staff.name} src={staffPhotoUrl(record.staff)} />
                           <div className="flex flex-col">
                             <span className="whitespace-nowrap text-sm font-medium text-text">{record.staff.name}</span>
                             <span className="whitespace-nowrap text-[11px] text-subtle">
@@ -726,7 +772,7 @@ export default function ReportsPage() {
                   return (
                     <div key={record.id} className="relative overflow-hidden rounded-2xl border border-line bg-card p-4">
                       <div className="flex items-center gap-3">
-                        <Avatar name={record.staff.name} />
+                        <Avatar name={record.staff.name} src={staffPhotoUrl(record.staff)} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium leading-tight text-text">{record.staff.name}</p>
                           <p className="mt-0.5 truncate text-xs text-subtle">
@@ -799,7 +845,10 @@ export default function ReportsPage() {
       {/* Punches Modal */}
       <Modal
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false)
+          setViewPunch(null)
+        }}
         title="Manage Punches"
       >
         <div className="mb-5">
@@ -847,8 +896,9 @@ export default function ReportsPage() {
           ) : (
             <div className="space-y-2">
               {rawPunches.map((punch) => (
-                <div key={punch.id} className="flex items-center justify-between rounded-xl border border-line bg-ground p-3">
+                <div key={punch.id} className="flex min-h-16 items-center justify-between rounded-xl border border-line bg-ground p-3">
                   <div className="flex items-center gap-3">
+                    <PunchThumb punch={punch} name={selectedStaffName} onOpen={() => setViewPunch(punch)} />
                     <PunchTypePill type={punch.type} />
                     <span className="num text-sm text-text">
                       {new Date(punch.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
@@ -866,6 +916,14 @@ export default function ReportsPage() {
             </div>
           )}
         </div>
+        {viewPunch?.photoId ? (
+          <PhotoLightbox
+            src={punchPhotoUrl(viewPunch.photoId)!}
+            name={selectedStaffName}
+            takenAt={viewPunch.timestamp}
+            onClose={() => setViewPunch(null)}
+          />
+        ) : null}
       </Modal>
     </div>
   )

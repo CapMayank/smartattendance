@@ -5,6 +5,7 @@ import { Wallet, Search, Edit2, Save, AlertCircle, CheckCircle2, XCircle } from 
 import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Skeleton } from '@/components/ui'
 import { formatINR } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { staffPhotoUrl } from '@/lib/photo-url'
 
 export default function StaffPayrollPage() {
   const [staff, setStaff] = useState<any[]>([])
@@ -154,7 +155,7 @@ export default function StaffPayrollPage() {
                   <tr key={s.id}>
                     <td>
                       <div className="flex items-center gap-3">
-                        <Avatar name={s.name} />
+                        <Avatar name={s.name} src={staffPhotoUrl(s)} />
                         <div>
                           <div className="font-medium text-text">{s.name}</div>
                           <div className="text-xs text-subtle">{s.department?.name || 'No Dept'}</div>
@@ -232,7 +233,7 @@ export default function StaffPayrollPage() {
               <div key={s.id} className="flex flex-col gap-4 rounded-xl border border-line bg-canvas p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <Avatar name={s.name} />
+                    <Avatar name={s.name} src={staffPhotoUrl(s)} />
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate font-medium leading-tight text-text">{s.name}</span>
                       <span className="text-[13px] text-subtle">{s.department?.name || 'No Dept'}</span>

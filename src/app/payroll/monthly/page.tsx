@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { Avatar, Button, Card, Chip, ChipGroup, EmptyState, Field, Input, Modal, PageHeader, Select, StatusBadge } from '@/components/ui'
 import { formatINR } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { staffPhotoUrl } from '@/lib/photo-url'
 
 function calculatePayroll(
   monthlyCtc: number,
@@ -668,7 +669,7 @@ export default function MonthlyPayrollPage() {
                     <tr key={p.id}>
                       <td>
                         <div className="flex items-center gap-3">
-                          <Avatar name={p.staff.name} />
+                          <Avatar name={p.staff.name} src={staffPhotoUrl(p.staff)} />
                           <div>
                             <div className="font-medium text-text">{p.staff.name}</div>
                             <div className="num text-[11px] text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</div>
@@ -831,7 +832,7 @@ export default function MonthlyPayrollPage() {
               return (
                 <div key={p.id} className={cn('rounded-xl border p-4 transition-colors duration-150', isEdited ? 'border-acc-3 bg-card-hi' : 'border-line bg-canvas')}>
                   <div className="flex items-center gap-3">
-                    <Avatar name={p.staff.name} />
+                    <Avatar name={p.staff.name} src={staffPhotoUrl(p.staff)} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium leading-tight text-text">{p.staff.name}</p>
                       <p className="num truncate text-[11px] text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</p>

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Download, Calendar as CalendarIcon, Search, UserCheck, LogIn, LogOut, AlertTriangle } from 'lucide-react'
 import Papa from 'papaparse'
-import { Button, Card, EmptyState, Field, Input, PageHeader, Select, Skeleton } from '@/components/ui'
+import { Avatar, Button, Card, EmptyState, Field, Input, PageHeader, Select, Skeleton } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { staffPhotoUrl } from '@/lib/photo-url'
 import { StatusPill } from '@/components/attendance/StatusPill'
 
 type AttendanceLog = {
@@ -30,6 +31,7 @@ type Staff = {
   id: string
   name: string
   machineId: string
+  profilePhotoId?: string | null
   department: { name: string } | null
   designation: { name: string } | null
 }
@@ -247,6 +249,17 @@ export default function MemberAttendancePage() {
         {/* Summary Cards */}
         {staffData && !loading && (
           <div className="flex flex-col border-b border-line-soft">
+            <div className="flex min-w-0 items-center gap-3 border-b border-line-soft px-4 py-3 sm:px-5">
+              <Avatar name={staffData.name} src={staffPhotoUrl(staffData)} />
+              <div className="min-w-0">
+                <p className="truncate font-medium text-text">{staffData.name}</p>
+                <p className="truncate text-xs text-subtle">
+                  <span className="num">{staffData.machineId}</span>
+                  {' · '}
+                  {staffData.designation?.name || 'No Role'} · {staffData.department?.name || 'No Dept'}
+                </p>
+              </div>
+            </div>
             {payrollData && summary.totalPayrollEligibleDays !== payrollData.presentDays && (
               <div role="alert" className="flex items-start gap-3 border-b border-absent/30 bg-absent/10 p-4">
                 <AlertTriangle size={18} className="mt-0.5 shrink-0 text-absent" aria-hidden="true" />
