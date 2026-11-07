@@ -130,7 +130,10 @@ describe("applyShiftChange", () => {
   })
 
   it("a locked staff-month: reports lockedSkippedDays and creates no record for those days", async () => {
-    const f = fake({ lockedPayrolls: [{ staffId: "A", month: 11, year: 2026 }] })
+    const f = fake({
+      staff: [{ id: "A", name: "A", shiftId: "s1", shift: DAY, createdAt: new Date("2026-10-01T10:00:00+05:30") }],
+      lockedPayrolls: [{ staffId: "A", month: 11, year: 2026 }],
+    })
     const res = await applyShiftChange(req({ effectiveFrom: "2026-10-29" }), NOW)
     expect(res.summary.lockedSkippedDays).toBe(6) // 1..6 Nov
     expect(res.summary.recalculatedDays).toBe(3) // 29..31 Oct
@@ -237,5 +240,67 @@ describe("syncCurrentShifts", () => {
     const g = fake()
     await syncCurrentShifts(NOW)
     expect(g.staffUpdates).toEqual([])
+  })
+})
+
+describe("pending suggestions after a manual change", () => {
+  const rows = () => [
+    { id: "p1", staffId: "A", status: "PENDING" },
+    { id: "d1", staffId: "A", status: "DISMISSED" },
+    { id: "p2", staffId: "B", status: "PENDING" },
+  ]
+
+  it("a manual change deletes that teacher's PENDING suggestion only", async () => {
+    const f = fake({ suggestions: rows() })
+    await applyShiftChange(req(), NOW)
+    expect(f.suggestions.map((r) => r.id)).toEqual(["d1", "p2"])
+  })
+
+  it("a SUGGESTION-sourced change leaves pending rows alone", async () => {
+    const f = fake({ suggestions: rows() })
+    await applyShiftChange(req({ source: "SUGGESTION" }), NOW)
+    expect(f.suggestions.map((r) => r.id)).toEqual(["p1", "d1", "p2"])
+  })
+
+  it("a failure to clear suggestions is logged and does not fail the change", async () => {
+    const f = fake({ suggestions: rows() })
+    const client = f.client as { shiftSuggestion: { deleteMany: () => Promise<unknown> } }
+    client.shiftSuggestion.deleteMany = async () => {
+      throw new Error("boom")
+    }
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const res = await applyShiftChange(req(), NOW)
+    expect(res.recalculated).toBe(true)
+    expect(spy.mock.calls[0][0]).toContain("[shift-change] could not clear pending suggestions:")
+    spy.mockRestore()
+  })
+})
+
+describe("recalculation starts no earlier than the teacher's start", () => {
+  const createdAt = new Date("2026-10-30T10:00:00+05:30")
+
+  it("a 2000-01-01 start recalculates from the teacher's start, not ~9,800 days", async () => {
+    fake({ staff: [{ id: "A", name: "A", shiftId: "s1", shift: DAY, createdAt }] })
+    const preview = await previewShiftChange(req({ effectiveFrom: ALWAYS }), NOW)
+    expect(preview.recalculatedDays).toBe(8) // 30 Oct .. 6 Nov
+    const f = fake({ staff: [{ id: "A", name: "A", shiftId: "s1", shift: DAY, createdAt }] })
+    const res = await applyShiftChange(req({ effectiveFrom: ALWAYS }), NOW)
+    expect(res.summary).toEqual(preview)
+    expect(f.created).toHaveLength(8)
+    expect(f.assignments).toEqual([expect.objectContaining({ effectiveFrom: ALWAYS, shiftId: "s2" })])
+  })
+
+  it("uses the first punch when it is earlier than createdAt", async () => {
+    fake({
+      staff: [{ id: "A", name: "A", shiftId: "s1", shift: DAY, createdAt: new Date("2026-11-05T10:00:00+05:30") }],
+    })
+    const preview = await previewShiftChange(req({ effectiveFrom: ALWAYS }), NOW)
+    expect(preview.recalculatedDays).toBe(5) // first punch 2 Nov
+  })
+
+  it("a start date after the teacher's start is unchanged", async () => {
+    fake({ staff: [{ id: "A", name: "A", shiftId: "s1", shift: DAY, createdAt }] })
+    const preview = await previewShiftChange(req({ effectiveFrom: "2026-11-04" }), NOW)
+    expect(preview.recalculatedDays).toBe(3)
   })
 })

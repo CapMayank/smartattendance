@@ -88,12 +88,14 @@ export function createFakePrisma(fixtures: Fixtures): {
   const matchValue = (v: unknown, cond: unknown): boolean => {
     if (cond instanceof Date) return v instanceof Date && v.getTime() === cond.getTime()
     if (cond && typeof cond === 'object') {
-      const c = cond as { lt?: Date | string; in?: unknown[] }
+      const c = cond as { lt?: Date | string; gte?: Date | string; in?: unknown[] }
       if (Array.isArray(c.in)) return c.in.includes(v)
-      if (!('lt' in c) || v === null || v === undefined || c.lt === undefined) return false
+      if (v === null || v === undefined) return false
       const a = v instanceof Date ? v.getTime() : (v as string)
-      const b = c.lt instanceof Date ? c.lt.getTime() : c.lt
-      return a < b
+      const val = (x: Date | string) => (x instanceof Date ? x.getTime() : x)
+      if ('gte' in c && c.gte !== undefined) return a >= val(c.gte)
+      if (!('lt' in c) || c.lt === undefined) return false
+      return a < val(c.lt)
     }
     return v === cond
   }
@@ -210,6 +212,11 @@ export function createFakePrisma(fixtures: Fixtures): {
         for (const r of rows) Object.assign(r, data, { updatedAt: new Date() })
         return { count: rows.length }
       },
+      deleteMany: async ({ where }: { where: Record<string, unknown> }) => {
+        const doomed = suggestions.filter((r) => matchesWhere(r, where))
+        for (const r of doomed) suggestions.splice(suggestions.indexOf(r), 1)
+        return { count: doomed.length }
+      },
       delete: async ({ where }: { where: { id: string } }) => {
         const i = suggestions.findIndex((r) => r.id === where.id)
         if (i < 0) throw new Error(`suggestion ${where.id} not found`)
@@ -258,7 +265,7 @@ export function createFakePrisma(fixtures: Fixtures): {
     },
     attendanceLog: {
       findMany: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where),
-      findFirst: async (args?: { where?: { timestamp?: TimeFilter } }) => sortedLogs(args?.where)[0] ?? null,
+      findFirst: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where)[0] ?? null,
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({

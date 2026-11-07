@@ -190,8 +190,13 @@ export async function recalculateRange(opts: {
   staffId?: string
 }): Promise<{ days: number; records: number }> {
   const days = rangeDays(opts.startDate, opts.endDate).length
-  // Keep Staff.shiftId pointing at today's shift (a future-dated assignment may have arrived)
-  await syncCurrentShifts()
+  // Keep Staff.shiftId pointing at today's shift (a future-dated assignment may have arrived).
+  // A sync failure must never fail a recalculation.
+  try {
+    await syncCurrentShifts()
+  } catch (error) {
+    console.error('[attendance] syncCurrentShifts failed:', error)
+  }
   const inputs = await loadRangeInputs(opts)
   const records = computeRangeRecords(inputs, new Date())
   await persistRangeRecords(inputs, records)

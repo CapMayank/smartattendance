@@ -59,6 +59,15 @@ export function isSuppressed(
   return Math.abs(parseHHMM(newMedianIn) - parseHHMM(dismissed.medianIn)) < SHIFT_DETECTION.minDeviationMin
 }
 
+/** The effectiveFrom of the assignment in force today, or null when none (or it is ALWAYS). */
+export function currentShiftSince(assignments: AssignmentLite[], todayKey: string): string | null {
+  let since: string | null = null
+  for (const a of assignments) {
+    if (a.effectiveFrom <= todayKey && (since === null || a.effectiveFrom > since)) since = a.effectiveFrom
+  }
+  return since === null || since <= ALWAYS ? null : since
+}
+
 /** Day key shifted by whole days (calendar arithmetic on the key itself). */
 function addDays(key: string, days: number): string {
   const [y, m, d] = key.split('-').map(Number)
@@ -82,10 +91,18 @@ async function detectForTeacher(args: {
   skipDayKeys: ReadonlySet<string>
   allow: string
   todayKey: string
+  /** Day today's shift took effect; earlier days were judged by another shift. Null: no limit. */
+  currentSince: string | null
 }): Promise<void> {
-  const { staffId, currentShift, allShifts, punchesByDay, skipDayKeys, allow, todayKey } = args
-  const days = buildObservedDays(punchesByDay, skipDayKeys)
-  const pattern = detectShiftPattern(days, currentShift, allow)
+  const { staffId, currentShift, allShifts, punchesByDay, skipDayKeys, allow, todayKey, currentSince } = args
+  const days = buildObservedDays(punchesByDay, skipDayKeys).filter(
+    (d) => currentSince === null || d.dayKey >= currentSince,
+  )
+  const detected = detectShiftPattern(days, currentShift, allow)
+  const pattern =
+    detected && currentSince !== null && detected.patternSince < currentSince
+      ? { ...detected, patternSince: currentSince }
+      : detected
   const existing = await prisma.shiftSuggestion.findFirst({ where: { staffId, status: 'PENDING' } })
 
   if (!pattern) {
@@ -195,7 +212,8 @@ export async function runDetection(
 
     for (const staff of staffList) {
       try {
-        const shiftId = currentShiftId(assignmentsByStaff.get(staff.id) ?? [], staff.shiftId, todayKey)
+        const assignments = assignmentsByStaff.get(staff.id) ?? []
+        const shiftId = currentShiftId(assignments, staff.shiftId, todayKey)
         const currentShift = shiftId ? shiftsById.get(shiftId) : undefined
         if (!currentShift) continue
         await detectForTeacher({
@@ -206,6 +224,7 @@ export async function runDetection(
           skipDayKeys,
           allow,
           todayKey,
+          currentSince: currentShiftSince(assignments, todayKey),
         })
       } catch (error) {
         console.error(`${LOG} detection failed for staff ${staff.id}:`, error)
@@ -297,6 +316,7 @@ export async function approveSuggestion(
 
   if (opts.dryRun) {
     const suggestion = await loadPending(id)
+    await assertShiftUnchanged(suggestion)
     const shiftId = await existingTargetShiftId(suggestion)
     const base = { staffId: suggestion.staffId, effectiveFrom: startDate, source: 'SUGGESTION' as const }
     if (shiftId !== null) return previewShiftChange({ ...base, shiftId } satisfies ChangeRequest)
@@ -308,6 +328,10 @@ export async function approveSuggestion(
     }
     return previewShiftChange({ ...base, shiftId: PROPOSED_ID }, new Date(), [proposed])
   }
+
+  // Refuse before claiming anything when a manual change has overtaken the suggestion
+  const before = await prisma.shiftSuggestion.findFirst({ where: { id } })
+  if (before && (before.status === 'PENDING' || before.status === 'APPROVING')) await assertShiftUnchanged(before)
 
   const staleBefore = new Date(Date.now() - APPROVE_LOCK_MS)
   const claim = await prisma.shiftSuggestion.updateMany({
@@ -361,6 +385,20 @@ export async function approveSuggestion(
     }
     throw error
   }
+}
+
+export const SHIFT_CHANGED_ERROR = "This teacher's shift changed since the suggestion was made. Use Check now to refresh."
+
+/** 409 when the teacher's shift today is no longer the one the suggestion was made from. */
+async function assertShiftUnchanged(s: { staffId: string; fromShiftId: string | null }): Promise<void> {
+  const [staff, rows] = await Promise.all([
+    prisma.staff.findUnique({ where: { id: s.staffId } }),
+    prisma.shiftAssignment.findMany({ where: { staffId: s.staffId } }),
+  ])
+  if (!staff) throw new SuggestionError('Suggestion not found', 404)
+  const assignments = rows.map((a) => ({ effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }))
+  const current = currentShiftId(assignments, staff.shiftId, istDateKey(new Date()))
+  if (current !== (s.fromShiftId ?? null)) throw new SuggestionError(SHIFT_CHANGED_ERROR, 409)
 }
 
 /** The suggested shift, else an existing shift with the same times (avoids duplicates on retry), else null. */

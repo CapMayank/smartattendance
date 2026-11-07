@@ -59,12 +59,30 @@ function resultingAssignments(existing: AssignmentLite[], ops: ChangeOps): Assig
   return list
 }
 
+/** The earlier of the teacher's creation day and first punch day, or null when neither is known. */
+async function teacherStartKey(staff: { id: string; createdAt?: Date | null }): Promise<string | null> {
+  const firstPunch = await prisma.attendanceLog.findFirst({
+    where: { staffId: staff.id },
+    orderBy: { timestamp: 'asc' },
+    select: { timestamp: true },
+  })
+  const keys = [staff.createdAt, firstPunch?.timestamp].flatMap((d) => (d instanceof Date ? [istDateKey(d)] : []))
+  return keys.length === 0 ? null : keys.reduce((a, b) => (a < b ? a : b))
+}
+
 async function planFor(req: ChangeRequest, now: Date): Promise<Plan> {
   const staff = await prisma.staff.findUnique({ where: { id: req.staffId } })
   if (!staff) throw new Error(`Staff ${req.staffId} not found`)
   const rows = await prisma.shiftAssignment.findMany({ where: { staffId: req.staffId } })
   const existing = rows.map((a) => ({ effectiveFrom: a.effectiveFrom, shiftId: a.shiftId }))
-  return { ops: planShiftChange(existing, staff.shiftId, req, istDateKey(now)), existing, staffShiftId: staff.shiftId }
+  const todayKey = istDateKey(now)
+  const ops = planShiftChange(existing, staff.shiftId, req, todayKey)
+  // Nothing exists before the teacher started: recalculate from then (the assignment keeps its date)
+  if (ops.recalcFrom !== null) {
+    const start = await teacherStartKey(staff)
+    if (start !== null && start > ops.recalcFrom) ops.recalcFrom = start < todayKey ? start : todayKey
+  }
+  return { ops, existing, staffShiftId: staff.shiftId }
 }
 
 /** Evaluates the planned change in memory against stored records. Writes nothing. */
@@ -170,6 +188,15 @@ export async function applyShiftChange(req: ChangeRequest, now: Date = new Date(
   })
 
   // Future-dated: nothing to recalculate until the date arrives
+  if (req.source === 'MANUAL') {
+    // A manual change makes any pending suggestion stale (best effort)
+    try {
+      await prisma.shiftSuggestion.deleteMany({ where: { staffId, status: 'PENDING' } })
+    } catch (error) {
+      console.error('[shift-change] could not clear pending suggestions:', error)
+    }
+  }
+
   if (ops.recalcFrom === null) return { assignmentSaved: true, recalculated: true, summary }
 
   try {

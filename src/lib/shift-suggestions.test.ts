@@ -593,3 +593,82 @@ describe("approve then recover from a failed recalculation", () => {
     expect(f.assignments).toHaveLength(assignmentsBefore)
   })
 })
+
+describe("detection after a shift change", () => {
+  const TEN = { id: "s0", name: "Ten", startTime: "10:00", endTime: "16:00" }
+
+  it("a teacher moved to a 09:00 shift today: older ~09:55 days do not count, so no pattern", async () => {
+    const f = fake({
+      shifts: [TEN, DAY],
+      assignments: [
+        { staffId: "A", effectiveFrom: "2000-01-01", shiftId: "s0" },
+        { staffId: "A", effectiveFrom: TODAY, shiftId: "s1" },
+      ],
+      logs: WINDOW_DAYS.slice(-20).flatMap((d) => punches("A", d, ["09:55", "16:00"])),
+    })
+    await runDetection({ now: NOW })
+    expect(f.suggestions).toEqual([])
+  })
+
+  it("15+ days at 09:55 after the change: LATER pattern judged only from the change date", async () => {
+    const CHANGE = "2026-10-17"
+    const before = WINDOW_DAYS.filter((d) => d < CHANGE)
+    const after = WINDOW_DAYS.filter((d) => d >= CHANGE)
+    expect(after.length).toBeGreaterThanOrEqual(15)
+    const f = fake({
+      shifts: [TEN, DAY],
+      assignments: [
+        { staffId: "A", effectiveFrom: "2000-01-01", shiftId: "s0" },
+        { staffId: "A", effectiveFrom: CHANGE, shiftId: "s1" },
+      ],
+      logs: [
+        ...before.flatMap((d) => punches("A", d, ["10:00", "16:00"])),
+        ...after.flatMap((d) => punches("A", d, ["09:55", "16:00"])),
+      ],
+    })
+    await runDetection({ now: NOW })
+    expect(pending(f.suggestions)).toHaveLength(1)
+    const row = f.suggestions[0]
+    expect(row).toMatchObject({ direction: "LATER", fromShiftId: "s1", daysObserved: after.length })
+    expect(row.patternSince! >= CHANGE).toBe(true)
+  })
+
+  it("a teacher with no assignments still uses the whole window", async () => {
+    const f = fake({ logs: WINDOW_DAYS.flatMap((d) => punches("A", d, ["09:55", "16:00"])) })
+    await runDetection({ now: NOW })
+    expect(pending(f.suggestions)).toHaveLength(1)
+    expect(f.suggestions[0]).toMatchObject({ direction: "LATER", daysObserved: WINDOW_DAYS.length, patternSince: WINDOW_DAYS[0] })
+  })
+})
+
+describe("approving a suggestion after the teacher's shift changed", () => {
+  const LATE = { id: "s2", name: "Late", startTime: "10:00", endTime: "16:00" }
+  const moved = () =>
+    approveFake({
+      staff: [{ id: "A", name: "Asha", shiftId: "s2", shift: LATE }],
+      shifts: [DAY, LATE],
+      assignments: [
+        { staffId: "A", effectiveFrom: "2000-01-01", shiftId: "s1" },
+        { staffId: "A", effectiveFrom: "2026-11-04", shiftId: "s2" },
+      ],
+    })
+
+  it.each([false, true])("returns 409 and writes nothing (dryRun=%s)", async (dryRun) => {
+    const f = moved()
+    const assignmentsBefore = f.assignments.length
+    await expect(approveSuggestion("g1", "2026-11-02", { dryRun })).rejects.toMatchObject({
+      status: 409,
+      message: "This teacher's shift changed since the suggestion was made. Use Check now to refresh.",
+    })
+    expect(f.shiftRows).toHaveLength(2)
+    expect(f.assignments).toHaveLength(assignmentsBefore)
+    expect(f.staffUpdates).toEqual([])
+    expect(f.suggestions[0].status).toBe("PENDING")
+  })
+
+  it("the matching case still approves", async () => {
+    const f = approveFake({ assignments: [{ staffId: "A", effectiveFrom: "2000-01-01", shiftId: "s1" }] })
+    await approveSuggestion("g1", "2026-11-02", {})
+    expect(f.suggestions[0].status).toBe("APPROVED")
+  })
+})

@@ -146,6 +146,26 @@ describe("recalculateRange", () => {
   })
 })
 
+describe("recalculateRange with a failing shift sync", () => {
+  it("logs the sync failure and still recalculates", async () => {
+    const f = fake({})
+    const client = f.client as { shiftAssignment: { findMany: (a?: unknown) => Promise<unknown> } }
+    const original = client.shiftAssignment.findMany
+    let calls = 0
+    client.shiftAssignment.findMany = async (a?: unknown) => {
+      calls++
+      if (calls === 1) throw new Error("sync down") // the sync's query runs first
+      return original(a as never)
+    }
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const res = await recalculateRange({ startDate: dayStart(MON), endDate: dayStart(MON) })
+    expect(res).toEqual({ days: 1, records: 2 })
+    expect(f.created).toHaveLength(2)
+    expect(spy.mock.calls[0][0]).toContain("[attendance] syncCurrentShifts failed:")
+    spy.mockRestore()
+  })
+})
+
 describe("shift history", () => {
   const TUE = "2026-11-03"
   const WED = "2026-11-04"
