@@ -195,7 +195,11 @@ export function StaffToday({
                       >
                         <td className="max-w-[260px]">
                           <div className="flex min-w-0 items-center gap-3">
-                            <Avatar name={s.name} status={avatarTone(s.status, workingDay)} />
+                            <Avatar
+                              name={s.name}
+                              status={avatarTone(s.status, workingDay)}
+                              src={s.photoId ? `/api/staff/${s.id}/photo?v=${s.photoId}` : undefined}
+                            />
                             <div className="min-w-0">
                               <b className="block truncate font-medium text-text">{s.name}</b>
                               <small className="block truncate text-xs text-subtle">

@@ -59,6 +59,8 @@ export type DashboardData = {
     name: string;
     role: string;
     empId: string;
+    /** Profile picture version (id of the current photo), null when the teacher has none. */
+    photoId: string | null;
     department: string;
     shift: { start: string; end: string } | null;
     punches: { at: string; type: PunchType; device: string | null }[];
@@ -237,6 +239,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
       name: row.name,
       role: row.designation?.name ?? "—",
       empId: row.machineId,
+      photoId: row.profilePhotoId ?? null,
       department: row.department?.name ?? "Unassigned",
       shift: shiftStart ? { start: shiftStart, end: shiftEnd || shiftStart } : null,
       // AttendanceLog has no device relation in the schema
