@@ -161,23 +161,27 @@ model Policy {
   allInOut                    String    @default("First IN Last OUT")
   weekOffDays                 String    @default("0") // e.g. "0" for Sunday
   shiftDetectionRanAt         DateTime?
+  photoCleanupRanAt           DateTime?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 }
 
 model Staff {
-  id            String   @id @default(cuid())
-  machineId     String   @unique // ID as known to the attendance machine
-  name          String
-  departmentId  String?
-  designationId String?
-  shiftId       String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  machineId          String   @unique // ID as known to the attendance machine
+  name               String
+  departmentId       String?
+  designationId      String?
+  shiftId            String?
+  profilePhotoId     String?
+  profilePhotoPinned Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  department  Department?  @relation(fields: [departmentId], references: [id])
-  designation Designation? @relation(fields: [designationId], references: [id])
-  shift       Shift?       @relation(fields: [shiftId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  designation  Designation? @relation(fields: [designationId], references: [id])
+  shift        Shift?       @relation(fields: [shiftId], references: [id])
+  profilePhoto PunchPhoto?  @relation("StaffProfilePhoto", fields: [profilePhotoId], references: [id], onDelete: SetNull)
 
   attendanceLogs   AttendanceLog[]
   dailyRecords     DailyRecord[]
@@ -185,6 +189,7 @@ model Staff {
   monthlyPayrolls  MonthlyPayroll[]
   shiftAssignments ShiftAssignment[]
   shiftSuggestions ShiftSuggestion[]
+  punchPhotos      PunchPhoto[]      @relation("PunchPhotoOwner")
 }
 
 model AttendanceLog {
@@ -193,10 +198,29 @@ model AttendanceLog {
   timestamp DateTime
   type      String // "IN" or "OUT"
 
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  photo PunchPhoto?
 
   @@index([staffId])
   @@index([timestamp])
+}
+
+model PunchPhoto {
+  id        String   @id @default(cuid())
+  staffId   String
+  logId     String?  @unique
+  takenAt   DateTime
+  data      Bytes
+  isProfile Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  staff Staff          @relation("PunchPhotoOwner", fields: [staffId], references: [id], onDelete: Cascade)
+  log   AttendanceLog? @relation(fields: [logId], references: [id], onDelete: SetNull)
+
+  profileOf Staff[] @relation("StaffProfilePhoto")
+
+  @@index([staffId, takenAt])
+  @@index([takenAt])
 }
 
 model DailyRecord {
