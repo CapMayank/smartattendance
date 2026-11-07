@@ -5,6 +5,7 @@ export type Fixtures = {
     shiftId: string | null
     createdAt?: Date
     shift: { id: string; name: string; startTime: string; endTime: string } | null
+    machineId?: string
     profilePhotoId?: string | null
     profilePhotoPinned?: boolean
   }[]
