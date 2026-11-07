@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { istDateKey } from '@/lib/dashboard-calc'
 import { previewHeadline, transitionRows } from '@/lib/shift-preview-text'
 import type { PreviewSummary } from '@/lib/shift-change'
+import { triggerPhotoCleanup } from '@/lib/photo-cleanup-client'
 
 const ALWAYS_DAY = '2000-01-01'
 
@@ -169,6 +170,7 @@ export default function StaffPage() {
   }
 
   useEffect(() => { fetchData() }, [])
+  useEffect(() => { triggerPhotoCleanup() }, [])
 
   // Shift history for the open edit modal
   useEffect(() => {

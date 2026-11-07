@@ -118,9 +118,14 @@ export function createFakePrisma(fixtures: Fixtures): {
     return v === cond
   }
   const matchesWhere = (row: Record<string, unknown>, where?: Record<string, unknown>): boolean =>
-    Object.entries(where ?? {}).every(([k, v]) =>
-      k === 'OR' ? (v as Record<string, unknown>[]).some((w) => matchesWhere(row, w)) : matchValue(row[k], v),
-    )
+    Object.entries(where ?? {}).every(([k, v]) => {
+      if (k === 'OR') return (v as Record<string, unknown>[]).some((w) => matchesWhere(row, w))
+      // PunchPhoto relation filter: `profileOf: { none: {} }` means no Staff points at this photo
+      if (k === 'profileOf' && v && typeof v === 'object' && 'none' in v) {
+        return !staffRows.some((s) => s.profilePhotoId === row.id)
+      }
+      return matchValue(row[k], v)
+    })
   const sortBy = <T extends Record<string, unknown>>(rows: T[], orderBy?: Record<string, 'asc' | 'desc'>) => {
     if (!orderBy) return rows
     const [key, dir] = Object.entries(orderBy)[0]
