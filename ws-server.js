@@ -5,7 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const fs = require('fs');
 const path = require('path');
-const { redactForLog, summarizeMessage } = require('./ws-lib/redact');
+const { redactForLog, summarizeMessage, clip, clipJson } = require('./ws-lib/redact');
 
 function getISTTimeStr() {
   const d = new Date();
@@ -41,12 +41,20 @@ wss.on('connection', function connection(ws, req) {
   ws.on('message', async function incoming(message) {
     const rawData = message.toString();
     let data;
+    let parsed = true;
     try {
       data = JSON.parse(rawData);
-      console.log(`\n📦 [Biometric WS] RECEIVED: ${summarizeMessage(data)}`);
+      if (!data || typeof data !== 'object') data = {};
     } catch (e) {
       data = {};
-      console.log(`\n📦 [Biometric WS] unparsable message (${rawData.length} chars)`);
+      parsed = false;
+    }
+    // Logging must never be able to change `data` or stop processing.
+    try {
+      if (parsed) console.log(`\n📦 [Biometric WS] RECEIVED: ${summarizeMessage(data)}`);
+      else console.log(`\n📦 [Biometric WS] unparsable message (${rawData.length} chars)`);
+    } catch (e) {
+      console.log('message received (summary unavailable)');
     }
 
     // Update Device lastPing or auto-register if it doesn't exist
@@ -90,11 +98,11 @@ wss.on('connection', function connection(ws, req) {
             lastPing: new Date()
           }
         });
-        console.log(`✅ [Biometric WS] Auto-registered new device SN: ${serialNumber || 'N/A'}, IP: ${ipAddress}`);
+        console.log(`✅ [Biometric WS] Auto-registered new device SN: ${clip(serialNumber || 'N/A')}, IP: ${clip(ipAddress)}`);
       }
       broadcastToUI();
     } catch (e) {
-      console.log(`⚠️ [Biometric WS] Error updating device ping:`, e.message);
+      console.log(`⚠️ [Biometric WS] Error updating device ping:`, clip(e && e.message));
     }
 
     try {
@@ -102,13 +110,13 @@ wss.on('connection', function connection(ws, req) {
 
       // Handle responses from the device to our commands (like settime)
       if (data.ret && !data.cmd) {
-        console.log(`ℹ️ [Biometric WS] Received response for ${data.ret}: result=${data.result}`);
+        console.log(`ℹ️ [Biometric WS] Received response for ${clip(data.ret)}: result=${clip(data.result)}`);
         return;
       }
 
       // Handle Registration
       if (data.cmd === 'reg') {
-        console.log(`✅ [Biometric WS] Handling Registration for SN: ${data.sn}`);
+        console.log(`✅ [Biometric WS] Handling Registration for SN: ${clip(data.sn)}`);
         // Standard AiFace acknowledgment
         const ack = {
           ret: 'reg',
@@ -116,7 +124,7 @@ wss.on('connection', function connection(ws, req) {
           cloudtime: getISTTimeStr()
         };
         ws.send(JSON.stringify(ack));
-        console.log(`📤 [Biometric WS] Sent ACK:`, JSON.stringify(ack));
+        console.log(`📤 [Biometric WS] Sent ACK:`, clipJson(ack));
 
         // Explicitly send a command to set the machine's time
         const now = new Date();
@@ -172,7 +180,7 @@ wss.on('connection', function connection(ws, req) {
                  punchTime = parsedTime;
              }
           } catch(e) {
-             console.log(`⚠️ [Biometric WS] Failed to parse timestamp ${timestampStr}, falling back to server time`);
+             console.log(`⚠️ [Biometric WS] Failed to parse timestamp ${clip(timestampStr)}, falling back to server time`);
           }
 
           // Attempt to find staff member by machineId
@@ -181,7 +189,7 @@ wss.on('connection', function connection(ws, req) {
           });
 
           if (!staff) {
-            console.log(`⚠️ [Biometric WS] Staff not found for machine ID: ${machineUserId}. Log not saved.`);
+            console.log(`⚠️ [Biometric WS] Staff not found for machine ID: ${clip(machineUserId)}. Log not saved.`);
             continue;
           }
 
@@ -215,7 +223,7 @@ wss.on('connection', function connection(ws, req) {
             }
           });
           
-          console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${machineUserId}) at ${punchTime.toISOString()} (${type})`);
+          console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${clip(machineUserId)}) at ${punchTime.toISOString()} (${type})`);
           savedCount++;
           broadcastToUI();
         }
@@ -229,12 +237,12 @@ wss.on('connection', function connection(ws, req) {
             logindex: data.logindex || 0
           };
           ws.send(JSON.stringify(ack));
-          console.log(`📤 [Biometric WS] Sent ACK:`, JSON.stringify(ack));
+          console.log(`📤 [Biometric WS] Sent ACK:`, clipJson(ack));
         } else if (data.cmd) {
           // generic ack just in case
           const ack = { ret: data.cmd, result: true };
           ws.send(JSON.stringify(ack));
-          console.log(`📤 [Biometric WS] Sent generic ACK:`, JSON.stringify(ack));
+          console.log(`📤 [Biometric WS] Sent generic ACK:`, clipJson(ack));
         }
 
       }
@@ -245,12 +253,12 @@ wss.on('connection', function connection(ws, req) {
         if (data.cmd) {
            const ack = { ret: data.cmd, result: true };
            ws.send(JSON.stringify(ack));
-           console.log(`📤 [Biometric WS] Sent generic ACK:`, JSON.stringify(ack));
+           console.log(`📤 [Biometric WS] Sent generic ACK:`, clipJson(ack));
         }
       }
 
     } catch (err) {
-      console.log(`⚠️ [Biometric WS] Error parsing or processing message: ${err.message}`);
+      console.log(`⚠️ [Biometric WS] Error parsing or processing message: ${clip(err && err.message)}`);
     }
   });
 
@@ -260,6 +268,6 @@ wss.on('connection', function connection(ws, req) {
   });
 
   ws.on('error', (err) => {
-    console.log(`❌ [Biometric WS] SOCKET ERROR: ${err.message}`);
+    console.log(`❌ [Biometric WS] SOCKET ERROR: ${clip(err && err.message)}`);
   });
 });

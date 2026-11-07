@@ -52,3 +52,48 @@ describe("summarizeMessage", () => {
     expect(line).not.toMatch(/\n/);
   });
 });
+
+describe("hostile and bounded input", () => {
+  const { clip, clipJson } = require("./redact.js");
+  const hostile = { toString: 1 };
+
+  it("does not throw on object-valued fields", () => {
+    const msg = {
+      cmd: hostile,
+      sn: hostile,
+      count: hostile,
+      record: [{ enrollid: hostile, time: hostile, image: hostile }, null, 5],
+    };
+    expect(() => summarizeMessage(msg)).not.toThrow();
+    expect(() => redactForLog(msg)).not.toThrow();
+    expect(() => clip(hostile)).not.toThrow();
+    expect(clip(hostile)).toBe("<unprintable>");
+    expect(summarizeMessage(null as unknown as object)).toContain("cmd");
+  });
+
+  it("clip collapses control chars and truncates with a marker", () => {
+    expect(clip("a\r\nb\nc\td")).toBe("a  b c d");
+    const out = clip("z".repeat(100), 80);
+    expect(out).toContain("(+20 chars)");
+    expect(out.startsWith("z".repeat(80))).toBe(true);
+    expect(out).not.toMatch(/[\r\n]/);
+  });
+
+  it("clipJson clips string values", () => {
+    const out = clipJson({ ret: "a\nb" + "q".repeat(200), result: true });
+    expect(out).not.toContain("q".repeat(100));
+    expect(out).toContain('"result":true');
+  });
+
+  it("bounds the summary for many records and never shows images", () => {
+    const record = Array.from({ length: 500 }, (_, i) => ({
+      enrollid: i,
+      time: "2026-11-05 17:32:25",
+      image: "IMGDATA".repeat(1000),
+    }));
+    const line = summarizeMessage({ cmd: "sendlog", sn: "A1", count: 500, record });
+    expect(line.length).toBeLessThan(1000);
+    expect(line).toContain("+490 more");
+    expect(line).not.toContain("IMGDATA");
+  });
+});
