@@ -78,3 +78,38 @@ describe("makeThumbnail", () => {
     expect(await makeThumbnail(bomb.toString("base64"))).toBeNull();
   });
 });
+
+describe("makeThumbnail rejection reasons", () => {
+  async function reasonFor(input: unknown) {
+    const reasons: string[] = [];
+    const out = await makeThumbnail(input, (r: string) => reasons.push(r));
+    expect(out).toBeNull();
+    return reasons;
+  }
+
+  it("reports one reason per rejection", async () => {
+    expect(await reasonFor(42)).toEqual(["not-a-string"]);
+    expect(await reasonFor(undefined)).toEqual(["not-a-string"]);
+    expect(await reasonFor("")).toEqual(["empty"]);
+    expect(await reasonFor("/9j/".repeat(1024 * 1024))).toEqual(["too-large"]);
+    expect(await reasonFor("!!!not base64***")).toEqual(["not-base64"]);
+    const png = await sharp({ create: { width: 10, height: 10, channels: 3, background: "#fff" } }).png().toBuffer();
+    expect(await reasonFor(png.toString("base64"))).toEqual(["not-jpeg"]);
+    const junk = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from("garbage garbage garbage")]);
+    expect(await reasonFor(junk.toString("base64"))).toEqual(["sharp-failed"]);
+  });
+
+  it("reports nothing for a good JPEG", async () => {
+    const reasons: string[] = [];
+    const out = await makeThumbnail((await jpeg(64, 48)).toString("base64"), (r: string) => reasons.push(r));
+    expect(Buffer.isBuffer(out)).toBe(true);
+    expect(reasons).toEqual([]);
+  });
+
+  it("survives a throwing callback", async () => {
+    const out = await makeThumbnail(42, () => {
+      throw new Error("callback broke");
+    });
+    expect(out).toBeNull();
+  });
+});

@@ -2,6 +2,8 @@
 
 const MAX_STRING = 200;
 const MAX_RECORDS = 10;
+const MAX_KEY = 80;
+const MAX_KEYS = 20;
 
 function safeStr(v) {
   try {
@@ -19,14 +21,19 @@ function redactForLog(value) {
     if (Array.isArray(value)) return value.map(redactForLog);
     if (value && typeof value === 'object') {
       const out = {};
-      for (const key of Object.keys(value)) {
+      const keys = Object.keys(value);
+      for (const key of keys.slice(0, MAX_KEYS)) {
         const v = value[key];
+        let outKey = key.length > MAX_KEY ? clip(key, MAX_KEY) : key;
+        // Two long keys can clip to the same text; keep both.
+        for (let n = 2; Object.prototype.hasOwnProperty.call(out, outKey); n++) outKey = `${clip(key, MAX_KEY)} #${n}`;
         if (key === 'image' && v !== null && v !== undefined) {
-          out[key] = `<redacted ${typeof v === 'string' ? v.length : safeStr(v).length} chars>`;
+          out[outKey] = `<redacted ${typeof v === 'string' ? v.length : safeStr(v).length} chars>`;
         } else {
-          out[key] = redactForLog(v);
+          out[outKey] = redactForLog(v);
         }
       }
+      if (keys.length > MAX_KEYS) out['…'] = `<+${keys.length - MAX_KEYS} more keys>`;
       return out;
     }
     return value;

@@ -22,6 +22,32 @@ describe("redactForLog", () => {
     expect(redactForLog("x".repeat(200))).toBe("x".repeat(200));
   });
 
+  it("clips key names longer than 80 characters", () => {
+    const longKey = "k".repeat(5000);
+    const out = redactForLog({ [longKey]: "v", short: 1 });
+    const keys = Object.keys(out);
+    expect(keys).toHaveLength(2);
+    expect(keys.every((k) => k.length < 120)).toBe(true);
+    expect(keys).toContain("short");
+    expect(JSON.stringify(out).length).toBeLessThan(300);
+  });
+
+  it("caps the number of keys printed per object", () => {
+    const many: Record<string, number> = {};
+    for (let i = 0; i < 5000; i++) many[`key${i}`] = i;
+    const out = redactForLog({ record: many });
+    const keys = Object.keys(out.record);
+    expect(keys).toHaveLength(21);
+    expect(keys.slice(0, 20)).toEqual(Array.from({ length: 20 }, (_, i) => `key${i}`));
+    expect(out.record[keys[20]]).toBe("<+4980 more keys>");
+    expect(JSON.stringify(out).length).toBeLessThan(600);
+  });
+
+  it("still redacts a large image value", () => {
+    const out = redactForLog({ image: "z".repeat(5000) });
+    expect(out).toEqual({ image: "<redacted 5000 chars>" });
+  });
+
   it("does not mutate its input", () => {
     const input = { image: "abc", list: [{ image: "def" }] };
     const copy = JSON.parse(JSON.stringify(input));

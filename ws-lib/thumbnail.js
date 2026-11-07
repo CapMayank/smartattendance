@@ -11,25 +11,46 @@ const THUMB_QUALITY = 60;
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
 // Returns a JPEG Buffer (longest side <= 160) or null. Never throws.
-async function makeThumbnail(base64) {
+// `onReject(reason)` is called once per rejection with one of: not-a-string, empty, too-large,
+// not-base64, not-jpeg, sharp-unavailable, sharp-failed. It never receives image data.
+async function makeThumbnail(base64, onReject) {
+  const reject = (reason) => {
+    try {
+      if (typeof onReject === 'function') onReject(reason);
+    } catch {
+      // A broken callback must not turn a rejection into a throw.
+    }
+    return null;
+  };
   try {
-    if (typeof base64 !== 'string') return null;
-    const sharp = require('sharp');
+    if (typeof base64 !== 'string') return reject('not-a-string');
     // Check length BEFORE decoding so huge strings are never decoded.
-    if (base64.length === 0 || base64.length > MAX_BASE64_LENGTH) return null;
-    if (!BASE64_RE.test(base64)) return null;
+    if (base64.length === 0) return reject('empty');
+    if (base64.length > MAX_BASE64_LENGTH) return reject('too-large');
+    if (!BASE64_RE.test(base64)) return reject('not-base64');
 
     const buf = Buffer.from(base64, 'base64');
-    if (buf.length < 4 || buf.length > MAX_DECODED_BYTES) return null;
-    if (buf[0] !== 0xff || buf[1] !== 0xd8) return null;
+    if (buf.length > MAX_DECODED_BYTES) return reject('too-large');
+    if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) return reject('not-jpeg');
 
-    return await sharp(buf, { limitInputPixels: MAX_INPUT_PIXELS })
-      .rotate()
-      .resize({ width: THUMB_SIZE, height: THUMB_SIZE, fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: THUMB_QUALITY })
-      .toBuffer();
-  } catch (e) {
-    return null;
+    let sharp;
+    try {
+      sharp = require('sharp');
+    } catch {
+      return reject('sharp-unavailable');
+    }
+
+    try {
+      return await sharp(buf, { limitInputPixels: MAX_INPUT_PIXELS })
+        .rotate()
+        .resize({ width: THUMB_SIZE, height: THUMB_SIZE, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: THUMB_QUALITY })
+        .toBuffer();
+    } catch {
+      return reject('sharp-failed');
+    }
+  } catch {
+    return reject('sharp-failed');
   }
 }
 
