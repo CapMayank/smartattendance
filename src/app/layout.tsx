@@ -4,14 +4,15 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { AppShell } from "@/components/shell/AppShell";
 import { getShellData } from "@/lib/shell-data";
+import { APP_NAME, APP_TAGLINE, SCHOOL_FULL, SCHOOL_PLACE, SCHOOL_SHORT } from "@/lib/brand";
 import { Toaster } from 'sonner';
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
-  title: "SEHSS Lakhnadon | Attendance Dashboard",
-  description: "Attendance management dashboard",
+  title: `${APP_NAME} | ${SCHOOL_SHORT} ${SCHOOL_PLACE}`,
+  description: `${APP_NAME}, the ${APP_TAGLINE} of ${SCHOOL_FULL}`,
 };
 
 export default async function RootLayout({

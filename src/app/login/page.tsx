@@ -4,6 +4,8 @@ import { signIn, useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle } from "lucide-react"
+import { IntimeMark, SchoolBadge } from "@/components/brand/Brand"
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand"
 import { Button, Card, Field, Input } from "@/components/ui"
 
 export default function LoginPage() {
@@ -48,14 +50,9 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center bg-ground px-4 py-8">
       <Card className="w-full max-w-[400px] p-8">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span
-            aria-hidden="true"
-            className="mb-4 grid size-9 place-items-center rounded-[10px] bg-gradient-to-br from-acc-2 to-acc-3 text-[13px] font-semibold text-ground"
-          >
-            SE
-          </span>
-          <h1 className="text-xl font-semibold text-text">Welcome back</h1>
-          <p className="mt-1.5 text-sm text-muted">Sign in to access your Attendance Dashboard</p>
+          <IntimeMark size={44} className="mb-4" />
+          <h1 className="text-xl font-semibold text-text">Sign in to {APP_NAME}</h1>
+          <p className="mt-1.5 text-sm text-muted">{APP_TAGLINE}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -95,6 +92,10 @@ export default function LoginPage() {
             </div>
           )}
         </form>
+
+        <div className="mt-8 border-t border-line-soft pt-5">
+          <SchoolBadge centered />
+        </div>
       </Card>
     </div>
   )

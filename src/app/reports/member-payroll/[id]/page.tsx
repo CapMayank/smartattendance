@@ -1,33 +1,71 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, FileText, Calendar as CalendarIcon, Wallet, AlertTriangle, ExternalLink, Loader2, PencilLine } from 'lucide-react'
-import { Button, Card, CardHeader, EmptyState, IconButton, PageHeader, SectionLabel, StatusBadge } from '@/components/ui'
+import { ArrowLeft, FileText, Calendar as CalendarIcon, AlertTriangle, Loader2, PencilLine, Printer } from 'lucide-react'
+import { Button, Avatar, EmptyState, IconButton, StatusBadge } from '@/components/ui'
+import { IntimeMark } from '@/components/brand/Brand'
+import { APP_NAME, APP_TAGLINE, SCHOOL_NAME, SCHOOL_PLACE, SCHOOL_SHORT } from '@/lib/brand'
+import { amountInWords } from '@/lib/amount-in-words'
+import { formatINR, SCHOOL_TZ } from '@/lib/format'
+import { staffPhotoUrl } from '@/lib/photo-url'
 import { cn } from '@/lib/cn'
 
 type PayrollDetail = {
-  payroll: any;
-  systemPresentDays: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payroll: any
+  systemPresentDays: number
 }
 
-export default function PayrollDetailPage() {
+const money = (n: number) => formatINR(n, { paise: true })
+
+function Meta({ label, children, mono }: { label: string; children: ReactNode; mono?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] tracking-[0.06em] text-subtle uppercase">{label}</dt>
+      <dd className={cn('mt-1 text-[13.5px] break-words text-text', mono && 'num')}>{children}</dd>
+    </div>
+  )
+}
+
+function Row({ label, note, amount, tone }: { label: string; note?: ReactNode; amount: number; tone?: 'plus' | 'minus' }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-line-soft py-2.5 last:border-b-0">
+      <div className="min-w-0">
+        <p className="text-[13.5px] text-text">{label}</p>
+        {note ? <p className="mt-0.5 text-[11.5px] text-subtle">{note}</p> : null}
+      </div>
+      <span className={cn('num flex-none text-[13.5px]', tone === 'minus' ? 'text-absent' : 'text-text')}>
+        {tone === 'minus' && amount > 0 ? '-' : ''}
+        {money(amount)}
+      </span>
+    </div>
+  )
+}
+
+function TotalRow({ label, amount }: { label: string; amount: number }) {
+  return (
+    <div className="mt-1 flex items-center justify-between gap-4 rounded-lg bg-card-hi px-3 py-2.5">
+      <span className="text-[13px] font-medium text-text">{label}</span>
+      <span className="num text-[14px] font-semibold text-text">{money(amount)}</span>
+    </div>
+  )
+}
+
+export default function PayslipPage() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
 
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<PayrollDetail | null>(null)
-  
+
   useEffect(() => {
     if (!id) return
-    
     const fetchPayroll = async () => {
       try {
         const res = await fetch(`/api/payroll/${id}`)
-        if (res.ok) {
-          setData(await res.json())
-        }
+        if (res.ok) setData(await res.json())
       } catch (e) {
         console.error('Failed to fetch payroll details:', e)
       } finally {
@@ -37,19 +75,11 @@ export default function PayrollDetailPage() {
     fetchPayroll()
   }, [id])
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 2
-    }).format(amount)
-  }
-
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center gap-2 text-muted">
         <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-        Loading payroll details...
+        Loading payslip...
       </div>
     )
   }
@@ -57,7 +87,7 @@ export default function PayrollDetailPage() {
   if (!data || !data.payroll) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2">
-        <EmptyState icon={FileText} title="Payroll Record Not Found" />
+        <EmptyState icon={FileText} title="Payslip not found" />
         <Button variant="secondary" onClick={() => router.back()}>
           Go Back
         </Button>
@@ -66,14 +96,17 @@ export default function PayrollDetailPage() {
   }
 
   const { payroll, systemPresentDays } = data
-  const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'long' })
+  const staff = payroll.staff
+  const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('en-IN', { month: 'long' })
+  const monthKey = `${payroll.year}-${String(payroll.month).padStart(2, '0')}`
   const isMismatch = systemPresentDays !== payroll.presentDays
+  const totalDeductions = (payroll.employeeEpf || 0) + (payroll.refundOfAdvance || 0)
+  const generatedOn = new Intl.DateTimeFormat('en-GB', { timeZone: SCHOOL_TZ, day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
 
   return (
-    <div className="space-y-5">
-
-      {/* Header */}
-      <div className="flex items-center gap-3">
+    <div className="mx-auto max-w-[920px] space-y-4">
+      {/* Toolbar: screen only */}
+      <div className="flex flex-wrap items-center gap-3 print:hidden">
         <IconButton
           icon={ArrowLeft}
           label="Back to member payroll"
@@ -81,196 +114,171 @@ export default function PayrollDetailPage() {
           className="flex-none"
         />
         <div className="min-w-0 flex-1">
-          <PageHeader
-            title="Payroll details"
-            subtitle={<>{monthName} <span className="num">{payroll.year}</span> • {payroll.staff.name}</>}
-            actions={payroll.isLocked ? (
-              <StatusBadge status="locked" />
-            ) : (
-              <span className="tone-late tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
-                <PencilLine size={13} aria-hidden="true" />
-                Draft
-              </span>
-            )}
-          />
+          <h1 className="text-lg font-semibold text-text">Payslip</h1>
+          <p className="text-[13px] text-muted">
+            {monthName} <span className="num">{payroll.year}</span> · {staff.name}
+          </p>
         </div>
+        {payroll.isLocked ? (
+          <StatusBadge status="locked" />
+        ) : (
+          <span className="tone-late tint-badge inline-flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs whitespace-nowrap">
+            <PencilLine size={13} aria-hidden="true" />
+            Draft
+          </span>
+        )}
+        <Button
+          variant="secondary"
+          icon={CalendarIcon}
+          onClick={() => router.push(`/reports/member-attendance?staffId=${payroll.staffId}&month=${monthKey}`)}
+        >
+          Daily logs
+        </Button>
+        <Button variant="primary" icon={Printer} onClick={() => window.print()}>
+          Print / Save PDF
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {isMismatch && (
+        <div className="tone-absent tint-badge flex items-start gap-2.5 rounded-xl p-3.5 print:hidden">
+          <AlertTriangle size={17} className="mt-0.5 flex-none" aria-hidden="true" />
+          <p className="text-[13px] leading-relaxed text-muted">
+            <b className="font-medium text-text">Manual override.</b> Paid days (
+            <span className="num">{payroll.presentDays}</span>) differ from the <span className="num">{systemPresentDays}</span> days
+            recorded from machine punches.
+          </p>
+        </div>
+      )}
 
-        {/* Left Column: Days & Attendance */}
-        <div className="space-y-4 lg:col-span-1">
-          <Card>
-            <CardHeader title="Attendance Summary" />
+      {/* The payslip */}
+      <article
+        aria-label={`Payslip for ${staff.name}, ${monthName} ${payroll.year}`}
+        className="lit overflow-hidden rounded-2xl border border-line bg-card print:rounded-none print:border-line"
+      >
+        {/* Letterhead */}
+        <header className="relative flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5 sm:px-8">
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-acc-3 via-acc-2 to-acc-1" />
+          <div className="min-w-0">
+            <p className="text-[11px] tracking-[0.12em] text-subtle uppercase">{SCHOOL_SHORT}</p>
+            <h2 className="mt-1 text-[17px] leading-snug font-semibold text-text sm:text-[19px]">{SCHOOL_NAME}</h2>
+            <p className="mt-0.5 text-[13px] text-muted">{SCHOOL_PLACE}</p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-[11px] tracking-[0.12em] text-subtle uppercase">Payslip</p>
+            <p className="mt-1 text-[17px] font-semibold text-text sm:text-[19px]">
+              {monthName} <span className="num">{payroll.year}</span>
+            </p>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {payroll.isLocked ? 'Finalised' : 'Draft, not finalised'}
+            </p>
+          </div>
+        </header>
 
-            {isMismatch && (
-              <div className="tone-absent tint-badge mb-4 rounded-xl p-4">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle size={18} className="mt-0.5 flex-none" aria-hidden="true" />
-                  <div>
-                    <h4 className="text-sm font-medium">Manual Override Detected</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-muted">
-                      The paid days in this payroll do not match the system&apos;s recorded present days from the machine punches.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div className={cn('rounded-xl border p-4', isMismatch ? 'border-absent/30 bg-ground' : 'border-line-soft bg-ground')}>
-                <p className="mb-1 text-[12.5px] text-muted">System Present Days</p>
-                <div className="flex items-end gap-2">
-                  <span className={cn('num text-3xl font-medium', isMismatch ? 'text-absent' : 'text-text')}>{systemPresentDays}</span>
-                  <span className="num mb-1 text-subtle">/ {payroll.totalDays}</span>
-                </div>
-                <p className="mt-1 text-[11px] text-subtle">Calculated directly from punches</p>
-              </div>
-
-              <div className={cn('rounded-xl border p-4', isMismatch ? 'border-present/40 bg-ground' : 'border-present/20 bg-ground')}>
-                <p className="mb-1 text-[12.5px] text-muted">Paid Present Days</p>
-                <div className="flex items-end gap-2">
-                  <span className="num text-3xl font-medium text-present">{payroll.presentDays}</span>
-                  <span className="num mb-1 text-subtle">/ {payroll.totalDays}</span>
-                </div>
-                <p className="mt-1 text-[11px] text-subtle">Used for payroll generation</p>
-              </div>
+        {/* Employee */}
+        <section className="border-b border-line px-6 py-5 sm:px-8">
+          <div className="mb-4 flex items-center gap-3.5">
+            <Avatar name={staff.name} src={staffPhotoUrl(staff)} />
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold text-text">{staff.name}</p>
+              <p className="truncate text-[13px] text-muted">{staff.designation?.name || 'No designation'}</p>
             </div>
+          </div>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+            <Meta label="Employee ID" mono>{staff.machineId}</Meta>
+            <Meta label="Department">{staff.department?.name || '-'}</Meta>
+            <Meta label="Bank account" mono>{staff.payrollInfo?.bankAccount || 'Not provided'}</Meta>
+            <Meta label="IFSC" mono>{staff.payrollInfo?.ifsc || 'N/A'}</Meta>
+          </dl>
+        </section>
 
-            <Button
-              variant="secondary"
-              icon={CalendarIcon}
-              onClick={() => router.push(`/reports/member-attendance?staffId=${payroll.staffId}&month=${payroll.year}-${String(payroll.month).padStart(2, '0')}`)}
-              className="mt-4 w-full"
+        {/* Attendance strip */}
+        <section aria-label="Attendance" className="grid grid-cols-2 border-b border-line sm:grid-cols-4">
+          {[
+            { label: 'Days in month', value: payroll.totalDays },
+            { label: 'Paid days', value: payroll.presentDays, strong: true },
+            { label: 'Not paid (NCP)', value: payroll.ncpDays },
+            { label: 'Bonus days', value: payroll.bonusDays || 0 },
+          ].map((m, i) => (
+            <div
+              key={m.label}
+              className={cn('px-6 py-4 sm:px-8', i > 0 && 'sm:border-l sm:border-line-soft', i % 2 === 1 && 'border-l border-line-soft sm:border-l')}
             >
-              View Daily Logs <ExternalLink size={12} aria-hidden="true" />
-            </Button>
-          </Card>
-
-          <Card>
-            <CardHeader title="Staff Information" />
-            <div className="space-y-4">
-              <div>
-                <p className="text-[12px] text-subtle">Employee ID / Machine ID</p>
-                <p className="num mt-0.5 text-sm text-text">{payroll.staff.machineId}</p>
-              </div>
-              <div>
-                <p className="text-[12px] text-subtle">Department</p>
-                <p className="mt-0.5 text-sm text-text">{payroll.staff.department?.name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[12px] text-subtle">Designation</p>
-                <p className="mt-0.5 text-sm text-text">{payroll.staff.designation?.name || '-'}</p>
-              </div>
-              <div className="border-t border-line-soft pt-3">
-                <p className="text-[12px] text-subtle">Bank Account</p>
-                <p className="num mt-0.5 break-all text-sm text-text">{payroll.staff.payrollInfo?.bankAccount || 'Not provided'}</p>
-                <p className="mt-0.5 text-[12px] text-subtle">IFSC: <span className="num">{payroll.staff.payrollInfo?.ifsc || 'N/A'}</span></p>
-              </div>
+              <p className="text-[11px] tracking-[0.06em] text-subtle uppercase">{m.label}</p>
+              <p className={cn('num mt-1 text-xl', m.strong ? 'font-semibold text-present' : 'text-text')}>{m.value}</p>
             </div>
-          </Card>
-        </div>
+          ))}
+        </section>
 
-        {/* Right Column: Financial Breakdown */}
-        <div className="lg:col-span-2">
-          <Card className="sm:px-6 sm:py-6">
-            <h3 className="mb-5 flex items-center gap-2.5 border-b border-line-soft pb-4 text-[15px] font-medium text-text">
-              <Wallet size={18} className="text-acc-1" aria-hidden="true" /> Financial Breakdown
-            </h3>
+        {/* Earnings | Deductions */}
+        <section className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-line">
+          <div className="px-6 py-5 sm:px-8">
+            <h3 className="mb-1 text-[11px] tracking-[0.1em] text-subtle uppercase">Earnings</h3>
+            <Row label="Basic wage" note="Prorated for paid days" amount={payroll.basicWage} />
+            {payroll.bonusAmount > 0 && (
+              <Row
+                label={payroll.bonusType && payroll.bonusType !== 'CUSTOM' ? `Bonus (${String(payroll.bonusType).toLowerCase()})` : 'Performance / festival bonus'}
+                note={
+                  <>
+                    {payroll.bonusDays > 0 ? (
+                      <>
+                        <span className="num">{payroll.bonusDays}</span> {payroll.bonusDays === 1 ? 'day' : 'days'}
+                      </>
+                    ) : null}
+                    {payroll.bonusDays > 0 && payroll.isBonusPfApplicable ? ' · ' : null}
+                    {payroll.isBonusPfApplicable ? 'EPF applicable' : null}
+                  </>
+                }
+                amount={payroll.bonusAmount}
+              />
+            )}
+            <TotalRow label="Gross earnings" amount={payroll.grossWage} />
+          </div>
+          <div className="border-t border-line px-6 py-5 sm:px-8 md:border-t-0">
+            <h3 className="mb-1 text-[11px] tracking-[0.1em] text-subtle uppercase">Deductions</h3>
+            <Row label="Employee EPF" note="12% of EPF wages" amount={payroll.employeeEpf} tone="minus" />
+            {payroll.refundOfAdvance > 0 && <Row label="Advance recovery" amount={payroll.refundOfAdvance} tone="minus" />}
+            <TotalRow label="Total deductions" amount={totalDeductions} />
+          </div>
+        </section>
 
-            <div className="space-y-6">
-
-              {/* Earnings */}
-              <div className="space-y-3">
-                <SectionLabel>Earnings</SectionLabel>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
-                    <span className="text-sm text-muted">Basic Wage (Prorated)</span>
-                    <span className="num text-sm font-medium text-text">{formatCurrency(payroll.basicWage)}</span>
-                  </div>
-                  {payroll.bonusAmount > 0 && (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-late/30 bg-ground p-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-late">Performance / Festival Bonus</span>
-                        {payroll.bonusDays > 0 && (
-                          <span className="tone-late tint-pill rounded px-1.5 py-0.5 text-[11px]">
-                            <span className="num">{payroll.bonusDays}</span> {payroll.bonusDays === 1 ? 'day' : 'days'}
-                          </span>
-                        )}
-                        {payroll.isBonusPfApplicable && (
-                          <span className="tone-accent tint-pill rounded px-1.5 py-0.5 text-[11px]">
-                            EPF Applicable
-                          </span>
-                        )}
-                      </div>
-                      <span className="num text-sm font-medium text-late">+{formatCurrency(payroll.bonusAmount)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
-                    <span className="text-sm text-muted">Total Gross Wage</span>
-                    <span className="num text-sm font-medium text-present">{formatCurrency(payroll.grossWage)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
-                    <span className="text-sm text-subtle">Actual Cost To Company (CTC)</span>
-                    <span className="num text-sm text-muted">{formatCurrency(payroll.actualCtc)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Deductions */}
-              <div className="space-y-3">
-                <SectionLabel>Deductions</SectionLabel>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
-                    <span className="text-sm text-muted">Employee EPF (12%)</span>
-                    <span className="num text-sm font-medium text-absent">-{formatCurrency(payroll.employeeEpf)}</span>
-                  </div>
-                  {payroll.refundOfAdvance > 0 && (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-ground p-3">
-                      <span className="text-sm text-muted">Advance Recovery</span>
-                      <span className="num text-sm font-medium text-absent">-{formatCurrency(payroll.refundOfAdvance)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Total Net */}
-              <div className="border-t border-line-soft pt-6">
-                <div className="tone-present flex flex-wrap items-center justify-between gap-4 rounded-xl border border-present/30 bg-ground p-5">
-                  <div>
-                    <h4 className="mb-1 text-[12.5px] text-muted">Net Take Home</h4>
-                    <p className="text-xs text-subtle">Amount to be transferred to bank</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="num text-3xl font-medium tracking-tight text-present sm:text-4xl">
-                      {formatCurrency(payroll.netPayment)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Employer Contributions (Info Only) */}
-              <div className="space-y-3 border-t border-line-soft pt-6">
-                <h4 className="flex items-center gap-2 text-[12.5px] text-subtle">
-                  <FileText size={14} aria-hidden="true" /> Employer Contributions (For Info)
-                </h4>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div className="flex items-center justify-between rounded-xl border border-line-soft bg-ground p-3">
-                    <span className="text-xs text-muted">Employer EPF</span>
-                    <span className="num text-xs text-text">{formatCurrency(payroll.employerEpf)}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-line-soft bg-ground p-3">
-                    <span className="text-xs text-muted">Employer EPS</span>
-                    <span className="num text-xs text-text">{formatCurrency(payroll.employerEps)}</span>
-                  </div>
-                </div>
-              </div>
-
+        {/* Net pay */}
+        <section className="tone-present border-y border-line bg-card-hi px-6 py-5 sm:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] tracking-[0.1em] text-subtle uppercase">Net pay</p>
+              <p className="mt-1 text-[12.5px] text-muted">Gross earnings minus total deductions, credited to bank</p>
             </div>
-          </Card>
-        </div>
+            <p className="num text-[30px] leading-none font-semibold tracking-tight text-present sm:text-[36px]">
+              {money(payroll.netPayment)}
+            </p>
+          </div>
+          <p className="mt-3 border-t border-line-soft pt-3 text-[12.5px] text-muted">
+            <span className="text-subtle">In words: </span>
+            {amountInWords(payroll.netPayment)}
+          </p>
+        </section>
 
-      </div>
+        {/* Employer contributions */}
+        <section className="px-6 py-4 sm:px-8">
+          <h3 className="mb-2 text-[11px] tracking-[0.1em] text-subtle uppercase">Employer contributions (for information)</h3>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+            <Meta label="Employer EPF" mono>{money(payroll.employerEpf)}</Meta>
+            <Meta label="Employer EPS" mono>{money(payroll.employerEps)}</Meta>
+            <Meta label="Cost to company" mono>{money(payroll.actualCtc)}</Meta>
+          </dl>
+        </section>
+
+        {/* Footer */}
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-3.5 text-[11.5px] text-subtle sm:px-8">
+          <span className="inline-flex items-center gap-2">
+            <IntimeMark size={16} />
+            Generated by {APP_NAME}, {APP_TAGLINE}
+          </span>
+          <span>
+            System-generated on <span className="num">{generatedOn}</span>. No signature required.
+          </span>
+        </footer>
+      </article>
     </div>
   )
 }

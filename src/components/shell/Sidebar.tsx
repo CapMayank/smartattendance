@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { initials } from "@/lib/initials";
 import { formatTime } from "@/lib/format";
 import type { ShellData } from "@/lib/shell-data";
+import { IntimeLockup, SchoolBadge } from "@/components/brand/Brand";
 import { NAV, activeHref } from "./nav";
 
 export function Sidebar({ shell, className }: { shell: ShellData; className?: string }) {
@@ -21,18 +22,14 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col gap-[18px]", className)}>
-      <Link href="/" className="flex items-center gap-2.5 rounded-[10px] px-1.5 py-1">
-        <span
-          aria-hidden="true"
-          className="grid size-9 place-items-center rounded-[10px] bg-gradient-to-br from-acc-2 to-acc-3 text-[13px] font-semibold text-ground"
-        >
-          SE
-        </span>
-        <span className="min-w-0">
-          <b className="block text-sm font-semibold">SEHSS Lakhnadon</b>
-          <span className="block text-xs text-subtle">Staff attendance</span>
-        </span>
-      </Link>
+      <div className="flex flex-col gap-2.5">
+        <Link href="/" className="rounded-[10px] px-1.5 py-1" aria-label="Intime home">
+          <IntimeLockup />
+        </Link>
+        <div className="rounded-xl border border-line-soft bg-canvas px-2.5 py-2">
+          <SchoolBadge />
+        </div>
+      </div>
 
       <div className="rounded-xl border border-line bg-canvas">
         <button

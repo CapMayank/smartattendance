@@ -274,3 +274,26 @@ input[type="number"] {
     50% { opacity: 0.55; }
   }
 }
+
+/* Printing (payslips): light paper palette; app chrome is hidden via print: variants. */
+@media print {
+  :root {
+    color-scheme: light;
+    --color-ground: #ffffff;
+    --color-canvas: #ffffff;
+    --color-card: #ffffff;
+    --color-card-hi: #f1f2f6;
+    --color-line: #cfd2dc;
+    --color-line-soft: #e4e6ee;
+    --color-text: #12131a;
+    --color-muted: #454857;
+    --color-subtle: #666a7a;
+    --color-acc-1: #3b3fb8;
+    --color-acc-2: #3b3fb8;
+    --color-present: #0c7a55;
+    --color-late: #9a5b00;
+    --color-absent: #b4232f;
+  }
+  body { background: #fff; }
+  @page { margin: 12mm; }
+}
