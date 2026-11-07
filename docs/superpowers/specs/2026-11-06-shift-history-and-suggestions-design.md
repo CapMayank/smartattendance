@@ -162,7 +162,8 @@ that page forces a run.
 service (`src/lib/shift-change.ts`). Both accept `dryRun: true`.
 
 **Dry run** returns, for that teacher from the start date to today: the number of
-working days recalculated, how many change status (for example late to on time, half
+days recalculated (every calendar day in the range, week-offs and holidays included;
+the preview reads "N days recalculated"), how many change status (for example late to on time, half
 day to present), and how many days fall in locked payroll months and are skipped. It
 runs the shared `evaluateDay` against the stored punches without writing anything,
 with the proposed assignment applied in memory (so `shiftOn` sees the new shift from
@@ -256,3 +257,14 @@ Each step is its own commit and is checked before the next.
 - **Timezone risk:** all new dates are IST day keys, and the server process is pinned
   to Asia/Kolkata from the previous release.
 - **Detection excusing lateness:** see section 10.
+
+## Deviations from this design
+
+- **Approval is not one database transaction.** It is an atomic PENDING -> APPROVING
+  claim followed by idempotent steps: an existing shift with the same times is reused
+  instead of creating a duplicate, the assignment is upserted on (staff, start date), and
+  the row is reverted to PENDING when a step fails.
+- **The Dashboard triggers detection**, throttled to at most once every 6 hours, instead of
+  only reading the stored count. The Staff page does not trigger it.
+- **`fromShiftId` has no foreign key.**
+- **`ShiftSuggestion.suggestedShift` is `onDelete: SetNull`.**

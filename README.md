@@ -87,7 +87,11 @@ A teacher's shift is a history of dated assignments, and each day is judged by t
 
 **Editing a shift itself:** changing the start or end time of a shift still changes every past day that used it. To keep history, create a new shift and move teachers to it.
 
-**Recovery:** if an approval saves but the recalculation fails, the Shifts page shows a "Recalculate" retry. Re-applying the same change from the Staff page also works.
+**Recovery:** if a shift change saves but the recalculation fails, the Shifts page shows a "Retry" banner that recalculates while the page stays open (the Staff edit dialog has the same "Recalculate" button while it is open). Afterwards, open the Reports view for each affected month: it recalculates all staff for that month. Monthly payroll reads the stored daily records, so if a banner was dismissed, recalculate the affected months (through Reports) before generating payroll.
+
+**Known limitations:**
+- The Reports "Shift" column shows a teacher's current shift, even next to past days that were judged by an earlier shift.
+- Editing the times of a shift itself still changes past days that used it (see "Editing a shift itself" above).
 
 **Deploy:** run `prisma db push`. It adds two tables (`ShiftAssignment`, `ShiftSuggestion`) and one nullable column (`Policy.shiftDetectionRanAt`); all changes are additive.
 
