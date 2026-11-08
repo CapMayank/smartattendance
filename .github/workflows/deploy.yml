@@ -34,7 +34,7 @@ jobs:
             npx prisma db push
             
             echo "Building Next.js Application..."
-            npm run build
+            NODE_OPTIONS="--max-old-space-size=2048" npm run build
             
             echo "Restarting Services..."
             pm2 reload nextjs
