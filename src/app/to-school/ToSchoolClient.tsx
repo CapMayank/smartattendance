@@ -278,6 +278,7 @@ export function ToSchoolClient({
               const isSunday = day.isSunday;
               const isHoliday = day.isHoliday;
               const isNoShow = day.isNoShow;
+              const isToday = day.isToday;
               const hasPending = day.hasPendingRequest;
 
               let cellBg = "bg-card hover:bg-card-hi/40";
@@ -286,6 +287,9 @@ export function ToSchoolClient({
               if (isNoShow) {
                 cellBg = "bg-rose-950/20";
                 borderAccent = "ring-1 ring-rose-500/50 border-rose-500/50";
+              } else if (isToday) {
+                cellBg = "bg-acc-2/10 hover:bg-acc-2/15";
+                borderAccent = "ring-1 ring-acc-2/60 border-acc-2/60";
               } else if (day.status === "PRESENT") {
                 cellBg = "bg-card";
               } else if (day.status === "HALF_DAY") {
@@ -309,18 +313,24 @@ export function ToSchoolClient({
                           ? "text-slate-400"
                           : isNoShow
                             ? "text-rose-400"
-                            : "text-text"
+                            : isToday
+                              ? "text-acc-1"
+                              : "text-text"
                       }`}
                     >
                       {String(day.dayNumber).padStart(2, "0")}
                     </span>
 
-                    {/* Duration Bracket or Status Badge */}
-                    {day.hoursBracket !== "—" && (
+                    {/* Duration Bracket or Today Badge */}
+                    {day.hoursBracket !== "—" ? (
                       <span className="rounded border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-muted">
                         {day.hoursBracket}
                       </span>
-                    )}
+                    ) : isToday ? (
+                      <span className="rounded border border-acc-2/40 bg-acc-2/20 px-1.5 py-0.5 text-[10px] font-semibold text-acc-1">
+                        Today
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Middle Row: Campus or Special Status */}
@@ -337,6 +347,13 @@ export function ToSchoolClient({
                       <span className="text-[11px] font-medium text-muted">
                         Not Employed
                       </span>
+                    ) : isToday ? (
+                      <div className="flex items-center gap-1">
+                        <span className="inline-flex items-center gap-1 rounded border border-acc-2/30 bg-acc-2/15 px-1.5 py-0.5 text-[10px] font-medium text-acc-1">
+                          <Clock className="h-2.5 w-2.5" />
+                          {day.checkIn ? "In Progress" : "Active Today"}
+                        </span>
+                      </div>
                     ) : isNoShow ? (
                       <div className="flex items-center gap-1">
                         <span className="inline-flex items-center gap-1 rounded border border-rose-500/40 bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
@@ -371,6 +388,25 @@ export function ToSchoolClient({
                         <PlusCircle className="h-3 w-3" />
                         Request Punch
                       </button>
+                    ) : isToday ? (
+                      <div className="flex items-center justify-between gap-1">
+                        {day.checkIn ? (
+                          <div className="num text-[11px] text-muted">
+                            <span>In: {day.checkIn}</span>
+                            <span className="mx-1 text-line">·</span>
+                            <span>Out: {day.checkOut ?? "—"}</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openRegularizationModal(day)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-acc-1 hover:text-acc-2 transition-colors"
+                          >
+                            <PlusCircle className="h-3 w-3" />
+                            Request Punch
+                          </button>
+                        )}
+                      </div>
                     ) : day.status === "PRESENT" || day.status === "HALF_DAY" ? (
                       <div className="num text-[11px] text-muted">
                         <span>In: {day.checkIn ?? "—"}</span>

@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
-import { requireRole } from "@/lib/rbac";
+import { requireRole, getApproverDepartmentIds } from "@/lib/rbac";
+import { prisma } from "@/lib/prisma";
 import { getToSchoolData } from "@/lib/to-school";
 import { istDateKey } from "@/lib/dashboard-calc";
 import { ToSchoolClient } from "./ToSchoolClient";
@@ -31,7 +32,48 @@ export default async function ToSchoolPage({
 
   if (auth.user.role === "EMPLOYEE") {
     targetStaffId = userStaffId ?? null;
+  } else if (auth.user.role === "APPROVER") {
+    const allowedDeptIds = getApproverDepartmentIds(auth.user);
+    if (requestedStaffId) {
+      if (allowedDeptIds !== null) {
+        const targetStaff = await prisma.staff.findUnique({
+          where: { id: requestedStaffId },
+          select: { departmentId: true },
+        });
+        if (
+          !targetStaff ||
+          !targetStaff.departmentId ||
+          !allowedDeptIds.includes(targetStaff.departmentId)
+        ) {
+          return (
+            <div className="mx-auto max-w-4xl p-6">
+              <PageHeader
+                title="ToSchool Calendar"
+                subtitle="View monthly attendance calendar and compliance index."
+              />
+              <Card className="mt-6 p-8 text-center">
+                <p className="text-sm font-medium text-rose-400">
+                  Forbidden: You do not have permission to view attendance records for staff members outside your assigned departments.
+                </p>
+                <div className="mt-4">
+                  <Link
+                    href="/"
+                    className="text-xs font-semibold text-acc-2 hover:underline"
+                  >
+                    ← Back to Dashboard
+                  </Link>
+                </div>
+              </Card>
+            </div>
+          );
+        }
+      }
+      targetStaffId = requestedStaffId;
+    } else {
+      targetStaffId = userStaffId ?? null;
+    }
   } else {
+    // ADMIN
     targetStaffId = requestedStaffId ?? userStaffId ?? null;
   }
 

@@ -21,6 +21,7 @@ export type ToSchoolDay = {
   isHoliday: boolean;
   holidayName: string | null;
   isEmployed: boolean;
+  isToday: boolean;
   status: DayStatus;
   checkIn: string | null; // HH:MM
   checkOut: string | null; // HH:MM
@@ -253,20 +254,23 @@ export async function getToSchoolData(
     )
   );
 
-  // Range for DB queries
+  // Range for DB queries with a 2-day buffer to ensure midnight IST on the 1st
+  // (which corresponds to 18:30 UTC of the previous calendar day) is never clipped
   const rangeStart = new Date(Date.UTC(earliestDateObj.getUTCFullYear(), earliestDateObj.getUTCMonth(), 1, 0, 0, 0));
   const rangeEnd = new Date(Date.UTC(latestDateObj.getUTCFullYear(), latestDateObj.getUTCMonth(), 1, 0, 0, 0));
+  const bufferedRangeStart = new Date(rangeStart.getTime() - 2 * 24 * 3600 * 1000);
+  const bufferedRangeEnd = new Date(rangeEnd.getTime() + 2 * 24 * 3600 * 1000);
 
   const [dailyRecords, holidays, punchRequests] = await Promise.all([
     prisma.dailyRecord.findMany({
       where: {
         staffId,
-        date: { gte: rangeStart, lt: rangeEnd },
+        date: { gte: bufferedRangeStart, lt: bufferedRangeEnd },
       },
     }),
     prisma.holiday.findMany({
       where: {
-        date: { gte: rangeStart, lt: rangeEnd },
+        date: { gte: bufferedRangeStart, lt: bufferedRangeEnd },
       },
     }),
     prisma.punchRequest.findMany({
@@ -343,11 +347,14 @@ export async function getToSchoolData(
 
     const hoursBracket = getHoursBracket(workMinutes);
 
-    // isNoShow: working day, employed, not holiday/sunday, but status is ABSENT or 0 workMinutes, and date has elapsed (<= todayKey)
+    // isNoShow: working day, employed, not holiday/sunday, but status is ABSENT or 0 workMinutes.
+    // Exclude today (dateKey === todayKey) so active school hours do not show an alarming "No Show" badge.
+    const isToday = dateKey === todayKey;
+    const isPast = dateKey < todayKey;
     const isWorkingDay = isEmployed && !isSunday && !isHoliday;
     const isElapsed = dateKey <= todayKey;
     const isNoShow =
-      isWorkingDay && isElapsed && (status === "ABSENT" || workMinutes === 0);
+      isWorkingDay && isPast && (status === "ABSENT" || workMinutes === 0);
 
     if (isWorkingDay && isElapsed) {
       monthElapsedWorkingDays++;
@@ -371,6 +378,7 @@ export async function getToSchoolData(
       isHoliday,
       holidayName,
       isEmployed,
+      isToday,
       status,
       checkIn,
       checkOut,

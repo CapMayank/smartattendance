@@ -174,6 +174,7 @@ describe("getToSchoolData", () => {
     expect(day1.isSunday).toBe(false);
     expect(day1.isHoliday).toBe(false);
     expect(day1.isEmployed).toBe(true);
+    expect(day1.isToday).toBe(false);
     expect(day1.status).toBe("PRESENT");
     expect(day1.checkIn).toBe("08:55");
     expect(day1.checkOut).toBe("16:45");
@@ -213,6 +214,12 @@ describe("getToSchoolData", () => {
     expect(day6.status).toBe("SUNDAY");
     expect(day6.isNoShow).toBe(false);
 
+    // Day 15 (Tuesday, Sep 15): Today's active date (isToday: true, isNoShow: false)
+    const day15 = data!.days[14];
+    expect(day15.dateKey).toBe("2026-09-15");
+    expect(day15.isToday).toBe(true);
+    expect(day15.isNoShow).toBe(false); // Today must never show alarming no-show badge during school hours
+
     // Day 20 (Sunday, Sep 20): Future Sunday
     const day20 = data!.days[19];
     expect(day20.isSunday).toBe(true);
@@ -221,6 +228,38 @@ describe("getToSchoolData", () => {
     // Day 25 (Friday, Sep 25): Future working day (> NOW)
     const day25 = data!.days[24];
     expect(day25.isNoShow).toBe(false); // Future day must NEVER be marked as no-show
+  });
+
+  it("fetches DailyRecords stored at midnight IST boundary without UTC clipping", async () => {
+    // 00:00:00 IST on 2026-09-01 is 2026-08-31T18:30:00.000Z in UTC
+    const midnightIstSep1 = new Date("2026-08-31T18:30:00.000Z");
+    const f = createFakePrisma({
+      staff: [STAFF],
+      policy: null,
+      holidays: [],
+      lockedPayrolls: [],
+      logs: [],
+      dailyRecords: [
+        {
+          id: "dr-boundary",
+          staffId: "staff-1",
+          date: midnightIstSep1,
+          status: "PRESENT",
+          checkIn: new Date("2026-09-01T08:50:00+05:30"),
+          checkOut: new Date("2026-09-01T16:50:00+05:30"),
+          workMinutes: 480,
+        },
+      ],
+    });
+    holder.client = f.client;
+
+    const data = await getToSchoolData("staff-1", 2026, 9, NOW);
+    expect(data).not.toBeNull();
+    const day1 = data!.days[0];
+    expect(day1.dateKey).toBe("2026-09-01");
+    expect(day1.status).toBe("PRESENT");
+    expect(day1.workMinutes).toBe(480);
+    expect(day1.checkIn).toBe("08:50");
   });
 
   it("calculates compliance index and quarterly attendance score based on elapsed working days", async () => {
