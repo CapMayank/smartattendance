@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
 import { calculateStaffPayroll, PayGroup } from "@/lib/payroll-calc";
+import { format } from "date-fns";
+import { isEmployedOnDate } from "@/lib/employment";
 
 export async function POST(request: Request) {
   try {
@@ -26,7 +28,8 @@ export async function POST(request: Request) {
       include: {
         staff: {
           include: {
-            payrollInfo: true
+            payrollInfo: true,
+            employmentPeriods: true,
           }
         }
       }
@@ -57,17 +60,20 @@ export async function POST(request: Request) {
       });
 
       let presentDays = 0;
-      
-      const doj = payroll.staff.payrollInfo?.doj || payroll.staff.createdAt;
-      const normalizedDoj = new Date(doj.getFullYear(), doj.getMonth(), doj.getDate());
+      const staffRecord = payroll.staff;
+      const hasPeriods = Array.isArray(staffRecord.employmentPeriods) && staffRecord.employmentPeriods.length > 0;
+      const rawDoj = staffRecord.payrollInfo?.doj || (staffRecord.joiningDate ? new Date(`${staffRecord.joiningDate}T00:00:00`) : staffRecord.createdAt);
+      const normalizedDoj = rawDoj ? new Date(new Date(rawDoj).getFullYear(), new Date(rawDoj).getMonth(), new Date(rawDoj).getDate()) : null;
       
       for (let i = 0; i < attendanceRecords.length; i++) {
         const record = attendanceRecords[i];
         
         if (record.date >= startDate && record.date <= endDate) {
-          
-          if (record.date < normalizedDoj) {
-             continue;
+          const dateStr = format(record.date, "yyyy-MM-dd");
+          if (hasPeriods) {
+            if (!isEmployedOnDate(staffRecord, dateStr)) continue;
+          } else if (normalizedDoj && record.date < normalizedDoj) {
+            continue;
           }
           
           if (record.status === "PRESENT") {

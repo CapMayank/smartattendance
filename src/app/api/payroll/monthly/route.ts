@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
 import { calculateStaffPayroll, PayGroup } from "@/lib/payroll-calc";
+import { format } from "date-fns";
+import { isEmployedOnDate } from "@/lib/employment";
+
+type StaffWithPayrollAndPeriods = Prisma.StaffGetPayload<{
+  include: { payrollInfo: true; employmentPeriods: true };
+}>;
 
 export async function GET(request: Request) {
   try {
@@ -27,7 +34,8 @@ export async function GET(request: Request) {
       include: {
         staff: {
           include: {
-            payrollInfo: true
+            payrollInfo: true,
+            employmentPeriods: true,
           }
         }
       }
@@ -37,9 +45,9 @@ export async function GET(request: Request) {
     const isMonthAlreadyLocked = existingPayrolls.length > 0 && existingPayrolls.every(p => p.isLocked);
 
     // Fetch staff that don't have payroll generated yet
-    let staffWithoutPayroll: any[] = [];
+    let staffWithoutPayroll: StaffWithPayrollAndPeriods[] = [];
     if (!isMonthAlreadyLocked) {
-      staffWithoutPayroll = await prisma.staff.findMany({
+      const candidateStaff = await prisma.staff.findMany({
         where: {
           id: { notIn: existingStaffIds },
           OR: [
@@ -47,7 +55,21 @@ export async function GET(request: Request) {
             { payrollInfo: null }
           ]
         },
-        include: { payrollInfo: true }
+        include: { payrollInfo: true, employmentPeriods: true }
+      });
+
+      const monthStartStr = `${year}-${String(month).padStart(2, '0')}-01`;
+      const monthEndStr = `${year}-${String(month).padStart(2, '0')}-${String(totalDays).padStart(2, '0')}`;
+
+      // Filter out staff whose employment periods do not overlap the target month at all
+      staffWithoutPayroll = candidateStaff.filter((s) => {
+        const periods = s.employmentPeriods;
+        if (!Array.isArray(periods) || periods.length === 0) return true;
+        return periods.some((p) => {
+          const startsBeforeEnd = p.startDate <= monthEndStr;
+          const endsAfterStart = !p.endDate || p.endDate >= monthStartStr;
+          return startsBeforeEnd && endsAfterStart;
+        });
       });
     }
 
@@ -71,9 +93,9 @@ export async function GET(request: Request) {
         });
 
         let presentDays = 0;
-        
-        const doj = staff.payrollInfo?.doj || staff.createdAt;
-        const normalizedDoj = new Date(doj.getFullYear(), doj.getMonth(), doj.getDate());
+        const hasPeriods = Array.isArray(staff.employmentPeriods) && staff.employmentPeriods.length > 0;
+        const rawDoj = staff.payrollInfo?.doj || (staff.joiningDate ? new Date(`${staff.joiningDate}T00:00:00`) : staff.createdAt);
+        const normalizedDoj = rawDoj ? new Date(new Date(rawDoj).getFullYear(), new Date(rawDoj).getMonth(), new Date(rawDoj).getDate()) : null;
 
         // We only care about adding present days that fall exactly within the current month
         for (let i = 0; i < attendanceRecords.length; i++) {
@@ -81,9 +103,11 @@ export async function GET(request: Request) {
           
           // Check if record belongs to the current month
           if (record.date >= startDate && record.date <= endDate) {
-            // If the date is before the employee joined, they are not eligible for any pay
-            if (record.date < normalizedDoj) {
-               continue;
+            const dateStr = format(record.date, "yyyy-MM-dd");
+            if (hasPeriods) {
+              if (!isEmployedOnDate(staff, dateStr)) continue;
+            } else if (normalizedDoj && record.date < normalizedDoj) {
+              continue;
             }
             
             if (record.status === "PRESENT") {
@@ -128,6 +152,7 @@ export async function GET(request: Request) {
           totalDays,
           refundOfAdvance: 0,
         });
+        if (!calc) return null;
 
         return {
           staffId: staff.id,
@@ -141,8 +166,11 @@ export async function GET(request: Request) {
       }));
 
       // Bulk create new payrolls
+      const createData: Prisma.MonthlyPayrollCreateManyInput[] = newPayrolls
+        .filter((p): p is NonNullable<typeof p> => p !== null);
+
       await prisma.monthlyPayroll.createMany({
-        data: newPayrolls.filter(p => p.actualCtc !== undefined) as any
+        data: createData,
       });
 
       // Refetch
@@ -151,7 +179,8 @@ export async function GET(request: Request) {
         include: {
           staff: {
             include: {
-              payrollInfo: true
+              payrollInfo: true,
+              employmentPeriods: true,
             }
           }
         }
@@ -171,6 +200,19 @@ export async function GET(request: Request) {
   }
 }
 
+type PayrollUpdateItem = {
+  id: string;
+  presentDays: number;
+  refundOfAdvance: number;
+  monthlyCtc: number;
+  totalDays: number;
+  payGroup?: PayGroup;
+  bonusAmount?: number;
+  bonusDays?: number;
+  bonusType?: "DAYS" | "FLAT" | "CUSTOM";
+  isBonusPfApplicable?: boolean;
+};
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -184,7 +226,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid payload format" }, { status: 400 });
     }
 
-    const updatedPayrolls = await Promise.all(payrolls.map(async (p: any) => {
+    const updatedPayrolls = await Promise.all((payrolls as PayrollUpdateItem[]).map(async (p) => {
       const {
         id,
         presentDays,

@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
-import { startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns'
+import { startOfMonth, endOfMonth, startOfDay, format } from 'date-fns'
+import { isEmployedOnDate } from '@/lib/employment'
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -21,6 +22,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
             department: true,
             designation: true,
             payrollInfo: true,
+            employmentPeriods: true,
           }
         }
       }
@@ -49,13 +51,17 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const dailyRecords = allDailyRecords.filter(r => r.date >= sOfMonth && r.date <= eOfMonth);
     
     let systemPresentDays = 0;
-    
-    const doj = payroll.staff.payrollInfo?.doj || payroll.staff.createdAt;
-    const normalizedDoj = startOfDay(new Date(doj));
+    const staffRecord = payroll.staff;
+    const hasPeriods = Array.isArray(staffRecord.employmentPeriods) && staffRecord.employmentPeriods.length > 0;
+    const rawDoj = staffRecord.payrollInfo?.doj || (staffRecord.joiningDate ? new Date(`${staffRecord.joiningDate}T00:00:00`) : staffRecord.createdAt);
+    const normalizedDoj = rawDoj ? startOfDay(new Date(rawDoj)) : null;
 
     dailyRecords.forEach(record => {
+      const dateStr = format(record.date, 'yyyy-MM-dd');
       let payrollEligible = 0;
-      if (record.date < normalizedDoj) {
+      if (hasPeriods && !isEmployedOnDate(staffRecord, dateStr)) {
+        payrollEligible = 0;
+      } else if (!hasPeriods && normalizedDoj && record.date < normalizedDoj) {
         payrollEligible = 0;
       } else if (record.status === 'PRESENT') {
         payrollEligible = 1;

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Server, Trash2, Pencil, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, Skeleton, StatusBadge } from '@/components/ui'
 import { isDeviceOnline } from '@/lib/dashboard-calc'
 import { formatDateLong, formatPing } from '@/lib/format'
@@ -23,34 +24,58 @@ export default function DevicesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editData, setEditData] = useState({ name: '', ipAddress: '', port: '' })
 
-  const fetchDevices = async () => {
+  const loadDevices = useCallback(async () => {
     const res = await fetch('/api/devices')
-    if (res.ok) setDevices(await res.json())
+    if (res.ok) return (await res.json()) as Device[]
+    return null
+  }, [])
+
+  const fetchDevices = useCallback(async () => {
+    const rows = await loadDevices()
+    if (rows) setDevices(rows)
     setLoading(false)
-  }
+  }, [loadDevices])
 
   useEffect(() => {
-    fetchDevices()
-  }, [])
+    let active = true
+    loadDevices().then((rows) => {
+      if (!active) return
+      if (rows) setDevices(rows)
+      setLoading(false)
+    })
+    return () => {
+      active = false
+    }
+  }, [loadDevices])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name) return
+    if (!formData.name.trim()) return
     const res = await fetch('/api/devices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
     })
+    const data = await res.json().catch(() => null)
     if (res.ok) {
       setFormData({ name: '', ipAddress: '', port: '' })
       fetchDevices()
+      toast.success('Device registered')
+    } else {
+      toast.error(data?.error || 'Failed to register device')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this device configuration?')) return
     const res = await fetch(`/api/devices?id=${id}`, { method: 'DELETE' })
-    if (res.ok) fetchDevices()
+    const data = await res.json().catch(() => null)
+    if (res.ok) {
+      fetchDevices()
+      toast.success('Device deleted')
+    } else {
+      toast.error(data?.error || 'Failed to delete device')
+    }
   }
 
   const startEditing = (device: Device) => {
@@ -68,9 +93,13 @@ export default function DevicesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: editingId, ...editData })
     })
+    const data = await res.json().catch(() => null)
     if (res.ok) {
       setEditingId(null)
       fetchDevices()
+      toast.success('Device updated')
+    } else {
+      toast.error(data?.error || 'Failed to update device')
     }
   }
 

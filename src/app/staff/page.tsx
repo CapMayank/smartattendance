@@ -82,6 +82,8 @@ type Staff = {
     role: 'ADMIN' | 'APPROVER' | 'EMPLOYEE'
     disabledAt: string | null
     mustChangePassword: boolean
+    approvesAllDepartments?: boolean
+    approverDepartments?: { departmentId: string }[]
   } | null
   payrollInfo?: {
     payGroup: 'BANK_EPF' | 'CASH'
@@ -133,6 +135,8 @@ export default function StaffPage() {
     departmentId: '',
     designationId: '',
     shiftId: '',
+    approvesAllDepartments: true,
+    approverDepartmentIds: [] as string[],
   })
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -152,6 +156,8 @@ export default function StaffPage() {
     departmentId: '',
     designationId: '',
     shiftId: '',
+    approvesAllDepartments: true,
+    approverDepartmentIds: [] as string[],
   })
 
   // Lifecycle state inside Edit modal
@@ -204,6 +210,7 @@ export default function StaffPage() {
     })
     setRejoinDate(todayKey)
     setEditingId(staff.id)
+    const assignedDeptIds = (staff.user?.approverDepartments ?? []).map((d) => d.departmentId)
     setEditData({
       name: staff.name,
       machineId: staff.machineId,
@@ -214,6 +221,11 @@ export default function StaffPage() {
       departmentId: staff.department?.name ? depts.find((d) => d.name === staff.department?.name)?.id || '' : '',
       designationId: staff.designation?.name ? desigs.find((d) => d.name === staff.designation?.name)?.id || '' : '',
       shiftId: currentShiftId,
+      approvesAllDepartments:
+        staff.user?.approvesAllDepartments !== undefined
+          ? staff.user.approvesAllDepartments
+          : assignedDeptIds.length === 0,
+      approverDepartmentIds: assignedDeptIds,
     })
   }
 
@@ -425,6 +437,9 @@ export default function StaffPage() {
       departmentId: formData.departmentId || null,
       designationId: formData.designationId || null,
       shiftId: formData.shiftId || null,
+      approvesAllDepartments: formData.role === 'APPROVER' ? formData.approvesAllDepartments : undefined,
+      approverDepartmentIds:
+        formData.role === 'APPROVER' && !formData.approvesAllDepartments ? formData.approverDepartmentIds : undefined,
     }
 
     const res = await fetch('/api/staff', {
@@ -447,6 +462,8 @@ export default function StaffPage() {
         departmentId: '',
         designationId: '',
         shiftId: '',
+        approvesAllDepartments: true,
+        approverDepartmentIds: [],
       })
       fetchData()
       toast.success('Staff member added & login credentials generated')
@@ -533,6 +550,10 @@ export default function StaffPage() {
         body: JSON.stringify({
           action: 'REJOIN',
           joiningDate: rejoinDate,
+          departmentId: editData.departmentId || null,
+          designationId: editData.designationId || null,
+          shiftId: editData.shiftId || null,
+          payGroup: editData.payGroup,
         }),
       })
       const data = await res.json().catch(() => null)
@@ -718,15 +739,18 @@ export default function StaffPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: results.data }),
           })
-          if (res.ok) {
-            const data = await res.json()
+          const data = await res.json().catch(() => null)
+          if (res.ok && data) {
             toast.success(`Successfully imported ${data.processedCount} staff members!`)
             fetchData()
             if (Array.isArray(data.generatedCredentials) && data.generatedCredentials.length > 0) {
               setIssuedCredentials(data.generatedCredentials)
             }
           } else {
-            toast.error('Failed to import data. Please check the format.')
+            const firstErr = Array.isArray(data?.errors) && data.errors.length > 0
+              ? `Row ${data.errors[0].row} (Machine #${data.errors[0].machineId}): ${data.errors[0].error}`
+              : data?.error || 'Failed to import data. Please check the format.'
+            toast.error(firstErr)
           }
         } catch {
           toast.error('An error occurred during import.')
@@ -824,6 +848,60 @@ export default function StaffPage() {
                 />
               </Field>
             </div>
+
+            {formData.role === 'APPROVER' && (
+              <div className="rounded-xl border border-line-soft bg-canvas p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[13px] font-medium text-text">Approver department scope</p>
+                    <p className="text-xs text-subtle">
+                      Choose whether this Approver can view attendance across all departments or specific ones.
+                    </p>
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-text">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-acc-2"
+                      checked={formData.approvesAllDepartments}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          approvesAllDepartments: e.target.checked,
+                          approverDepartmentIds: e.target.checked ? [] : formData.approverDepartmentIds,
+                        })
+                      }
+                    />
+                    All departments
+                  </label>
+                </div>
+                {!formData.approvesAllDepartments && depts.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-2 border-t border-line-soft pt-2.5">
+                    {depts.map((d) => {
+                      const checked = formData.approverDepartmentIds.includes(d.id)
+                      return (
+                        <label
+                          key={d.id}
+                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1 text-xs text-text"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5 accent-acc-2"
+                            checked={checked}
+                            onChange={(e) => {
+                              const next = e.target.checked
+                                ? [...formData.approverDepartmentIds, d.id]
+                                : formData.approverDepartmentIds.filter((id) => id !== d.id)
+                              setFormData({ ...formData, approverDepartmentIds: next })
+                            }}
+                          />
+                          {d.name}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field label="Department" htmlFor="new-dept">
@@ -1356,6 +1434,60 @@ export default function StaffPage() {
               />
             </Field>
           </div>
+
+          {editData.role === 'APPROVER' && (
+            <div className="rounded-xl border border-line-soft bg-canvas p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[13px] font-medium text-text">Approver department scope</p>
+                  <p className="text-xs text-subtle">
+                    Restrict this Approver to specific departments or allow all departments.
+                  </p>
+                </div>
+                <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-text">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-acc-2"
+                    checked={editData.approvesAllDepartments}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        approvesAllDepartments: e.target.checked,
+                        approverDepartmentIds: e.target.checked ? [] : editData.approverDepartmentIds,
+                      })
+                    }
+                  />
+                  All departments
+                </label>
+              </div>
+              {!editData.approvesAllDepartments && depts.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-2 border-t border-line-soft pt-2.5">
+                  {depts.map((d) => {
+                    const checked = editData.approverDepartmentIds.includes(d.id)
+                    return (
+                      <label
+                        key={d.id}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1 text-xs text-text"
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-3.5 accent-acc-2"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...editData.approverDepartmentIds, d.id]
+                              : editData.approverDepartmentIds.filter((id) => id !== d.id)
+                            setEditData({ ...editData, approverDepartmentIds: next })
+                          }}
+                        />
+                        {d.name}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Department" htmlFor="edit-dept">

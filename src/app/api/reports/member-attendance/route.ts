@@ -2,15 +2,33 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
+import { requireRole, getApproverDepartmentIds } from "@/lib/rbac"
 import { startOfMonth, endOfMonth, format, startOfDay, endOfDay, isAfter, eachDayOfInterval } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 import { isEmployedOnDate } from '@/lib/employment'
+
+type MemberDayEntry = {
+  id: string
+  staffId: string
+  date: Date
+  status: string
+  checkIn: Date | null
+  checkOut: Date | null
+  lateMinutes: number
+  workMinutes: number
+  overtimeMinutes: number
+  payrollEligible: number
+  isSandwiched: boolean
+  logs: { id: string; staffId: string; timestamp: Date; type: string }[]
+}
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
   if (auth.errorResponse) return auth.errorResponse
+
+  const isAdmin = auth.user.role === 'ADMIN'
+  const allowedDepartmentIds = getApproverDepartmentIds(auth.user)
 
   try {
     const { searchParams } = new URL(request.url)
@@ -42,6 +60,13 @@ export async function GET(request: Request) {
 
     if (!staff) {
       return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
+    }
+
+    if (
+      allowedDepartmentIds !== null &&
+      (!staff.departmentId || !allowedDepartmentIds.includes(staff.departmentId))
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const queryStartDate = new Date(year, month - 1, -6); // 7 days before target month
@@ -98,8 +123,9 @@ export async function GET(request: Request) {
 
     const today = startOfDay(new Date());
     const systemStartDate = process.env.SYSTEM_START_DATE || null;
-    const doj = staff.payrollInfo?.doj || staff.createdAt;
-    const normalizedDoj = startOfDay(new Date(doj));
+    const hasPeriods = Array.isArray(staff.employmentPeriods) && staff.employmentPeriods.length > 0;
+    const rawDoj = staff.payrollInfo?.doj || (staff.joiningDate ? new Date(`${staff.joiningDate}T00:00:00`) : staff.createdAt);
+    const normalizedDoj = rawDoj ? startOfDay(new Date(rawDoj)) : null;
 
     const recordsByDate = new Map<string, typeof allDailyRecords[0]>();
     for (const r of allDailyRecords) {
@@ -107,7 +133,7 @@ export async function GET(request: Request) {
     }
 
     const monthDays = eachDayOfInterval({ start: sOfMonth, end: eOfMonth });
-    const days: any[] = [];
+    const days: MemberDayEntry[] = [];
     let totalPayrollEligibleDays = 0;
 
     for (const dayDate of monthDays) {
@@ -142,8 +168,8 @@ export async function GET(request: Request) {
         let payrollEligible = 0;
         let isSandwiched = false;
 
-        // If the date is before the employee joined, they are not eligible for any pay
-        if (record.date < normalizedDoj) {
+        // If the date is before the employee joined (when no employmentPeriods are present), they are not eligible for any pay
+        if (!hasPeriods && normalizedDoj && record.date < normalizedDoj) {
           payrollEligible = 0;
         } else if (record.status === 'PRESENT') {
           payrollEligible = 1;
@@ -195,18 +221,22 @@ export async function GET(request: Request) {
     const totalLateMinutes = days.reduce((sum, r) => sum + r.lateMinutes, 0);
     const totalWorkMinutes = days.reduce((sum, r) => sum + r.workMinutes, 0);
 
-    const monthlyPayroll = await prisma.monthlyPayroll.findUnique({
-      where: {
-        staffId_month_year: {
-          staffId: staffId,
-          month: month,
-          year: year
-        }
-      }
-    });
+    const monthlyPayroll = isAdmin
+      ? await prisma.monthlyPayroll.findUnique({
+          where: {
+            staffId_month_year: {
+              staffId: staffId,
+              month: month,
+              year: year,
+            },
+          },
+        })
+      : null;
+
+    const sanitizedStaff = isAdmin ? staff : { ...staff, payrollInfo: null };
 
     return NextResponse.json({
-      staff,
+      staff: sanitizedStaff,
       days,
       summary: {
         totalPresents,

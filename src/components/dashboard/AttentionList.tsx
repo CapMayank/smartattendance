@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { AlarmClock, CalendarClock, ChevronRight, LogOut, ShieldCheck, WifiOff, XCircle, type LucideIcon } from "lucide-react";
+import {
+  AlarmClock,
+  AlertCircle,
+  CalendarClock,
+  ChevronRight,
+  LogOut,
+  ShieldCheck,
+  WifiOff,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { EmptyState } from "@/components/ui";
 import type { DashboardData } from "@/lib/dashboard";
 import { cn } from "@/lib/cn";
@@ -12,11 +22,18 @@ const look: Record<Item["kind"], { icon: LucideIcon; tone: string }> = {
   "device-offline": { icon: WifiOff, tone: "tone-accent" },
   "missing-out": { icon: LogOut, tone: "tone-muted" },
   "shift-suggestions": { icon: CalendarClock, tone: "tone-accent" },
+  "unmatched-punches": { icon: AlertCircle, tone: "tone-absent" },
 };
 
 export function AttentionList({ items }: { items: Item[] }) {
   if (items.length === 0) {
-    return <EmptyState icon={ShieldCheck} title="Nothing needs attention" hint="No long absences, repeat late arrivals, offline devices or missing OUT punches." />;
+    return (
+      <EmptyState
+        icon={ShieldCheck}
+        title="Nothing needs attention"
+        hint="No long absences, repeat late arrivals, offline devices or missing OUT punches."
+      />
+    );
   }
   return (
     <ul className="flex flex-col">

@@ -6,7 +6,7 @@ import { listPendingSuggestions, runDetection } from '@/lib/shift-suggestions'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
-  const auth = await requireRole(session, ['ADMIN'])
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
   if (auth.errorResponse) return auth.errorResponse
 
   const { searchParams } = new URL(request.url)

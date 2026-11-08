@@ -1,12 +1,14 @@
 import {
   Home, Users, Calendar, Clock, PlusCircle, BarChart3, UserCheck, Wallet,
   IndianRupee, PieChart, Building2, IdCard, Server, Settings,
-  AlertCircle, KeyRound,
+  AlertCircle, KeyRound, ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
 export type NavItem = { label: string; href: string; icon: LucideIcon };
 export type NavGroup = { group: "Overview" | "Attendance" | "Payroll" | "System" | "My Portal"; items: NavItem[] };
+
+const APPROVER_HIDDEN_HREFS = new Set(["/staff", "/attendance/manual", "/punches/unmatched"]);
 
 export const NAV: NavGroup[] = [
   {
@@ -43,6 +45,7 @@ export const NAV: NavGroup[] = [
       { label: "Designations", href: "/designations", icon: IdCard },
       { label: "Devices", href: "/devices", icon: Server },
       { label: "Settings", href: "/settings", icon: Settings },
+      { label: "Audit logs", href: "/audit-logs", icon: ScrollText },
     ],
   },
 ];
@@ -62,7 +65,7 @@ export function getNavForRole(role?: string): NavGroup[] {
   if (role === "APPROVER") {
     return NAV.filter((g) => g.group === "Overview" || g.group === "Attendance").map((g) => ({
       ...g,
-      items: g.items.filter((item) => item.href !== "/staff"),
+      items: g.items.filter((item) => !APPROVER_HIDDEN_HREFS.has(item.href)),
     }));
   }
   return NAV;

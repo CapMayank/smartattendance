@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  IdCard,
   IndianRupee,
   KeyRound,
   Printer,
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui";
 import type { EmployeePortalData } from "@/lib/employee-portal";
 import { formatHHmm, formatTime } from "@/lib/format";
+import { staffPhotoUrl } from "@/lib/photo-url";
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -79,7 +79,7 @@ export function EmployeeMyDashboard({
           <CardHeader title="My Profile & Shift" caption="Your school identity and assigned schedule" />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3.5">
-              <Avatar name={profile.name} />
+              <Avatar name={profile.name} src={staffPhotoUrl({ id: profile.id, profilePhotoId: profile.profilePhotoId })} />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-[16px] font-semibold text-text">{profile.name}</h2>

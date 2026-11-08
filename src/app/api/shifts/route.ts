@@ -7,7 +7,7 @@ import { shiftUsageCount, shiftInUseMessage } from '@/lib/shift-delete-guard'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
-  const auth = await requireRole(session, ['ADMIN'])
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
   if (auth.errorResponse) return auth.errorResponse
 
   let shifts = await prisma.shift.findMany({ orderBy: { createdAt: 'desc' } })
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     // Only these three fields: every other property in the body is ignored
     const shift = await prisma.shift.create({ data: { name, startTime, endTime } })
     return NextResponse.json(shift, { status: 201 })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create shift' }, { status: 500 })
   }
 }
@@ -64,7 +64,7 @@ export async function DELETE(request: Request) {
     if (inUse > 0) return NextResponse.json({ error: shiftInUseMessage(inUse) }, { status: 409 })
     await prisma.shift.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete shift' }, { status: 500 })
   }
 }
@@ -83,7 +83,7 @@ export async function PUT(request: Request) {
       data: { name, startTime, endTime }
     })
     return NextResponse.json(shift)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update shift' }, { status: 500 })
   }
 }

@@ -15,6 +15,22 @@ const EMPLOYEE_BLOCKED_PAGE_PREFIXES = [
   "/shifts",
   "/reports",
   "/calendar",
+  "/audit-logs",
+]
+
+const APPROVER_BLOCKED_PAGE_PREFIXES = [
+  "/staff",
+  "/users",
+  "/payroll",
+  "/settings",
+  "/departments",
+  "/designations",
+  "/devices",
+  "/attendance/manual",
+  "/punches/unmatched",
+  "/reports/member-payroll",
+  "/reports/payroll-analytics",
+  "/audit-logs",
 ]
 
 export async function proxyHandler(req: NextRequestWithAuth) {
@@ -87,6 +103,16 @@ export async function proxyHandler(req: NextRequestWithAuth) {
       (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
     )
     if (isBlockedAdminPage) {
+      return NextResponse.redirect(new URL("/", req.url))
+    }
+  }
+
+  // 5. Role-based Page Guard: Approvers cannot access Admin-only configuration, mutation, or payroll pages
+  if (token?.role === "APPROVER" && !pathname.startsWith("/api/")) {
+    const isBlockedForApprover = APPROVER_BLOCKED_PAGE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+    )
+    if (isBlockedForApprover) {
       return NextResponse.redirect(new URL("/", req.url))
     }
   }

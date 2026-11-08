@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
-import { startOfDay, endOfDay, parseISO, eachDayOfInterval, format } from 'date-fns'
+import { startOfDay, endOfDay, parseISO, eachDayOfInterval } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function POST(req: Request) {
@@ -21,9 +21,10 @@ export async function POST(req: Request) {
 
     const start = parseISO(startDate)
     const end = parseISO(endDate)
+    const now = new Date()
 
     // Guardrail: Cannot punch in the future
-    if (start > new Date() || end > new Date()) {
+    if (start > now || end > now) {
       return NextResponse.json({ error: 'Cannot add punches for future dates' }, { status: 400 })
     }
 
@@ -32,6 +33,15 @@ export async function POST(req: Request) {
     }
 
     const days = eachDayOfInterval({ start, end })
+    const [hours, minutes] = time.split(':').map(Number)
+
+    for (const day of days) {
+      const candidate = new Date(day)
+      candidate.setHours(hours, minutes, 0, 0)
+      if (candidate > now) {
+        return NextResponse.json({ error: 'Cannot add punches for future dates or times' }, { status: 400 })
+      }
+    }
 
     // Guardrail: Check if any payroll is locked for the selected staff and months involved
     const monthYears = new Set<string>()
@@ -59,9 +69,6 @@ export async function POST(req: Request) {
     if (lockedResults.some(r => r !== null)) {
       return NextResponse.json({ error: 'Cannot modify punches for a locked payroll month for one or more selected staff' }, { status: 400 })
     }
-    
-    // Parse the time (HH:MM)
-    const [hours, minutes] = time.split(':').map(Number)
 
     let createdCount = 0
 
@@ -89,7 +96,7 @@ export async function POST(req: Request) {
     await recalculateAttendance(startOfDay(start), endOfDay(end))
 
     return NextResponse.json({ success: true, createdCount })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST Bulk Punch Error:", error)
     return NextResponse.json({ error: 'Failed to create bulk punches' }, { status: 500 })
   }

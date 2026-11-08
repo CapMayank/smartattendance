@@ -24,8 +24,6 @@ export function verifySetupSecret(secret: string): boolean {
 /**
  * Determines whether the initial setup has been successfully completed.
  * - Checks SystemSetting key 'SETUP_COMPLETED' === 'true'
- * - If not 'true', returns false if any User with role 'ADMIN' has staffId === null,
- *   or if no SystemSetting with key 'SETUP_COMPLETED' exists.
  */
 export async function isSetupCompleted(): Promise<boolean> {
   try {
@@ -33,26 +31,7 @@ export async function isSetupCompleted(): Promise<boolean> {
       where: { key: 'SETUP_COMPLETED' },
     })
 
-    if (setting?.value === 'true') {
-      return true
-    }
-
-    if (!setting || setting.value !== 'true') {
-      return false
-    }
-
-    const unlinkedAdmin = await prisma.user.findFirst({
-      where: {
-        role: 'ADMIN',
-        staffId: null,
-      },
-    })
-
-    if (unlinkedAdmin) {
-      return false
-    }
-
-    return false
+    return setting?.value === 'true'
   } catch (err) {
     console.error('[setup] Error checking setup completion:', err)
     return false

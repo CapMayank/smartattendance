@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isDeviceOnline, istDayStart } from "@/lib/dashboard-calc";
+import { isDeviceOnline, istDateKey, istDayStart } from "@/lib/dashboard-calc";
+import { isEmployedOnDate } from "@/lib/employment";
 
 export type ShellData = {
   userName: string;
@@ -30,9 +31,15 @@ export async function getShellData(): Promise<ShellData | null> {
   const staffId = session.user?.staffId ?? null;
 
   const now = new Date();
+  const todayKey = istDateKey(now);
   try {
-    const [staffCount, devices, logs, staffProfile] = await Promise.all([
-      prisma.staff.count(),
+    const [allStaff, devices, logs, staffProfile] = await Promise.all([
+      prisma.staff.findMany({
+        select: {
+          id: true,
+          employmentPeriods: { select: { startDate: true, endDate: true } },
+        },
+      }),
       prisma.device.findMany({ orderBy: { name: "asc" } }),
       prisma.attendanceLog.findMany({
         where: { timestamp: { gte: istDayStart(now) } },
@@ -47,6 +54,8 @@ export async function getShellData(): Promise<ShellData | null> {
           })
         : Promise.resolve(null),
     ]);
+
+    const staffCount = allStaff.filter((s) => isEmployedOnDate(s, todayKey)).length;
 
     return {
       userName,

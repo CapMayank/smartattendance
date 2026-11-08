@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
@@ -16,6 +17,14 @@ function isValidDateKey(val: unknown): val is string {
   if (typeof val !== 'string' || !DATE_REGEX.test(val)) return false
   const d = new Date(`${val}T00:00:00Z`)
   return !isNaN(d.getTime())
+}
+
+function parsePayGroup(val: unknown): 'BANK_EPF' | 'CASH' | null {
+  if (typeof val !== 'string') return null
+  const upper = val.trim().toUpperCase()
+  if (upper === 'CASH') return 'CASH'
+  if (upper === 'BANK_EPF' || upper === 'BANK' || upper === 'BANK / EPF' || upper === 'EPF') return 'BANK_EPF'
+  return null
 }
 
 export async function POST(request: Request) {
@@ -39,7 +48,7 @@ export async function POST(request: Request) {
 
     // Fetch existing staff to identify existing vs new machine IDs
     const existingStaff = await prisma.staff.findMany({
-      select: { id: true, machineId: true, shiftId: true }
+      select: { id: true, machineId: true, shiftId: true, employeeCode: true, joiningDate: true }
     })
     const existingByMachineId = new Map(existingStaff.map((s) => [s.machineId, s]))
 
@@ -72,6 +81,12 @@ export async function POST(request: Request) {
         } else {
           seenNewMachineIds.add(machineId)
         }
+      } else if (joiningDate && !isValidDateKey(joiningDate)) {
+        validationErrors.push({
+          row: i + 1,
+          machineId,
+          error: 'Joining Date must be in YYYY-MM-DD format',
+        })
       }
     }
 
@@ -94,6 +109,26 @@ export async function POST(request: Request) {
 
     // Pre-cache highest sequence numbers per year
     const nextSeqByYear = new Map<number, number>()
+    const allocateCodeForYear = async (year: number) => {
+      if (!nextSeqByYear.has(year)) {
+        const staffInYear = await prisma.staff.findMany({
+          where: { employeeCode: { startsWith: `SAR-${year}-` } },
+          select: { employeeCode: true },
+        })
+        let maxSeq = 0
+        for (const s of staffInYear) {
+          if (!s.employeeCode) continue
+          const parsed = parseEmployeeCode(s.employeeCode)
+          if (parsed && parsed.year === year && parsed.sequence > maxSeq) {
+            maxSeq = parsed.sequence
+          }
+        }
+        nextSeqByYear.set(year, maxSeq + 1)
+      }
+      const seq = nextSeqByYear.get(year)!
+      nextSeqByYear.set(year, seq + 1)
+      return formatEmployeeCode(year, seq)
+    }
 
     for (const row of data) {
       const name = row['Name']?.trim()
@@ -107,6 +142,7 @@ export async function POST(request: Request) {
         row['D.O.J.'] ||
         row['JoiningDate']
       )?.toString().trim()
+      const explicitPayGroup = parsePayGroup(row['Pay Group'] || row['payGroup'] || row['PayGroup'])
 
       if (!name || !machineId) continue // Skip invalid rows
 
@@ -138,14 +174,77 @@ export async function POST(request: Request) {
 
       if (existing) {
         // Update existing staff
+        const needsOnboarding = !existing.employeeCode && joiningDate && isValidDateKey(joiningDate)
+        let newEmployeeCode: string | undefined
+        if (needsOnboarding) {
+          const year = parseInt(joiningDate.slice(0, 4), 10)
+          newEmployeeCode = await allocateCodeForYear(year)
+        }
+
+        const updatePayload: Record<string, unknown> = {
+          name,
+          departmentId,
+          designationId,
+        }
+        if (joiningDate && isValidDateKey(joiningDate) && !existing.joiningDate) {
+          updatePayload.joiningDate = joiningDate
+        }
+        if (newEmployeeCode) {
+          updatePayload.employeeCode = newEmployeeCode
+        }
+
         await prisma.staff.update({
           where: { machineId },
-          data: {
-            name,
-            departmentId,
-            designationId,
-          },
+          data: updatePayload,
         })
+
+        if (explicitPayGroup && prisma.staffPayrollInfo?.upsert) {
+          await prisma.staffPayrollInfo.upsert({
+            where: { staffId: existing.id },
+            update: { payGroup: explicitPayGroup },
+            create: { staffId: existing.id, payGroup: explicitPayGroup },
+          })
+        }
+
+        if (needsOnboarding && newEmployeeCode) {
+          if (prisma.employmentPeriod?.findFirst) {
+            const periodExists = await prisma.employmentPeriod.findFirst({ where: { staffId: existing.id } })
+            if (!periodExists) {
+              await prisma.employmentPeriod.create({
+                data: {
+                  staffId: existing.id,
+                  startDate: joiningDate!,
+                  endDate: null,
+                  createdByUserId: auth.user.id,
+                },
+              })
+            }
+          }
+          if (prisma.user?.findFirst) {
+            const userExists = await prisma.user.findFirst({ where: { staffId: existing.id } })
+            if (!userExists) {
+              const tempPassword = generateTemporaryPassword(10)
+              const hashedPassword = await bcrypt.hash(tempPassword, 10)
+              await prisma.user.create({
+                data: {
+                  name,
+                  role: 'EMPLOYEE',
+                  password: hashedPassword,
+                  mustChangePassword: true,
+                  staffId: existing.id,
+                },
+              })
+              generatedCredentials.push({
+                name,
+                machineId,
+                employeeCode: newEmployeeCode,
+                temporaryPassword: tempPassword,
+              })
+            }
+          }
+          existing.employeeCode = newEmployeeCode
+          existing.joiningDate = joiningDate!
+        }
 
         if (decision.action === 'set') {
           const result = await applyShiftChange({
@@ -160,27 +259,9 @@ export async function POST(request: Request) {
       } else {
         // Create new staff with code, period, payroll info, user and audit log
         const chosenShiftId = decision.action === 'set' ? decision.shiftId : defaultShift.id
+        const chosenPayGroup = explicitPayGroup || 'BANK_EPF'
         const year = parseInt(joiningDate!.slice(0, 4), 10)
-
-        if (!nextSeqByYear.has(year)) {
-          const staffInYear = await prisma.staff.findMany({
-            where: { employeeCode: { startsWith: `SAR-${year}-` } },
-            select: { employeeCode: true },
-          })
-          let maxSeq = 0
-          for (const s of staffInYear) {
-            if (!s.employeeCode) continue
-            const parsed = parseEmployeeCode(s.employeeCode)
-            if (parsed && parsed.year === year && parsed.sequence > maxSeq) {
-              maxSeq = parsed.sequence
-            }
-          }
-          nextSeqByYear.set(year, maxSeq + 1)
-        }
-
-        const seq = nextSeqByYear.get(year)!
-        nextSeqByYear.set(year, seq + 1)
-        const employeeCode = formatEmployeeCode(year, seq)
+        const employeeCode = await allocateCodeForYear(year)
 
         const tempPassword = generateTemporaryPassword(10)
         const hashedPassword = await bcrypt.hash(tempPassword, 10)
@@ -210,7 +291,7 @@ export async function POST(request: Request) {
           await tx.staffPayrollInfo.create({
             data: {
               staffId: staff.id,
-              payGroup: 'BANK_EPF',
+              payGroup: chosenPayGroup,
             },
           })
 
@@ -250,7 +331,7 @@ export async function POST(request: Request) {
                 departmentId,
                 designationId,
                 shiftId: chosenShiftId,
-                payGroup: 'BANK_EPF',
+                payGroup: chosenPayGroup,
               }),
             },
           })
@@ -265,7 +346,13 @@ export async function POST(request: Request) {
           temporaryPassword: tempPassword,
         })
 
-        existingByMachineId.set(machineId, { id: newStaff.id, machineId, shiftId: chosenShiftId })
+        existingByMachineId.set(machineId, {
+          id: newStaff.id,
+          machineId,
+          shiftId: chosenShiftId,
+          employeeCode,
+          joiningDate: joiningDate!,
+        })
       }
 
       processedCount++
@@ -338,6 +425,14 @@ export async function DELETE(request: Request) {
     const { ids } = await request.json()
     if (!Array.isArray(ids) || ids.length === 0) return NextResponse.json({ error: 'Invalid ids' }, { status: 400 })
 
+    const selfStaffId = auth.user.staffId ?? auth.user.staff?.id
+    if (selfStaffId && ids.includes(selfStaffId)) {
+      return NextResponse.json(
+        { error: 'Cannot delete your own staff record while signed in.' },
+        { status: 400 }
+      )
+    }
+
     // Deletion guard: Check attendanceLogs, dailyRecords, monthlyPayrolls, and shiftAssignments > 1
     const [logCount, recordCount, payrollCount] = await Promise.all([
       prisma.attendanceLog.count({ where: { staffId: { in: ids } } }),
@@ -362,13 +457,50 @@ export async function DELETE(request: Request) {
       }
     }
 
-    await prisma.$transaction(async (tx: any) => {
+    if (prisma.user?.count) {
+      const deletingAdminCount = await prisma.user.count({
+        where: { staffId: { in: ids }, role: 'ADMIN', disabledAt: null },
+      })
+      if (deletingAdminCount > 0) {
+        const totalActiveAdmins = await prisma.user.count({
+          where: { role: 'ADMIN', disabledAt: null },
+        })
+        if (totalActiveAdmins - deletingAdminCount < 1) {
+          return NextResponse.json(
+            { error: 'Cannot delete the last remaining active Admin user' },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      if (tx.punchPhoto?.deleteMany) {
+        await tx.punchPhoto.deleteMany({ where: { staffId: { in: ids } } })
+      }
+      if (tx.shiftSuggestion?.deleteMany) {
+        await tx.shiftSuggestion.deleteMany({ where: { staffId: { in: ids } } })
+      }
+      if (tx.approverDepartment?.deleteMany) {
+        await tx.approverDepartment.deleteMany({ where: { user: { staffId: { in: ids } } } })
+      }
       await tx.shiftAssignment.deleteMany({ where: { staffId: { in: ids } } })
       await tx.payGroupChange.deleteMany({ where: { staffPayrollInfo: { staffId: { in: ids } } } })
       await tx.staffPayrollInfo.deleteMany({ where: { staffId: { in: ids } } })
       await tx.user.deleteMany({ where: { staffId: { in: ids } } })
       await tx.employmentPeriod.deleteMany({ where: { staffId: { in: ids } } })
       await tx.staff.deleteMany({ where: { id: { in: ids } } })
+      if (tx.auditLog?.create) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: auth.user.id,
+            action: 'STAFF_DELETE',
+            targetType: 'Staff',
+            targetId: ids[0],
+            details: JSON.stringify({ deletedStaffIds: ids }),
+          },
+        })
+      }
     })
 
     return NextResponse.json({ success: true, count: ids.length })

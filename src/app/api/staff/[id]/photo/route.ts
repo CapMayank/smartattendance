@@ -9,12 +9,17 @@ type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, { params }: Ctx) {
   const session = await getServerSession(authOptions)
-  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER', 'EMPLOYEE'])
   if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params
     if (!id || !id.trim()) return NextResponse.json({ error: 'Staff id required' }, { status: 400 })
+
+    const userStaffId = auth.user.staffId ?? auth.user.staff?.id
+    if (auth.user.role === 'EMPLOYEE' && userStaffId && userStaffId !== id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const staff = await prisma.staff.findUnique({ where: { id }, select: { profilePhotoId: true } })
     if (!staff?.profilePhotoId) return NextResponse.json({ error: 'No profile photo' }, { status: 404 })

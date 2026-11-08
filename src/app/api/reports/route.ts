@@ -2,15 +2,25 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
+import { requireRole, getApproverDepartmentIds } from "@/lib/rbac"
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, format, isAfter } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 import { isEmployedOnDate } from '@/lib/employment'
+
+type DaySummary = {
+  status: string
+  checkIn: Date | null
+  checkOut: Date | null
+  lateMinutes: number
+  workMinutes: number
+}
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
   if (auth.errorResponse) return auth.errorResponse
+
+  const allowedDepartmentIds = getApproverDepartmentIds(auth.user)
 
   try {
     const { searchParams } = new URL(request.url)
@@ -27,7 +37,7 @@ export async function GET(request: Request) {
       // Auto-recalculate for this specific day to ensure it's always up to date
       await recalculateAttendance(targetDate, targetDate);
 
-      const records = await prisma.dailyRecord.findMany({
+      const allRecords = await prisma.dailyRecord.findMany({
         where: {
           date: {
             gte: startOfDay(targetDate),
@@ -45,6 +55,13 @@ export async function GET(request: Request) {
           }
         }
       })
+
+      const records =
+        allowedDepartmentIds !== null
+          ? allRecords.filter(
+              (r) => r.staff.departmentId !== null && allowedDepartmentIds.includes(r.staff.departmentId)
+            )
+          : allRecords
 
       // Sort by machineId numerically since it is a String in DB
       records.sort((a, b) => 
@@ -81,10 +98,9 @@ export async function GET(request: Request) {
       const eOfMonth = endOfMonth(targetMonth);
 
       // Auto-recalculate for the entire month
-      // Note: This might take a few seconds depending on the number of logs, but it guarantees up-to-date data.
       await recalculateAttendance(sOfMonth, eOfMonth);
 
-      const records = await prisma.dailyRecord.findMany({
+      const allRecords = await prisma.dailyRecord.findMany({
         where: {
           date: {
             gte: sOfMonth,
@@ -103,15 +119,33 @@ export async function GET(request: Request) {
         }
       })
 
+      const records =
+        allowedDepartmentIds !== null
+          ? allRecords.filter(
+              (r) => r.staff.departmentId !== null && allowedDepartmentIds.includes(r.staff.departmentId)
+            )
+          : allRecords
+
       // Aggregate data per staff
-      const aggregated = new Map();
+      const aggregated = new Map<
+        string,
+        {
+          staff: (typeof records)[number]['staff']
+          days: Record<string, DaySummary>
+          totalPresents: number
+          totalAbsents: number
+          totalHalfDays: number
+          totalLateMinutes: number
+          totalWorkMinutes: number
+        }
+      >();
 
       records.forEach(record => {
         const staffId = record.staff.id;
         if (!aggregated.has(staffId)) {
           aggregated.set(staffId, {
             staff: record.staff,
-            days: {} as Record<string, any>,
+            days: {},
             totalPresents: 0,
             totalAbsents: 0,
             totalHalfDays: 0,
@@ -120,7 +154,7 @@ export async function GET(request: Request) {
           });
         }
         
-        const stats = aggregated.get(staffId);
+        const stats = aggregated.get(staffId)!;
         
         // Add daily details
         const dateStr = format(record.date, 'yyyy-MM-dd');

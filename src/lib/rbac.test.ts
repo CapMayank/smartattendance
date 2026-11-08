@@ -13,12 +13,9 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
 }))
 
-import { requireRole } from "./rbac"
-import { istDateKey } from "./dashboard-calc"
+import { requireRole, getApproverDepartmentIds } from "./rbac"
 
 describe("requireRole guard", () => {
-  const todayKey = istDateKey(new Date())
-
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -252,6 +249,46 @@ describe("requireRole guard", () => {
       const res = await requireRole(session, ["EMPLOYEE"], { allowMustChangePassword: true })
       expect(res.errorResponse).toBeUndefined()
       expect(res.user?.id).toBe("u-temp-pass")
+    })
+  })
+
+  describe("getApproverDepartmentIds", () => {
+    it("returns null for ADMIN or APPROVER with approvesAllDepartments=true", () => {
+      expect(
+        getApproverDepartmentIds({
+          role: "ADMIN",
+          approvesAllDepartments: false,
+          approverDepartments: [{ departmentId: "d1" }],
+        } as never)
+      ).toBeNull()
+
+      expect(
+        getApproverDepartmentIds({
+          role: "APPROVER",
+          approvesAllDepartments: true,
+          approverDepartments: [{ departmentId: "d1" }],
+        } as never)
+      ).toBeNull()
+    })
+
+    it("returns scoped department IDs when APPROVER has specific department assignments", () => {
+      expect(
+        getApproverDepartmentIds({
+          role: "APPROVER",
+          approvesAllDepartments: false,
+          approverDepartments: [{ departmentId: "d1" }, { departmentId: "d2" }],
+        } as never)
+      ).toEqual(["d1", "d2"])
+    })
+
+    it("returns null when APPROVER has no specific department restriction rows", () => {
+      expect(
+        getApproverDepartmentIds({
+          role: "APPROVER",
+          approvesAllDepartments: false,
+          approverDepartments: [],
+        } as never)
+      ).toBeNull()
     })
   })
 })

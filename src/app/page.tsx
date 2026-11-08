@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AlarmClock, BarChart3, CheckCircle2, DatabaseZap, Fingerprint, Sunrise, XCircle } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getApproverDepartmentIds } from "@/lib/rbac";
 import AutoRefresh from "@/components/AutoRefresh";
 import { Card, CardHeader, EmptyState, KpiTile, SectionLabel, PageHeader } from "@/components/ui";
 import { getDashboardData, istDateKey, type DashboardData } from "@/lib/dashboard";
@@ -55,6 +57,7 @@ export default async function Dashboard({
   const now = resolveNow((await searchParams).at);
   const firstName = (session.user?.name ?? "").trim().split(/\s+/)[0] || "there";
   const title = `${greeting(now)}, ${firstName}`;
+  const isApprover = session.user?.role === "APPROVER";
 
   // Employee Role: Render the personal "My" Portal instead of the school-wide admin dashboard
   if (session.user?.role === "EMPLOYEE" && session.user?.staffId) {
@@ -83,7 +86,17 @@ export default async function Dashboard({
 
   let data: DashboardData;
   try {
-    data = await getDashboardData(now);
+    let allowedDepartmentIds: string[] | null = null;
+    if (isApprover && session.user?.id) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { approverDepartments: { select: { departmentId: true } } },
+      });
+      if (dbUser) {
+        allowedDepartmentIds = getApproverDepartmentIds(dbUser);
+      }
+    }
+    data = await getDashboardData(now, { allowedDepartmentIds, isApprover });
   } catch (err) {
     console.error("[dashboard] failed to load data:", err);
     return (
@@ -222,9 +235,11 @@ export default async function Dashboard({
           <CardHeader
             title="Departments today"
             action={
-              <Link href="/departments" className="text-acc-2 hover:underline">
-                Open departments
-              </Link>
+              !isApprover ? (
+                <Link href="/departments" className="text-acc-2 hover:underline">
+                  Open departments
+                </Link>
+              ) : undefined
             }
           />
           <DepartmentTurnout departments={data.departments} />

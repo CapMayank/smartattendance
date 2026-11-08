@@ -4,10 +4,11 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
 import { startOfDay } from 'date-fns'
+import { recalculateAttendance } from '@/lib/attendance'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
-  const auth = await requireRole(session, ['ADMIN'])
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
   if (auth.errorResponse) return auth.errorResponse
 
   try {
@@ -74,6 +75,12 @@ export async function POST(request: Request) {
       }
     })
 
+    try {
+      await recalculateAttendance(targetDate, targetDate)
+    } catch (recalcErr) {
+      console.error('Holiday recalculation error:', recalcErr)
+    }
+
     return NextResponse.json(holiday)
   } catch (error) {
     console.error('Create Holiday Error:', error)
@@ -94,9 +101,21 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
 
+    const existing = prisma.holiday.findUnique
+      ? await prisma.holiday.findUnique({ where: { id } })
+      : null
+
     await prisma.holiday.delete({
       where: { id }
     })
+
+    if (existing?.date) {
+      try {
+        await recalculateAttendance(existing.date, existing.date)
+      } catch (recalcErr) {
+        console.error('Holiday delete recalculation error:', recalcErr)
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

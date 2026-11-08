@@ -8,6 +8,7 @@ export type EmployeePortalData = {
     employeeCode: string | null;
     machineId: string;
     joiningDate: string | null;
+    profilePhotoId: string | null;
     departmentName: string | null;
     designationName: string | null;
     shift: { name: string; startTime: string; endTime: string } | null;
@@ -164,6 +165,7 @@ export async function getEmployeePortalData(
       employeeCode: staff.employeeCode ?? null,
       machineId: staff.machineId,
       joiningDate: staff.joiningDate ?? null,
+      profilePhotoId: staff.profilePhotoId ?? null,
       departmentName: staff.department?.name ?? null,
       designationName: staff.designation?.name ?? null,
       shift: staff.shift

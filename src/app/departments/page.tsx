@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Building2, Trash2, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, Skeleton } from '@/components/ui'
 
 type Department = { id: string, name: string }
@@ -19,15 +20,19 @@ export default function DepartmentsPage() {
   }
 
   const saveEdit = async () => {
-    if (!editName) return
+    if (!editName.trim()) return
     const res = await fetch('/api/departments', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editingId, name: editName })
+      body: JSON.stringify({ id: editingId, name: editName.trim() })
     })
+    const data = await res.json().catch(() => null)
     if (res.ok) {
       setEditingId(null)
       fetchData()
+      toast.success('Department updated')
+    } else {
+      toast.error(data?.error || 'Failed to update department')
     }
   }
 
@@ -41,22 +46,32 @@ export default function DepartmentsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name) return
+    if (!name.trim()) return
     const res = await fetch('/api/departments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name: name.trim() })
     })
+    const data = await res.json().catch(() => null)
     if (res.ok) {
       setName('')
       fetchData()
+      toast.success('Department created')
+    } else {
+      toast.error(data?.error || 'Failed to create department')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this department?')) return
     const res = await fetch(`/api/departments?id=${id}`, { method: 'DELETE' })
-    if (res.ok) fetchData()
+    const data = await res.json().catch(() => null)
+    if (res.ok) {
+      fetchData()
+      toast.success('Department deleted')
+    } else {
+      toast.error(data?.error || 'Failed to delete department')
+    }
   }
 
   return (

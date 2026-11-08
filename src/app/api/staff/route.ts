@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
+import { requireRole, getApproverDepartmentIds } from "@/lib/rbac"
 import { istDateKey } from '@/lib/dashboard-calc'
 import { ALWAYS } from '@/lib/shift-lookup'
 import { applyShiftChange, isValidDayKey, START_BEFORE_ALWAYS_ERROR, syncCurrentShifts } from '@/lib/shift-change-service'
 import { formatEmployeeCode, parseEmployeeCode } from '@/lib/employee-code'
 import { generateTemporaryPassword } from '@/lib/temporary-password'
+import { calculateStaffPayroll, type PayGroup } from '@/lib/payroll-calc'
 import bcrypt from 'bcryptjs'
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
@@ -30,7 +32,7 @@ export async function GET() {
     // A sync failure must never break the staff list
     console.error('[staff] sync failed:', error)
   }
-  const staff = await prisma.staff.findMany({ 
+  const allStaff = await prisma.staff.findMany({ 
     include: {
       department: true,
       designation: true,
@@ -42,6 +44,12 @@ export async function GET() {
           role: true,
           disabledAt: true,
           mustChangePassword: true,
+          approvesAllDepartments: true,
+          approverDepartments: {
+            select: {
+              departmentId: true,
+            },
+          },
         },
       },
       payrollInfo: {
@@ -54,7 +62,13 @@ export async function GET() {
       },
     }
   })
-  
+
+  const allowedDepartmentIds = getApproverDepartmentIds(auth.user)
+  const staff =
+    allowedDepartmentIds !== null
+      ? allStaff.filter((s) => s.departmentId !== null && allowedDepartmentIds.includes(s.departmentId))
+      : allStaff
+
   // Sort numerically by machineId so they appear in logical order everywhere (e.g. dropdowns)
   staff.sort((a, b) => a.machineId.localeCompare(b.machineId, undefined, { numeric: true }))
   
@@ -69,7 +83,19 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const { name, machineId, joiningDate, departmentId, designationId, shiftId, payGroup, role, email } = data
+    const {
+      name,
+      machineId,
+      joiningDate,
+      departmentId,
+      designationId,
+      shiftId,
+      payGroup,
+      role,
+      email,
+      approvesAllDepartments,
+      approverDepartmentIds,
+    } = data
 
     if (!name || !machineId || !joiningDate) {
       return NextResponse.json({ error: 'Name, machineId, and joiningDate are required' }, { status: 400 })
@@ -94,11 +120,16 @@ export async function POST(request: Request) {
     const year = parseInt(joiningDate.slice(0, 4), 10)
     const userRole = role === 'ADMIN' || role === 'APPROVER' || role === 'EMPLOYEE' ? role : 'EMPLOYEE'
     const normalizedEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : undefined
+    const isApproverAllDepts = userRole === 'APPROVER' ? approvesAllDepartments !== false : false
+    const scopedDeptIds: string[] =
+      userRole === 'APPROVER' && !isApproverAllDepts && Array.isArray(approverDepartmentIds)
+        ? approverDepartmentIds.filter((d: unknown): d is string => typeof d === 'string' && d.trim().length > 0)
+        : []
 
     const temporaryPassword = generateTemporaryPassword(10)
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10)
 
-    const createdStaff = await prisma.$transaction(async (tx: any) => {
+    const createdStaff = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Find highest sequence number for that year among existing staff codes matching SAR-<year>-(\d+)
       const staffInYear = await tx.staff.findMany({
         where: { employeeCode: { startsWith: `SAR-${year}-` } },
@@ -140,7 +171,7 @@ export async function POST(request: Request) {
       await tx.staffPayrollInfo.create({
         data: {
           staffId: staff.id,
-          payGroup: payGroup || 'BANK_EPF',
+          payGroup: payGroup === 'CASH' ? 'CASH' : 'BANK_EPF',
         },
       })
 
@@ -156,20 +187,28 @@ export async function POST(request: Request) {
         })
       }
 
-      const userCreateData: Record<string, unknown> = {
+      const userCreateData: Prisma.UserUncheckedCreateInput = {
         name: staff.name,
         role: userRole,
         password: hashedPassword,
         mustChangePassword: true,
         staffId: staff.id,
-      }
-      if (normalizedEmail) {
-        userCreateData.email = normalizedEmail
+        ...(userRole === 'APPROVER' ? { approvesAllDepartments: isApproverAllDepts } : {}),
+        ...(normalizedEmail ? { email: normalizedEmail } : {}),
       }
 
-      await tx.user.create({
+      const createdUser = await tx.user.create({
         data: userCreateData,
       })
+
+      if (userRole === 'APPROVER' && scopedDeptIds.length > 0 && tx.approverDepartment?.createMany) {
+        await tx.approverDepartment.createMany({
+          data: scopedDeptIds.map((deptId) => ({
+            userId: createdUser.id,
+            departmentId: deptId,
+          })),
+        })
+      }
 
       await tx.auditLog.create({
         data: {
@@ -185,7 +224,7 @@ export async function POST(request: Request) {
             departmentId,
             designationId,
             shiftId,
-            payGroup: payGroup || 'BANK_EPF',
+            payGroup: payGroup === 'CASH' ? 'CASH' : 'BANK_EPF',
             role: userRole,
           }),
         },
@@ -216,6 +255,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID or IDs required' }, { status: 400 })
     }
 
+    const selfStaffId = auth.user.staffId ?? auth.user.staff?.id
+    if (selfStaffId && idList.includes(selfStaffId)) {
+      return NextResponse.json(
+        { error: 'Cannot delete your own staff record while signed in.' },
+        { status: 400 }
+      )
+    }
+
     // Deletion guard: Check attendanceLogs, dailyRecords, monthlyPayrolls, and shiftAssignments > 1
     const [logCount, recordCount, payrollCount] = await Promise.all([
       prisma.attendanceLog.count({ where: { staffId: { in: idList } } }),
@@ -240,7 +287,33 @@ export async function DELETE(request: Request) {
       }
     }
 
-    await prisma.$transaction(async (tx: any) => {
+    if (prisma.user?.count) {
+      const deletingAdminCount = await prisma.user.count({
+        where: { staffId: { in: idList }, role: 'ADMIN', disabledAt: null },
+      })
+      if (deletingAdminCount > 0) {
+        const totalActiveAdmins = await prisma.user.count({
+          where: { role: 'ADMIN', disabledAt: null },
+        })
+        if (totalActiveAdmins - deletingAdminCount < 1) {
+          return NextResponse.json(
+            { error: 'Cannot delete the last remaining active Admin user' },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      if (tx.punchPhoto?.deleteMany) {
+        await tx.punchPhoto.deleteMany({ where: { staffId: { in: idList } } })
+      }
+      if (tx.shiftSuggestion?.deleteMany) {
+        await tx.shiftSuggestion.deleteMany({ where: { staffId: { in: idList } } })
+      }
+      if (tx.approverDepartment?.deleteMany) {
+        await tx.approverDepartment.deleteMany({ where: { user: { staffId: { in: idList } } } })
+      }
       if (id && !ids) {
         await tx.shiftAssignment.deleteMany({ where: { staffId: id } })
         await tx.payGroupChange.deleteMany({ where: { staffPayrollInfo: { staffId: id } } })
@@ -255,6 +328,17 @@ export async function DELETE(request: Request) {
         await tx.user.deleteMany({ where: { staffId: { in: idList } } })
         await tx.employmentPeriod.deleteMany({ where: { staffId: { in: idList } } })
         await tx.staff.deleteMany({ where: { id: { in: idList } } })
+      }
+      if (tx.auditLog?.create) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: auth.user.id,
+            action: 'STAFF_DELETE',
+            targetType: 'Staff',
+            targetId: idList[0],
+            details: JSON.stringify({ deletedStaffIds: idList }),
+          },
+        })
       }
     })
 
@@ -345,11 +429,62 @@ export async function PUT(request: Request) {
     // Optional onboarding / access / payGroup updates when provided from unified Staff & Access modal
     if (updateData.payGroup && (updateData.payGroup === 'BANK_EPF' || updateData.payGroup === 'CASH')) {
       if (prisma.staffPayrollInfo?.upsert) {
-        await prisma.staffPayrollInfo.upsert({
+        const existingPayrollInfo = prisma.staffPayrollInfo.findUnique
+          ? await prisma.staffPayrollInfo.findUnique({ where: { staffId: id } })
+          : null
+
+        const updatedPayrollInfo = await prisma.staffPayrollInfo.upsert({
           where: { staffId: id },
           update: { payGroup: updateData.payGroup },
           create: { staffId: id, payGroup: updateData.payGroup },
         })
+
+        if (
+          existingPayrollInfo &&
+          existingPayrollInfo.payGroup !== updateData.payGroup &&
+          prisma.payGroupChange?.create
+        ) {
+          const currentMonthKey = istDateKey(new Date()).slice(0, 7)
+          await prisma.payGroupChange.create({
+            data: {
+              staffPayrollInfoId: updatedPayrollInfo.id,
+              payGroup: updateData.payGroup,
+              effectiveFromMonth: currentMonthKey,
+              createdByUserId: auth.user.id,
+            },
+          })
+        }
+
+        if (
+          existingPayrollInfo &&
+          existingPayrollInfo.payGroup !== updateData.payGroup &&
+          prisma.monthlyPayroll?.findMany
+        ) {
+          const unlockedRows = await prisma.monthlyPayroll.findMany({
+            where: { staffId: id, isLocked: false },
+          })
+          const payGroup = (updatedPayrollInfo.payGroup as PayGroup) || 'BANK_EPF'
+          const monthlyCtc = updatedPayrollInfo.monthlyCtc || 0
+          for (const row of unlockedRows) {
+            const calc = calculateStaffPayroll({
+              payGroup,
+              monthlyCtc,
+              presentDays: row.presentDays,
+              totalDays: row.totalDays,
+              refundOfAdvance: row.refundOfAdvance,
+              bonusAmount: row.bonusAmount,
+              bonusDays: row.bonusDays ?? 0,
+              bonusType: (row.bonusType as 'DAYS' | 'FLAT' | 'CUSTOM') ?? 'CUSTOM',
+              isBonusPfApplicable: row.isBonusPfApplicable,
+            })
+            if (calc) {
+              await prisma.monthlyPayroll.update({
+                where: { id: row.id },
+                data: { ...calc },
+              })
+            }
+          }
+        }
       }
     }
 
@@ -368,7 +503,11 @@ export async function PUT(request: Request) {
     }
 
     if (
-      (updateData.role !== undefined || updateData.email !== undefined || generatedEmployeeCode !== current.employeeCode) &&
+      (updateData.role !== undefined ||
+        updateData.email !== undefined ||
+        updateData.approvesAllDepartments !== undefined ||
+        updateData.approverDepartmentIds !== undefined ||
+        generatedEmployeeCode !== current.employeeCode) &&
       prisma.user?.findFirst
     ) {
       const existingUser = await prisma.user.findFirst({ where: { staffId: id } })
@@ -393,29 +532,95 @@ export async function PUT(request: Request) {
             )
           }
         }
+        const effectiveRole = nextRole || existingUser.role
         const userUpdate: Record<string, unknown> = {
           name: updateData.name || staff.name,
         }
         if (nextRole) userUpdate.role = nextRole
         if (nextEmail !== undefined) userUpdate.email = nextEmail
+        if (effectiveRole === 'APPROVER' && updateData.approvesAllDepartments !== undefined) {
+          userUpdate.approvesAllDepartments = Boolean(updateData.approvesAllDepartments)
+        } else if (effectiveRole !== 'APPROVER') {
+          userUpdate.approvesAllDepartments = false
+        }
+
         await prisma.user.update({
           where: { id: existingUser.id },
           data: userUpdate,
         })
+
+        if (prisma.approverDepartment?.deleteMany) {
+          if (effectiveRole !== 'APPROVER' || updateData.approvesAllDepartments === true) {
+            await prisma.approverDepartment.deleteMany({ where: { userId: existingUser.id } })
+          } else if (Array.isArray(updateData.approverDepartmentIds)) {
+            await prisma.approverDepartment.deleteMany({ where: { userId: existingUser.id } })
+            const scopedIds = updateData.approverDepartmentIds.filter(
+              (d: unknown): d is string => typeof d === 'string' && d.trim().length > 0
+            )
+            if (scopedIds.length > 0 && prisma.approverDepartment.createMany) {
+              await prisma.approverDepartment.createMany({
+                data: scopedIds.map((departmentId: string) => ({
+                  userId: existingUser.id,
+                  departmentId,
+                })),
+              })
+            }
+          }
+        }
       } else if (generatedEmployeeCode) {
         issuedTemporaryPassword = generateTemporaryPassword(10)
         const hashedPassword = await bcrypt.hash(issuedTemporaryPassword, 10)
-        await prisma.user.create({
+        const effectiveRole = nextRole || 'EMPLOYEE'
+        const isApproverAll = effectiveRole === 'APPROVER' ? updateData.approvesAllDepartments !== false : false
+        const createdUser = await prisma.user.create({
           data: {
             name: updateData.name || staff.name,
             email: nextEmail || null,
-            role: nextRole || 'EMPLOYEE',
+            role: effectiveRole,
             password: hashedPassword,
             mustChangePassword: true,
             staffId: id,
+            approvesAllDepartments: isApproverAll,
           },
         })
+        if (
+          effectiveRole === 'APPROVER' &&
+          !isApproverAll &&
+          Array.isArray(updateData.approverDepartmentIds) &&
+          prisma.approverDepartment?.createMany
+        ) {
+          const scopedIds = updateData.approverDepartmentIds.filter(
+            (d: unknown): d is string => typeof d === 'string' && d.trim().length > 0
+          )
+          if (scopedIds.length > 0) {
+            await prisma.approverDepartment.createMany({
+              data: scopedIds.map((departmentId: string) => ({
+                userId: createdUser.id,
+                departmentId,
+              })),
+            })
+          }
+        }
       }
+    }
+
+    if (prisma.auditLog?.create) {
+      await prisma.auditLog.create({
+        data: {
+          actorUserId: auth.user.id,
+          action: 'STAFF_UPDATE',
+          targetType: 'Staff',
+          targetId: id,
+          details: JSON.stringify({
+            name: staff.name,
+            machineId: staff.machineId,
+            employeeCode: generatedEmployeeCode,
+            joiningDate: updatedJoiningDate,
+            payGroup: updateData.payGroup,
+            role: updateData.role,
+          }),
+        },
+      })
     }
 
     if (shiftChanges) {
@@ -437,7 +642,7 @@ export async function PUT(request: Request) {
       ...staff,
       ...(issuedTemporaryPassword ? { temporaryPassword: issuedTemporaryPassword } : {}),
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update staff' }, { status: 500 })
   }
 }

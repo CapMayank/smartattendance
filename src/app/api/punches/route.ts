@@ -20,6 +20,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Missing staffId or date' }, { status: 400 })
     }
 
+    const userStaffId = auth.user.staffId ?? auth.user.staff?.id
+    if (auth.user.role === 'EMPLOYEE' && userStaffId && userStaffId !== staffId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const date = parseISO(dateStr)
 
     const rows = await prisma.attendanceLog.findMany({
@@ -48,7 +53,7 @@ export async function GET(req: Request) {
       : logs;
 
     return NextResponse.json(resultLogs)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET Punches Error:", error)
     return NextResponse.json({ error: 'Failed to fetch punches' }, { status: 500 })
   }
@@ -104,7 +109,7 @@ export async function POST(req: Request) {
     await recalculateAttendance(startOfDay(date), endOfDay(date))
 
     return NextResponse.json(log)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST Punch Error:", error)
     return NextResponse.json({ error: 'Failed to create punch' }, { status: 500 })
   }
@@ -160,7 +165,7 @@ export async function DELETE(req: Request) {
     await recalculateAttendance(startOfDay(date), endOfDay(date))
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("DELETE Punch Error:", error)
     return NextResponse.json({ error: 'Failed to delete punch' }, { status: 500 })
   }

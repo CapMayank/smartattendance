@@ -171,7 +171,7 @@ describe("proxyHandler", () => {
 
   describe("employee role page gating", () => {
     it("redirects EMPLOYEE users away from admin-only pages to /", async () => {
-      const adminPaths = ["/staff", "/payroll/monthly", "/settings", "/devices", "/attendance/manual"]
+      const adminPaths = ["/staff", "/payroll/monthly", "/settings", "/devices", "/attendance/manual", "/audit-logs"]
       for (const pathname of adminPaths) {
         const req = {
           nextauth: { token: { id: "u-emp", role: "EMPLOYEE", mustChangePassword: false } },
@@ -192,6 +192,52 @@ describe("proxyHandler", () => {
       for (const pathname of ["/", "/change-password"]) {
         const req = {
           nextauth: { token: { id: "u-emp", role: "EMPLOYEE", mustChangePassword: false } },
+          nextUrl: { pathname },
+          url: `http://localhost:3000${pathname}`,
+          cookies: {
+            get: (key: string) => (key === "setup-completed" ? { value: "true" } : undefined),
+          },
+        } as unknown as NextRequestWithAuth
+
+        const response = await proxyHandler(req)
+        expect(response).toBeUndefined()
+      }
+    })
+  })
+
+  describe("approver role page gating", () => {
+    it("redirects APPROVER users away from admin-only pages to /", async () => {
+      const adminOnlyPaths = [
+        "/staff",
+        "/payroll/monthly",
+        "/settings",
+        "/devices",
+        "/attendance/manual",
+        "/punches/unmatched",
+        "/reports/member-payroll",
+        "/reports/payroll-analytics",
+        "/audit-logs",
+      ]
+      for (const pathname of adminOnlyPaths) {
+        const req = {
+          nextauth: { token: { id: "u-app", role: "APPROVER", mustChangePassword: false } },
+          nextUrl: { pathname },
+          url: `http://localhost:3000${pathname}`,
+          cookies: {
+            get: (key: string) => (key === "setup-completed" ? { value: "true" } : undefined),
+          },
+        } as unknown as NextRequestWithAuth
+
+        const response = await proxyHandler(req)
+        expect(response?.status).toBe(307)
+        expect(response?.headers.get("location")).toBe("http://localhost:3000/")
+      }
+    })
+
+    it("allows APPROVER users to access attendance reports, calendar, and shifts", async () => {
+      for (const pathname of ["/", "/reports", "/reports/member-attendance", "/calendar", "/shifts"]) {
+        const req = {
+          nextauth: { token: { id: "u-app", role: "APPROVER", mustChangePassword: false } },
           nextUrl: { pathname },
           url: `http://localhost:3000${pathname}`,
           cookies: {

@@ -21,6 +21,7 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
   const offline = shell.devices.filter((d) => !d.online).length;
   const online = shell.devices.length - offline;
   const isEmployee = shell.roleCode === "EMPLOYEE";
+  const isAdmin = shell.roleCode === "ADMIN";
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col gap-[18px]", className)}>
@@ -87,7 +88,7 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
         ) : null}
       </div>
 
-      {!isEmployee && (
+      {isAdmin && (
         <Link
           href="/attendance/manual"
           className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-[10px] bg-text text-[13.5px] font-medium text-ground transition-colors duration-150 hover:bg-white"
@@ -167,13 +168,15 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
               ))
             )}
           </div>
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 rounded-[9px] px-3 py-2 text-muted transition-colors duration-150 hover:text-text"
-          >
-            <HelpCircle size={18} aria-hidden="true" />
-            Help &amp; guide
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/settings"
+              className="flex items-center gap-3 rounded-[9px] px-3 py-2 text-muted transition-colors duration-150 hover:text-text"
+            >
+              <HelpCircle size={18} aria-hidden="true" />
+              Help &amp; guide
+            </Link>
+          )}
         </div>
       )}
     </div>

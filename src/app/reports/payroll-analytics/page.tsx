@@ -12,6 +12,9 @@ export default async function PayrollAnalyticsPage() {
   if (!session) {
     redirect("/login")
   }
+  if (session.user?.role !== "ADMIN") {
+    redirect("/")
+  }
 
   const allPayrolls = await prisma.monthlyPayroll.findMany({
     include: {

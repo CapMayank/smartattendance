@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatPing } from "@/lib/format";
 import { runDetection } from "@/lib/shift-suggestions";
+import { isEmployedOnDate } from "@/lib/employment";
 import {
   absenceStreak,
   arrivalsWindow,
@@ -26,6 +27,11 @@ type Delta = ReturnType<typeof weekdayDelta>;
 export type StaffStatus = "on-duty" | "left" | "late" | "absent";
 export type PunchType = "IN" | "OUT";
 
+export type DashboardOptions = {
+  allowedDepartmentIds?: string[] | null;
+  isApprover?: boolean;
+};
+
 export type DashboardData = {
   kpis: {
     inToday: number;
@@ -46,7 +52,13 @@ export type DashboardData = {
   ring: { onTime: number; late: number; absent: number };
   departments: { name: string; present: number; total: number }[];
   attention: {
-    kind: "absent-streak" | "late-repeat" | "device-offline" | "missing-out" | "shift-suggestions";
+    kind:
+      | "absent-streak"
+      | "late-repeat"
+      | "device-offline"
+      | "missing-out"
+      | "shift-suggestions"
+      | "unmatched-punches";
     title: string;
     detail: string;
     href: string;
@@ -113,13 +125,18 @@ function mostCommon<T>(values: T[]): T | null {
   return best;
 }
 
-export async function getDashboardData(now: Date): Promise<DashboardData> {
+export async function getDashboardData(now: Date, options?: DashboardOptions): Promise<DashboardData> {
   const todayStart = istDayStart(now);
   const windowStart = istDayStart(new Date(todayStart.getTime() - LOG_WINDOW_DAYS * DAY_MS + DAY_MS / 2));
 
-  const [staffRows, logs, devices, holidays, policy, assignmentRows, shiftRows] = await Promise.all([
+  const [allStaffRows, logs, devices, holidays, policy, assignmentRows, shiftRows] = await Promise.all([
     prisma.staff.findMany({
-      include: { department: true, designation: true, shift: true },
+      include: {
+        department: true,
+        designation: true,
+        shift: true,
+        employmentPeriods: { select: { startDate: true, endDate: true } },
+      },
       orderBy: { name: "asc" },
     }),
     prisma.attendanceLog.findMany({
@@ -135,6 +152,14 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     prisma.shiftAssignment.findMany(),
     prisma.shift.findMany(),
   ]);
+
+  const allowedDepts = options?.allowedDepartmentIds;
+  const staffRows =
+    allowedDepts && allowedDepts.length > 0
+      ? allStaffRows.filter((s) => s.departmentId !== null && allowedDepts.includes(s.departmentId))
+      : allowedDepts && allowedDepts.length === 0
+        ? []
+        : allStaffRows;
 
   const shiftsById = new Map<string, ShiftLite>(shiftRows.map((sh) => [sh.id, sh]));
   const assignmentsByStaff = new Map<string, AssignmentLite[]>();
@@ -181,28 +206,34 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     else byDay.set(key, [l]);
   }
 
-  const staffInfo = staffRows.map((s) => ({
-    row: s,
-    assignments: assignmentsByStaff.get(s.id) ?? [],
-    /** Shift start applying on an IST day key (blank start counts as none). */
-    startOn: (key: string): string | null =>
-      shiftStartForDay(assignmentsByStaff.get(s.id) ?? [], s.shiftId, shiftsById, key)?.trim() || null,
-    joinedKey: istDateKey(s.createdAt),
-    byDay: logsByStaffDay.get(s.id) ?? new Map<string, { timestamp: Date; type: string }[]>(),
-  }));
+  const allStaffInfo = staffRows.map((s) => {
+    const joinedKey = s.joiningDate || istDateKey(s.createdAt);
+    const hasPeriods = Array.isArray(s.employmentPeriods) && s.employmentPeriods.length > 0;
+    const isEmployedKey = (key: string): boolean =>
+      hasPeriods ? isEmployedOnDate(s, key) : key >= joinedKey;
+    return {
+      row: s,
+      assignments: assignmentsByStaff.get(s.id) ?? [],
+      /** Shift start applying on an IST day key (blank start counts as none). */
+      startOn: (key: string): string | null =>
+        shiftStartForDay(assignmentsByStaff.get(s.id) ?? [], s.shiftId, shiftsById, key)?.trim() || null,
+      joinedKey,
+      isEmployedKey,
+      byDay: logsByStaffDay.get(s.id) ?? new Map<string, { timestamp: Date; type: string }[]>(),
+    };
+  });
 
   /**
-   * present / late counts for one IST day. Roster rule: a staff member only counts from their
-   * createdAt date onward, so staff added after their earliest imported punches drop out of earlier
-   * days in the trend and in the same-weekday comparison.
+   * present / late counts for one IST day. Roster rule: a staff member only counts on days
+   * within their active employment periods (or from joiningDate / createdAt onward for legacy staff).
    */
   /** `cutoff` limits the day to punches at or before that instant (same time-of-day comparisons). */
   function dayStats(key: string, cutoff?: Date) {
     let roster = 0;
     let present = 0;
     let late = 0;
-    for (const s of staffInfo) {
-      if (s.joinedKey > key) continue;
+    for (const s of allStaffInfo) {
+      if (!s.isEmployedKey(key)) continue;
       roster++;
       const dayLogs = s.byDay.get(key);
       if (!dayLogs || dayLogs.length === 0) continue;
@@ -212,6 +243,11 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     }
     return { roster, present, late, absent: isWorking(key) ? roster - present : 0 };
   }
+
+  // Only include staff who are currently employed today (or have punches today) in today's active roster
+  const staffInfo = allStaffInfo.filter(
+    (s) => s.isEmployedKey(todayKey) || (s.byDay.get(todayKey)?.length ?? 0) > 0,
+  );
 
   // ---- Today: per-staff rows ----
   const nowIso = now.toISOString();
@@ -320,7 +356,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
 
     // Completed working days only (today is still in progress); present today breaks the streak.
     if (info.status === "absent") {
-      const eligible = pastWorking.filter((k) => k >= s.joinedKey);
+      const eligible = pastWorking.filter((k) => s.isEmployedKey(k));
       const present = new Set(s.byDay.keys());
       const n = absenceStreak(present, eligible);
       if (n >= 3) {
@@ -342,7 +378,9 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     let lateCount = 0;
     let lateSum = 0;
     for (const [key, dayLogs] of s.byDay) {
-      if (key < weekStartKey || key > todayKey || !isWorking(key) || dayLogs.length === 0) continue;
+      if (key < weekStartKey || key > todayKey || !isWorking(key) || !s.isEmployedKey(key) || dayLogs.length === 0) {
+        continue;
+      }
       const first = dayLogs[0].timestamp;
       const startKey = s.startOn(key);
       if (isLate(first, startKey, allow)) {
@@ -363,7 +401,8 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   streaks.sort((a, b) => b.n - a.n);
   lateRepeats.sort((a, b) => b.n - a.n);
 
-  const offlineDevices = devices.filter((d) => !isDeviceOnline(d.lastPing, now));
+  const isApprover = Boolean(options?.isApprover);
+  const offlineDevices = isApprover ? [] : devices.filter((d) => !isDeviceOnline(d.lastPing, now));
   const lastPingText = (d: Date) =>
     `${istDateKey(d) === todayKey ? "today " : ""}${formatPing(d, now)}`;
   const offline: DashboardData["attention"] =
@@ -395,10 +434,13 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
   const prevKey = pastWorking[0] ?? null;
   const missing: DashboardData["attention"] = [];
   if (prevKey) {
-    const open = staffInfo.filter((s) => hasMissingOut(s.byDay.get(prevKey) ?? []));
+    const open = staffInfo.filter((s) => s.isEmployedKey(prevKey) && hasMissingOut(s.byDay.get(prevKey) ?? []));
     if (open.length > 0) {
       const yesterdayKey = istDateKey(new Date(todayStart.getTime() - DAY_MS / 2));
-      const when = prevKey === yesterdayKey ? "yesterday" : `on ${weekdayFmt.format(keyNoon(prevKey))} ${labelFmt.format(keyNoon(prevKey))}`;
+      const when =
+        prevKey === yesterdayKey
+          ? "yesterday"
+          : `on ${weekdayFmt.format(keyNoon(prevKey))} ${labelFmt.format(keyNoon(prevKey))}`;
       const names = open.map((s) => s.row.name);
       missing.push({
         kind: "missing-out",
@@ -407,7 +449,7 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
           open.length === 1
             ? "Add the OUT punch before payroll is locked"
             : `${names.slice(0, 3).join(", ")}${names.length > 3 ? ` +${names.length - 3}` : ""}`,
-        href: "/attendance/manual",
+        href: isApprover ? "/reports" : "/attendance/manual",
       });
     }
   }
@@ -425,14 +467,41 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
       ? [
           {
             kind: "shift-suggestions",
-            title: pendingSuggestions === 1 ? "1 shift suggestion to review" : `${pendingSuggestions} shift suggestions to review`,
+            title:
+              pendingSuggestions === 1
+                ? "1 shift suggestion to review"
+                : `${pendingSuggestions} shift suggestions to review`,
             detail: "Teachers whose real arrival time differs from their shift",
             href: "/shifts",
           },
         ]
       : [];
 
-  // Devices and the payroll-relevant missing OUT always make the cut; then up to 2 of each
+  // Unmatched punches: alert Admins when biometric devices send punches for unknown machine IDs.
+  let pendingUnmatched = 0;
+  if (!isApprover) {
+    try {
+      pendingUnmatched = (await prisma.unmatchedPunch?.count({ where: { resolvedAt: null } })) ?? 0;
+    } catch (error) {
+      console.error("[dashboard] unmatched punch count failed:", error);
+    }
+  }
+  const unmatchedItems: DashboardData["attention"] =
+    pendingUnmatched > 0
+      ? [
+          {
+            kind: "unmatched-punches",
+            title:
+              pendingUnmatched === 1
+                ? "1 unmatched punch to resolve"
+                : `${pendingUnmatched} unmatched punches to resolve`,
+            detail: "Biometric punches from unmapped machine IDs",
+            href: "/punches/unmatched",
+          },
+        ]
+      : [];
+
+  // Devices, unmatched punches, and payroll-relevant missing OUT always make the cut; then up to 2 of each
   // person-kind; then fill from what is left.
   type Ranked = DashboardData["attention"][number] & { n: number };
   const strip = (r: Ranked): DashboardData["attention"][number] => ({
@@ -441,9 +510,23 @@ export async function getDashboardData(now: Date): Promise<DashboardData> {
     detail: r.detail,
     href: r.href,
   });
-  const primary = [...offline, ...missing, ...suggestionItems, ...streaks.slice(0, 2).map(strip), ...lateRepeats.slice(0, 2).map(strip)];
+  const primary = [
+    ...offline,
+    ...unmatchedItems,
+    ...missing,
+    ...suggestionItems,
+    ...streaks.slice(0, 2).map(strip),
+    ...lateRepeats.slice(0, 2).map(strip),
+  ];
   const extra = [...streaks.slice(2).map(strip), ...lateRepeats.slice(2).map(strip)];
-  const order = { "absent-streak": 0, "late-repeat": 1, "device-offline": 2, "missing-out": 3, "shift-suggestions": 4 } as const;
+  const order = {
+    "absent-streak": 0,
+    "late-repeat": 1,
+    "device-offline": 2,
+    "unmatched-punches": 3,
+    "missing-out": 4,
+    "shift-suggestions": 5,
+  } as const;
   const attention = [...primary.slice(0, MAX_ATTENTION), ...extra]
     .slice(0, MAX_ATTENTION)
     .sort((a, b) => order[a.kind] - order[b.kind]);

@@ -26,6 +26,29 @@ export type RequireRoleResult =
   | { user: DbUserWithRelations; errorResponse?: never }
   | { user?: never; errorResponse: NextResponse }
 
+/**
+ * Returns null if the user has full department visibility (ADMIN, or APPROVER with
+ * approvesAllDepartments or no specific department restriction rows), or an array
+ * of allowed department IDs when an APPROVER is scoped to specific departments.
+ */
+export function getApproverDepartmentIds(
+  user:
+    | {
+        role?: string | null
+        approvesAllDepartments?: boolean | null
+        approverDepartments?: { departmentId: string }[] | null
+      }
+    | null
+    | undefined
+): string[] | null {
+  if (!user || user.role !== "APPROVER") return null
+  if (user.approvesAllDepartments) return null
+  const ids = (user.approverDepartments ?? [])
+    .map((d) => d.departmentId)
+    .filter((id): id is string => Boolean(id))
+  return ids.length > 0 ? ids : null
+}
+
 export async function requireRole(
   session: Session | null | undefined,
   allowedRoles: AppRole[],
