@@ -23,6 +23,22 @@ export type Fixtures = {
   suggestions?: SuggestionRow[]
   /** Optional; stored punch requests. */
   punchRequests?: PunchRequestRow[]
+  /** Optional; stored users. */
+  users?: UserRow[]
+  /** Optional; stored system settings. */
+  systemSettings?: { key: string; value: string }[]
+}
+
+export type UserRow = {
+  id: string
+  name: string
+  email: string
+  role: string
+  disabledAt?: Date | null
+  mustChangePassword?: boolean
+  staffId?: string | null
+  staff?: unknown
+  approverDepartments?: { departmentId: string }[]
 }
 
 export type SuggestionRow = {
@@ -265,16 +281,37 @@ const resolvePunchRequest = (
 
   const client = {
     user: {
-      findUnique: async (args: { where: { id?: string; email?: string } }) => ({
-        id: args.where.id ?? "u1",
-        name: "Admin User",
-        email: args.where.email ?? "admin@example.com",
-        role: "ADMIN",
-        disabledAt: null,
-        mustChangePassword: false,
-        staff: null,
-        approverDepartments: [],
-      }),
+      findUnique: async (args: { where: { id?: string; email?: string } }) => {
+        if (fixtures.users) {
+          const u = fixtures.users.find(
+            (usr) => (args.where.id && usr.id === args.where.id) || (args.where.email && usr.email === args.where.email)
+          )
+          if (u) {
+            const staffObj = (u.staff ?? (u.staffId ? staffRows.find((s) => s.id === u.staffId) : null)) as Record<string, unknown> | null
+            return {
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              role: u.role,
+              disabledAt: u.disabledAt ?? null,
+              mustChangePassword: u.mustChangePassword ?? false,
+              staffId: u.staffId ?? null,
+              staff: staffObj ? { ...staffObj, employmentPeriods: (staffObj.employmentPeriods as unknown[]) ?? [] } : null,
+              approverDepartments: u.approverDepartments ?? [],
+            }
+          }
+        }
+        return {
+          id: args.where.id ?? "u1",
+          name: "Admin User",
+          email: args.where.email ?? "admin@example.com",
+          role: "ADMIN",
+          disabledAt: null,
+          mustChangePassword: false,
+          staff: null,
+          approverDepartments: [],
+        }
+      },
       findFirst: async () => null,
       findMany: async () => [],
       count: async () => 1,
@@ -400,8 +437,22 @@ const resolvePunchRequest = (
         fixtures.holidays.filter((h) => inRange(h.date, args?.where?.date)),
     },
     monthlyPayroll: {
+      findUnique: async (args: { where: { staffId_month_year: { staffId: string; month: number; year: number } } }) => {
+        const { staffId, month, year } = args.where.staffId_month_year
+        const row = fixtures.lockedPayrolls.find((p) => p.staffId === staffId && p.month === month && p.year === year)
+        return row ? { ...row, isLocked: true } : null
+      },
+      findFirst: async (args?: { where?: { staffId?: string; month?: number; year?: number; isLocked?: boolean } }) => {
+        const row = fixtures.lockedPayrolls.find(
+          (p) =>
+            (!args?.where?.staffId || p.staffId === args.where.staffId) &&
+            (!args?.where?.month || p.month === args.where.month) &&
+            (!args?.where?.year || p.year === args.where.year)
+        )
+        return row ? { ...row, isLocked: true } : null
+      },
       findMany: async (args?: { where?: { staffId?: string } }) =>
-        fixtures.lockedPayrolls.filter((p) => !args?.where?.staffId || p.staffId === args.where.staffId),
+        fixtures.lockedPayrolls.filter((p) => !args?.where?.staffId || p.staffId === args.where.staffId).map((p) => ({ ...p, isLocked: true })),
     },
     punchRequest: {
       findMany: async (args?: {
@@ -494,6 +545,27 @@ const resolvePunchRequest = (
         return { count: doomed.length }
       },
     },
+    systemSetting: {
+      findUnique: async (args: { where: { key: string } }) => {
+        const st = (fixtures.systemSettings ?? []).find((x) => x.key === args.where.key)
+        return st ? { id: `ss-${st.key}`, ...st } : null
+      },
+      findFirst: async (args?: { where?: { key?: string } }) => {
+        const st = (fixtures.systemSettings ?? []).find((x) => !args?.where?.key || x.key === args.where.key)
+        return st ? { id: `ss-${st.key}`, ...st } : null
+      },
+      findMany: async () => (fixtures.systemSettings ?? []).map((st) => ({ id: `ss-${st.key}`, ...st })),
+      upsert: async ({ where, create, update }: { where: { key: string }; create: { key: string; value: string }; update: { value: string } }) => {
+        let st = (fixtures.systemSettings ?? []).find((x) => x.key === where.key)
+        if (st) {
+          st.value = update.value
+        } else {
+          st = { key: where.key, ...create }
+          if (fixtures.systemSettings) fixtures.systemSettings.push(st)
+        }
+        return { id: `ss-${st.key}`, ...st }
+      },
+    },
     auditLog: {
       create: async ({ data }: { data: Record<string, unknown> }) => ({
         id: `audit-${Date.now()}`,
@@ -575,6 +647,12 @@ const resolvePunchRequest = (
         },
         get attendanceLog() {
           return client.attendanceLog
+        },
+        get monthlyPayroll() {
+          return client.monthlyPayroll
+        },
+        get systemSetting() {
+          return client.systemSetting
         },
         get auditLog() {
           return client.auditLog
