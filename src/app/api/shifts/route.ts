@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { shiftUsageCount, shiftInUseMessage } from '@/lib/shift-delete-guard'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   let shifts = await prisma.shift.findMany({ orderBy: { createdAt: 'desc' } })
   
@@ -26,7 +28,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const body = await request.json().catch(() => null)
@@ -50,7 +53,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -66,7 +71,9 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const data = await request.json()
     const { id, name, startTime, endTime } = data

@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { startOfDay, endOfDay, parseISO, eachDayOfInterval, format } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireRole(session, ['ADMIN']);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await req.json()
     const { staffIds, startDate, endDate, time, type } = body

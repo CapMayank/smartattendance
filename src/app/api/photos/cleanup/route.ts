@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { runPhotoCleanup } from '@/lib/photo-retention'
 
 export async function POST() {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     return NextResponse.json(await runPhotoCleanup())

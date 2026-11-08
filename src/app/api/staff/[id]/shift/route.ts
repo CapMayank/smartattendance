@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { istDateKey } from '@/lib/dashboard-calc'
 import { ALWAYS } from '@/lib/shift-lookup'
 import {
@@ -14,7 +15,8 @@ import type { ChangeRequest } from '@/lib/shift-change'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params
@@ -48,12 +50,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       shiftId,
       effectiveFrom: effectiveFrom ?? istDateKey(new Date()),
       source: 'MANUAL',
-      createdByUserId: session.user?.id,
+      createdByUserId: session!.user?.id,
     }
-    if (dryRun === true) return NextResponse.json(await previewShiftChange(req))
+
+    if (dryRun === true) {
+      return NextResponse.json(await previewShiftChange(req))
+    }
     return NextResponse.json(await applyShiftChange(req))
   } catch (error) {
     console.error('Shift change error:', error)
-    return NextResponse.json({ error: 'Failed to change shift' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update shift' }, { status: 500 })
   }
 }

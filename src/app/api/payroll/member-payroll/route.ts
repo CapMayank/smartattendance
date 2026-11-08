@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { searchParams } = new URL(request.url)

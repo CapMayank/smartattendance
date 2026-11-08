@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { istDateKey } from '@/lib/dashboard-calc'
 import { applyShiftChange } from '@/lib/shift-change-service'
 import { resolveCsvShift } from '@/lib/csv-shift'
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { data } = await request.json()
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
           shiftId: decision.shiftId,
           effectiveFrom: todayKey,
           source: 'MANUAL',
-          createdByUserId: session.user?.id,
+          createdByUserId: auth.user.id,
         })
         if (!result.recalculated) recalculationFailed++
       }
@@ -102,7 +104,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { ids, departmentId, designationId, shiftId } = await request.json()
@@ -136,7 +139,7 @@ export async function PUT(request: Request) {
           shiftId: nextShiftId,
           effectiveFrom,
           source: 'MANUAL',
-          createdByUserId: session.user?.id,
+          createdByUserId: auth.user.id,
         })
         if (!result.recalculated) notRecalculated.push(staff.id)
       }
@@ -152,7 +155,8 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { ids } = await request.json()

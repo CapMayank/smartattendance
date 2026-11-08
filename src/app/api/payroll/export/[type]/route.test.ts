@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
   monthlyPayroll: {
     findMany: vi.fn(),
   },
@@ -78,6 +81,7 @@ describe("GET /api/payroll/export/[type]", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.user.findUnique.mockResolvedValue({ id: "u1", name: "Admin", role: "ADMIN", disabledAt: null, mustChangePassword: false, staff: null, approverDepartments: [] });
     session.mockResolvedValue({ user: { id: "u1" } } as never);
     mockPrisma.monthlyPayroll.findMany.mockResolvedValue([bankStaff, cashStaff]);
   });

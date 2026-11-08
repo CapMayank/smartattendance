@@ -8,7 +8,7 @@ vi.mock("@/lib/prisma", () => ({
     return holder.client
   },
 }))
-vi.mock("next-auth/next", () => ({ getServerSession: vi.fn(async () => ({ user: { name: "admin" } })) }))
+vi.mock("next-auth/next", () => ({ getServerSession: vi.fn(async () => ({ user: { id: "u1", name: "admin" } })) }))
 vi.mock("@/lib/auth", () => ({ authOptions: {} }))
 
 import { POST } from "./route"

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { requireRole } from "@/lib/rbac";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
 
@@ -47,7 +48,8 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await requireRole(session, ['ADMIN']);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { type } = await params;
     const { searchParams } = new URL(request.url);

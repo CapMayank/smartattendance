@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { jpegResponse } from '@/lib/photo-response'
 
 type Ctx = { params: Promise<{ id: string }> }
 
-const unauthorized = () => NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
 export async function GET(_request: Request, { params }: Ctx) {
   const session = await getServerSession(authOptions)
-  if (!session) return unauthorized()
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params
@@ -33,7 +33,8 @@ export async function GET(_request: Request, { params }: Ctx) {
 
 export async function POST(request: Request, { params }: Ctx) {
   const session = await getServerSession(authOptions)
-  if (!session) return unauthorized()
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params
@@ -84,7 +85,8 @@ export async function POST(request: Request, { params }: Ctx) {
 
 export async function DELETE(_request: Request, { params }: Ctx) {
   const session = await getServerSession(authOptions)
-  if (!session) return unauthorized()
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params

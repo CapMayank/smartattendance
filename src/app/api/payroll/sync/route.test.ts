@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
   monthlyPayroll: {
     findMany: vi.fn(),
     update: vi.fn(),
@@ -30,6 +33,7 @@ const session = vi.mocked(getServerSession);
 describe("POST /api/payroll/sync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.user.findUnique.mockResolvedValue({ id: "u1", name: "Admin", role: "ADMIN", disabledAt: null, mustChangePassword: false, staff: null, approverDepartments: [] });
     session.mockResolvedValue({ user: { id: "u1" } } as never);
   });
 

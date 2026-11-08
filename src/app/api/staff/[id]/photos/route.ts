@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
@@ -14,7 +15,8 @@ function parseLimit(raw: string | null): number {
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params

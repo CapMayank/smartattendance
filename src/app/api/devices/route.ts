@@ -2,17 +2,22 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   const devices = await prisma.device.findMany({ orderBy: { createdAt: 'desc' } })
   return NextResponse.json(devices)
 }
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const data = await request.json()
     const device = await prisma.device.create({ data })
@@ -24,7 +29,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const data = await request.json()
     const { id, ...updateData } = data
@@ -41,7 +48,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

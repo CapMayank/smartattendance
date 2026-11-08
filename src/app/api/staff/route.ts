@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { requireRole } from "@/lib/rbac"
 import { istDateKey } from '@/lib/dashboard-calc'
 import { ALWAYS } from '@/lib/shift-lookup'
 import { applyShiftChange, isValidDayKey, START_BEFORE_ALWAYS_ERROR, syncCurrentShifts } from '@/lib/shift-change-service'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN', 'APPROVER'])
+  if (auth.errorResponse) return auth.errorResponse
+
   // Staff.shiftId follows a future-dated assignment once its start date arrives
   try {
     await syncCurrentShifts()
@@ -29,7 +32,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const data = await request.json()
     const staff = await prisma.staff.create({ data })
@@ -41,7 +46,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -64,7 +71,9 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
+
   try {
     const data = await request.json()
     const { id, ...updateData } = data
@@ -103,7 +112,7 @@ export async function PUT(request: Request) {
         shiftId: nextShiftId,
         effectiveFrom: updateData.effectiveFrom ?? istDateKey(new Date()),
         source: 'MANUAL',
-        createdByUserId: session.user?.id,
+        createdByUserId: session!.user?.id,
       })
       staff = (await prisma.staff.findUnique({ where: { id } })) ?? staff
       return NextResponse.json({ ...staff, shiftChange })

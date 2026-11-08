@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
+import { requireRole } from '@/lib/rbac'
 import { isValidDayKey } from '@/lib/shift-change-service'
 import { approveSuggestion, SuggestionError } from '@/lib/shift-suggestions'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireRole(session, ['ADMIN'])
+  if (auth.errorResponse) return auth.errorResponse
 
   try {
     const { id } = await params
@@ -22,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'dryRun must be a boolean' }, { status: 400 })
     }
 
-    const result = await approveSuggestion(id, startDate, { dryRun: dryRun === true, userId: session.user?.id })
+    const result = await approveSuggestion(id, startDate, { dryRun: dryRun === true, userId: session!.user?.id })
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof SuggestionError) return NextResponse.json({ error: error.message }, { status: error.status })

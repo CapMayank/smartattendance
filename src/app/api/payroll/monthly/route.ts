@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { requireRole } from "@/lib/rbac";
 import { calculateStaffPayroll, PayGroup } from "@/lib/payroll-calc";
 
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireRole(session, ['ADMIN']);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const month = parseInt(searchParams.get("month") || "");
@@ -172,7 +174,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireRole(session, ['ADMIN']);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { payrolls } = body; // Array of payroll updates

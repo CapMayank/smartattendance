@@ -214,6 +214,21 @@ export function createFakePrisma(fixtures: Fixtures): {
   }
 
   const client = {
+    user: {
+      findUnique: async (args: { where: { id?: string; email?: string } }) => ({
+        id: args.where.id ?? "u1",
+        name: "Admin User",
+        email: args.where.email ?? "admin@example.com",
+        role: "ADMIN",
+        disabledAt: null,
+        mustChangePassword: false,
+        staff: null,
+        approverDepartments: [],
+      }),
+      findFirst: async () => null,
+      findMany: async () => [],
+      count: async () => 1,
+    },
     staff: {
       findMany: async (args?: { where?: { id?: string | { in?: string[] } } }) =>
         staffRows.filter((s) => matchesId(s.id, args?.where?.id)),
@@ -397,6 +412,7 @@ export function createFakePrisma(fixtures: Fixtures): {
           updateMany: (arg: { where: Record<string, unknown>; data: StaffUpdate['data'] }) =>
             client.staff.updateMany(arg),
         },
+        get user() { return client.user },
         get punchPhoto() {
           return client.punchPhoto
         },
