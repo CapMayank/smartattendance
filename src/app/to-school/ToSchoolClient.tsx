@@ -575,7 +575,7 @@ export function ToSchoolClient({
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-line">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={() => setIsModalOpen(false)}
               disabled={isSubmitting}
             >

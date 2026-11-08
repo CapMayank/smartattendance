@@ -63,7 +63,7 @@ export type SuggestionRow = {
   updatedAt?: Date
 }
 
-type TimeFilter = { gte?: Date; lte?: Date }
+type TimeFilter = { gte?: Date; lte?: Date; lt?: Date; gt?: Date }
 type AssignmentRow = {
   staffId: string
   effectiveFrom: string
@@ -127,6 +127,7 @@ export function createFakePrisma(fixtures: Fixtures): {
   policyWrites: { op: 'create' | 'update'; data: Record<string, unknown> }[]
   /** Live punch photo rows (push to seed). */
   punchPhotos: PunchPhotoRow[]
+  punchRequests: PunchRequestRow[]
 } {
   const created: Record<string, unknown>[] = []
   const deleteCalls: unknown[] = []
@@ -208,7 +209,7 @@ const resolvePunchRequest = (
   }
 
   const inRange = (t: Date, f?: TimeFilter) =>
-    (!f?.gte || t.getTime() >= f.gte.getTime()) && (!f?.lte || t.getTime() <= f.lte.getTime())
+    (!f?.gte || t.getTime() >= f.gte.getTime()) && (!f?.gt || t.getTime() > f.gt.getTime()) && (!f?.lte || t.getTime() <= f.lte.getTime()) && (!f?.lt || t.getTime() < f.lt.getTime())
 
   const sortedLogs = (where?: { timestamp?: TimeFilter; staffId?: string }) =>
     fixtures.logs
@@ -494,7 +495,7 @@ const resolvePunchRequest = (
         data,
         include,
       }: {
-        data: Omit<PunchRequestRow, 'id'> & { id?: string }
+        data: Omit<PunchRequestRow, 'id' | 'status'> & { id?: string; status?: string }
         include?: { staff?: boolean | Record<string, unknown> }
       }) => {
         const now = new Date()
@@ -502,7 +503,8 @@ const resolvePunchRequest = (
           id: data.id ?? `pr-${++punchRequestSeq}`,
           createdAt: now,
           updatedAt: now,
-          status: 'PENDING',
+
+          status: data.status ?? 'PENDING',
           requestedTime: null,
           requestedInTime: null,
           requestedOutTime: null,
@@ -560,7 +562,7 @@ const resolvePunchRequest = (
         if (st) {
           st.value = update.value
         } else {
-          st = { key: where.key, ...create }
+          st = { ...create, key: where.key }
           if (fixtures.systemSettings) fixtures.systemSettings.push(st)
         }
         return { id: `ss-${st.key}`, ...st }
@@ -578,8 +580,15 @@ const resolvePunchRequest = (
       findMany: async (args?: {
         where?: { timestamp?: TimeFilter; staffId?: string }
         include?: { photo?: { select?: { id?: boolean } } }
+        orderBy?: { timestamp?: 'asc' | 'desc' } | Array<{ timestamp?: 'asc' | 'desc' }>
+        take?: number
       }) => {
-        const logs = sortedLogs(args?.where)
+        let logs = sortedLogs(args?.where)
+        if (args?.orderBy) {
+          const isDesc = Array.isArray(args.orderBy) ? args.orderBy.some((o) => o.timestamp === 'desc') : args.orderBy?.timestamp === 'desc'
+          if (isDesc) logs = [...logs].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        }
+        if (typeof args?.take === 'number') logs = logs.slice(0, args.take)
         if (!args?.include?.photo) return logs
         // Mirrors `include: { photo: { select: { id: true } } }`: only the linked photo's id, never its bytes.
         return logs.map((l) => {

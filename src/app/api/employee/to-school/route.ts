@@ -62,7 +62,7 @@ export async function GET(req: Request) {
         }
         targetStaffId = requestedStaffId;
       } else {
-        targetStaffId = userStaffId;
+        targetStaffId = userStaffId ?? null;
         if (!targetStaffId) {
           return NextResponse.json(
             { error: "staffId parameter required for approver without linked staff profile" },
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
       }
     } else {
       // ADMIN
-      targetStaffId = requestedStaffId || userStaffId;
+      targetStaffId = requestedStaffId || (userStaffId ?? null);
       if (!targetStaffId) {
         return NextResponse.json(
           { error: "staffId parameter required" },

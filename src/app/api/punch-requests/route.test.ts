@@ -472,8 +472,8 @@ describe("PATCH /api/punch-requests/[id]", () => {
       expect(body.decisionRemarks).toBe("Approved by HOD")
 
       // AttendanceLog created with proper IST timestamp
-      expect(fake.client.attendanceLog).toBeDefined()
-      const logs = await fake.client.attendanceLog.findMany({ where: { staffId: "s1" } })
+      expect((fake.client as any).attendanceLog).toBeDefined()
+      const logs = await (fake.client as any).attendanceLog.findMany({ where: { staffId: "s1" } })
       expect(logs).toHaveLength(1)
       expect(logs[0].type).toBe("IN")
       expect(logs[0].timestamp.toISOString()).toBe(new Date("2026-11-06T08:45:00+05:30").toISOString())
@@ -506,7 +506,7 @@ describe("PATCH /api/punch-requests/[id]", () => {
       const res = await PATCH(patchReq("pr-both", { action: "APPROVE" }), patchContext("pr-both"))
       expect(res.status).toBe(200)
 
-      const logs = await fake.client.attendanceLog.findMany({ where: { staffId: "s1" } })
+      const logs = await (fake.client as any).attendanceLog.findMany({ where: { staffId: "s1" } })
       expect(logs).toHaveLength(2)
       expect(logs[0]).toMatchObject({ type: "IN", timestamp: new Date("2026-11-06T08:30:00+05:30") })
       expect(logs[1]).toMatchObject({ type: "OUT", timestamp: new Date("2026-11-06T15:45:00+05:30") })
