@@ -31,6 +31,7 @@ type Policy = {
 
 export default function SettingsPage() {
   const [policy, setPolicy] = useState<Policy | null>(null)
+  const [punchRequestMaxDays, setPunchRequestMaxDays] = useState<string>("0")
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -38,6 +39,15 @@ export default function SettingsPage() {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => setPolicy(data))
+
+    fetch('/api/settings?key=PUNCH_REQUEST_MAX_DAYS')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.value !== null && data?.value !== undefined) {
+          setPunchRequestMaxDays(String(data.value))
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const handleChange = (field: keyof Policy, value: string | number) => {
@@ -51,17 +61,28 @@ export default function SettingsPage() {
     setSaving(true)
     setMessage('')
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(policy)
-      })
-      if (res.ok) {
+      const [policyRes, maxDaysRes] = await Promise.all([
+        fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(policy)
+        }),
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'PUNCH_REQUEST_MAX_DAYS',
+            value: punchRequestMaxDays,
+          }),
+        }),
+      ])
+
+      if (policyRes.ok && maxDaysRes.ok) {
         setMessage('Settings saved successfully!')
       } else {
         setMessage('Failed to save settings.')
       }
-    } catch (e) {
+    } catch {
       setMessage('Error saving settings.')
     }
     setSaving(false)
@@ -114,6 +135,29 @@ export default function SettingsPage() {
             helper={<>Comma separated day numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday). These days are marked <b className="font-medium text-text">WEEKOFF</b> instead of <b className="font-medium text-text">ABSENT</b> if no punch is found.</>}
           >
             <Input id="weekOffDays" type="text" className="num" placeholder="e.g. 0 for Sunday, 0,6 for Sun & Sat" value={policy.weekOffDays || ''} onChange={e => handleChange('weekOffDays', e.target.value)} />
+          </Field>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Punch request configuration" caption="Staff missed punch regularization window" />
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Field
+            label="Submission cutoff window"
+            htmlFor="punchRequestMaxDays"
+            helper="Maximum number of days in the past employees can submit missed punch requests for. Select Unlimited to disable strict cutoff."
+          >
+            <Select
+              id="punchRequestMaxDays"
+              value={punchRequestMaxDays}
+              onChange={(e) => setPunchRequestMaxDays(e.target.value)}
+            >
+              <option value="0">Unlimited (No cutoff)</option>
+              <option value="3">3 days</option>
+              <option value="7">7 days</option>
+              <option value="14">14 days</option>
+              <option value="30">30 days</option>
+            </Select>
           </Field>
         </div>
       </Card>
