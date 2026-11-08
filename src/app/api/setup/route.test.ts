@@ -1,0 +1,328 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockPrisma = vi.hoisted(() => ({
+  systemSetting: {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+  },
+  user: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  staff: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  employmentPeriod: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+  },
+  staffPayrollInfo: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    upsert: vi.fn(),
+  },
+  shift: {
+    findUnique: vi.fn(),
+  },
+  shiftAssignment: {
+    create: vi.fn(),
+  },
+  auditLog: {
+    create: vi.fn(),
+  },
+  $transaction: vi.fn(async (cb: any) => {
+    if (typeof cb === "function") {
+      return cb(mockPrisma);
+    }
+    return Promise.all(cb);
+  }),
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: mockPrisma,
+}));
+
+import { GET, POST } from "./route";
+
+describe("/api/setup route", () => {
+  const DEFAULT_SECRET = "intime-sarvodaya-setup-2026";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.SETUP_SECRET;
+    delete process.env.INITIAL_SETUP_KEY;
+
+    mockPrisma.systemSetting.findUnique.mockResolvedValue(null);
+    mockPrisma.user.findFirst.mockResolvedValue(null);
+    mockPrisma.user.findMany.mockResolvedValue([
+      { id: "u-admin-1", name: "Administrator", email: "admin@sarvodaya.com", staffId: null },
+    ]);
+    mockPrisma.staff.findMany.mockResolvedValue([]);
+    mockPrisma.systemSetting.upsert.mockResolvedValue({ key: "SETUP_COMPLETED", value: "true" });
+    mockPrisma.auditLog.create.mockResolvedValue({ id: "audit-1" });
+  });
+
+  describe("GET /api/setup", () => {
+    it("returns setupCompleted: false and adminUsers when setup is incomplete", async () => {
+      mockPrisma.systemSetting.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "u-admin-1", role: "ADMIN", staffId: null });
+
+      const res = await GET();
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.setupCompleted).toBe(false);
+      expect(data.requiresSecret).toBe(true);
+      expect(data.adminUsers).toHaveLength(1);
+      expect(data.adminUsers[0]).toEqual({
+        id: "u-admin-1",
+        name: "Administrator",
+        email: "admin@sarvodaya.com",
+        staffId: null,
+      });
+    });
+
+    it("returns setupCompleted: true and requiresSecret: false when setup is complete", async () => {
+      mockPrisma.systemSetting.findUnique.mockResolvedValue({
+        id: "s-1",
+        key: "SETUP_COMPLETED",
+        value: "true",
+      });
+
+      const res = await GET();
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.setupCompleted).toBe(true);
+      expect(data.requiresSecret).toBe(false);
+    });
+  });
+
+  describe("POST /api/setup", () => {
+    it("returns 401 when the secret code is invalid", async () => {
+      const res = await POST(
+        new Request("http://localhost/api/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            secret: "wrong-secret",
+            adminAction: "LINK",
+            adminUserId: "u-admin-1",
+            existingStaffId: "staff-1",
+          }),
+        })
+      );
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toMatch(/Invalid setup secret code/i);
+    });
+
+    it("returns 400 when setup is already completed", async () => {
+      mockPrisma.systemSetting.findUnique.mockResolvedValue({
+        id: "s-1",
+        key: "SETUP_COMPLETED",
+        value: "true",
+      });
+
+      const res = await POST(
+        new Request("http://localhost/api/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            secret: DEFAULT_SECRET,
+            adminAction: "LINK",
+            adminUserId: "u-admin-1",
+            existingStaffId: "staff-1",
+          }),
+        })
+      );
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toMatch(/Setup already completed/i);
+    });
+
+    it("creates an admin staff profile, links admin user, and locks setup (adminAction: 'CREATE')", async () => {
+      mockPrisma.staff.findMany.mockResolvedValue([]);
+      mockPrisma.staff.create.mockResolvedValue({
+        id: "staff-new-admin",
+        name: "Main Admin",
+        machineId: "999",
+        employeeCode: "SAR-2024-001",
+        joiningDate: "2024-01-15",
+      });
+      mockPrisma.employmentPeriod.create.mockResolvedValue({ id: "ep-1" });
+      mockPrisma.staffPayrollInfo.create.mockResolvedValue({ id: "spi-1" });
+      mockPrisma.user.update.mockResolvedValue({ id: "u-admin-1", staffId: "staff-new-admin" });
+
+      const res = await POST(
+        new Request("http://localhost/api/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            secret: DEFAULT_SECRET,
+            adminAction: "CREATE",
+            adminUserId: "u-admin-1",
+            adminProfile: {
+              name: "Main Admin",
+              machineId: "999",
+              joiningDate: "2024-01-15",
+              payGroup: "BANK_EPF",
+            },
+          }),
+        })
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+
+      // Verify staff creation
+      expect(mockPrisma.staff.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: "Main Admin",
+          machineId: "999",
+          employeeCode: "SAR-2024-001",
+          joiningDate: "2024-01-15",
+        }),
+      });
+
+      // Verify employment period creation
+      expect(mockPrisma.employmentPeriod.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          staffId: "staff-new-admin",
+          startDate: "2024-01-15",
+          createdByUserId: "u-admin-1",
+        }),
+      });
+
+      // Verify payroll info creation
+      expect(mockPrisma.staffPayrollInfo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          staffId: "staff-new-admin",
+          payGroup: "BANK_EPF",
+        }),
+      });
+
+      // Verify user link
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: "u-admin-1" },
+        data: { staffId: "staff-new-admin", role: "ADMIN" },
+      });
+
+      // Verify setup completion lock
+      expect(mockPrisma.systemSetting.upsert).toHaveBeenCalledWith({
+        where: { key: "SETUP_COMPLETED" },
+        update: { value: "true" },
+        create: { key: "SETUP_COMPLETED", value: "true" },
+      });
+
+      // Verify audit log
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: "SYSTEM_SETUP_COMPLETED",
+          actorUserId: "u-admin-1",
+        }),
+      });
+    });
+
+    it("links existing staff profile to admin user and locks setup (adminAction: 'LINK')", async () => {
+      mockPrisma.staff.findUnique.mockResolvedValue({
+        id: "staff-existing-1",
+        name: "Existing Person",
+        machineId: "101",
+        employeeCode: null,
+        joiningDate: null,
+      });
+      mockPrisma.staff.findMany.mockResolvedValue([]);
+      mockPrisma.staff.update.mockResolvedValue({
+        id: "staff-existing-1",
+        employeeCode: "SAR-2024-001",
+        joiningDate: "2024-01-01",
+      });
+      mockPrisma.employmentPeriod.findFirst.mockResolvedValue(null);
+      mockPrisma.employmentPeriod.create.mockResolvedValue({ id: "ep-1" });
+      mockPrisma.staffPayrollInfo.findUnique.mockResolvedValue(null);
+      mockPrisma.staffPayrollInfo.create.mockResolvedValue({ id: "spi-1" });
+      mockPrisma.user.update.mockResolvedValue({ id: "u-admin-1", staffId: "staff-existing-1" });
+
+      const res = await POST(
+        new Request("http://localhost/api/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            secret: DEFAULT_SECRET,
+            adminAction: "LINK",
+            adminUserId: "u-admin-1",
+            existingStaffId: "staff-existing-1",
+          }),
+        })
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: "u-admin-1" },
+        data: { staffId: "staff-existing-1", role: "ADMIN" },
+      });
+      expect(mockPrisma.systemSetting.upsert).toHaveBeenCalled();
+    });
+
+    it("batches existing staff joining dates and generates employee codes and credentials", async () => {
+      mockPrisma.staff.findUnique
+        .mockResolvedValueOnce({
+          id: "staff-101",
+          machineId: "101",
+          name: "Ramesh Kumar",
+          employeeCode: null,
+          joiningDate: null,
+          user: null,
+        })
+        .mockResolvedValueOnce({
+          id: "staff-102",
+          machineId: "102",
+          name: "Suresh Sharma",
+          employeeCode: null,
+          joiningDate: null,
+          user: null,
+        });
+
+      mockPrisma.staff.findMany.mockResolvedValue([]);
+      mockPrisma.staff.update.mockImplementation(({ data }: any) => Promise.resolve(data));
+      mockPrisma.employmentPeriod.findFirst.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.user.create.mockImplementation(({ data }: any) => Promise.resolve(data));
+
+      const res = await POST(
+        new Request("http://localhost/api/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            secret: DEFAULT_SECRET,
+            adminAction: "CREATE",
+            adminUserId: "u-admin-1",
+            adminProfile: {
+              name: "Admin",
+              machineId: "999",
+              joiningDate: "2024-01-01",
+            },
+            staffJoiningDates: [
+              { machineId: "101", joiningDate: "2024-02-01", payGroup: "BANK_EPF" },
+              { machineId: "102", joiningDate: "2024-03-01", payGroup: "CASH" },
+            ],
+          }),
+        })
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.generatedCredentials).toBeDefined();
+      expect(data.generatedCredentials.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+});

@@ -1,55 +1,171 @@
-import { describe, expect, it } from "vitest"
-import { proxyHandler } from "./proxy"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NextRequestWithAuth } from "next-auth/middleware"
 
+vi.mock("@/lib/setup", () => ({
+  isSetupCompleted: vi.fn(),
+}))
+
+import { isSetupCompleted } from "@/lib/setup"
+import { proxyHandler } from "./proxy"
+
+const mockIsSetupCompleted = vi.mocked(isSetupCompleted)
+
 describe("proxyHandler", () => {
-  it("allows access when token.mustChangePassword is false or undefined", () => {
-    const req = {
-      nextauth: { token: { id: "u-1", mustChangePassword: false } },
-      nextUrl: { pathname: "/dashboard" },
-      url: "http://localhost:3000/dashboard",
-    } as unknown as NextRequestWithAuth
-
-    const response = proxyHandler(req)
-    expect(response).toBeUndefined()
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Default setup to completed for normal auth testing
+    mockIsSetupCompleted.mockResolvedValue(true)
   })
 
-  it("redirects to /change-password when token.mustChangePassword is true on regular pages", () => {
-    const req = {
-      nextauth: { token: { id: "u-1", mustChangePassword: true } },
-      nextUrl: { pathname: "/dashboard" },
-      url: "http://localhost:3000/dashboard",
-    } as unknown as NextRequestWithAuth
+  describe("setup gating", () => {
+    it("redirects to /setup when setup is incomplete (setup-completed cookie is false)", async () => {
+      const req = {
+        nextauth: { token: { id: "u-1" } },
+        nextUrl: { pathname: "/dashboard" },
+        url: "http://localhost:3000/dashboard",
+        cookies: {
+          get: (key: string) => (key === "setup-completed" ? { value: "false" } : undefined),
+        },
+      } as unknown as NextRequestWithAuth
 
-    const response = proxyHandler(req)
-    expect(response?.status).toBe(307)
-    expect(response?.headers.get("location")).toBe("http://localhost:3000/change-password")
+      const response = await proxyHandler(req)
+      expect(response?.status).toBe(307)
+      expect(response?.headers.get("location")).toBe("http://localhost:3000/setup")
+    })
+
+    it("redirects to /setup when cookie is absent and isSetupCompleted returns false", async () => {
+      mockIsSetupCompleted.mockResolvedValue(false)
+
+      const req = {
+        nextauth: { token: { id: "u-1" } },
+        nextUrl: { pathname: "/dashboard" },
+        url: "http://localhost:3000/dashboard",
+        cookies: {
+          get: () => undefined,
+        },
+      } as unknown as NextRequestWithAuth
+
+      const response = await proxyHandler(req)
+      expect(response?.status).toBe(307)
+      expect(response?.headers.get("location")).toBe("http://localhost:3000/setup")
+    })
+
+    it("allows access to /setup when setup is incomplete", async () => {
+      mockIsSetupCompleted.mockResolvedValue(false)
+
+      const req = {
+        nextauth: { token: null },
+        nextUrl: { pathname: "/setup" },
+        url: "http://localhost:3000/setup",
+        cookies: {
+          get: () => undefined,
+        },
+      } as unknown as NextRequestWithAuth
+
+      const response = await proxyHandler(req)
+      expect(response).toBeUndefined()
+    })
+
+    it("redirects to / when user accesses /setup and setup is already complete", async () => {
+      mockIsSetupCompleted.mockResolvedValue(true)
+
+      const req = {
+        nextauth: { token: { id: "u-admin" } },
+        nextUrl: { pathname: "/setup" },
+        url: "http://localhost:3000/setup",
+        cookies: {
+          get: (key: string) => (key === "setup-completed" ? { value: "true" } : undefined),
+        },
+      } as unknown as NextRequestWithAuth
+
+      const response = await proxyHandler(req)
+      expect(response?.status).toBe(307)
+      expect(response?.headers.get("location")).toBe("http://localhost:3000/")
+    })
+
+    it("allows exempt endpoints without setup checks", async () => {
+      mockIsSetupCompleted.mockResolvedValue(false)
+
+      const exemptPaths = [
+        "/api/auth/session",
+        "/api/setup",
+        "/iclock/cdata",
+        "/_next/data/app.json",
+        "/favicon.ico",
+      ]
+
+      for (const pathname of exemptPaths) {
+        const req = {
+          nextauth: { token: null },
+          nextUrl: { pathname },
+          url: `http://localhost:3000${pathname}`,
+          cookies: { get: () => undefined },
+        } as unknown as NextRequestWithAuth
+
+        const response = await proxyHandler(req)
+        expect(response).toBeUndefined()
+      }
+    })
   })
 
-  it("allows /change-password when token.mustChangePassword is true", () => {
-    const req = {
-      nextauth: { token: { id: "u-1", mustChangePassword: true } },
-      nextUrl: { pathname: "/change-password" },
-      url: "http://localhost:3000/change-password",
-    } as unknown as NextRequestWithAuth
+  describe("password change gating", () => {
+    it("allows access when token.mustChangePassword is false or undefined", async () => {
+      const req = {
+        nextauth: { token: { id: "u-1", mustChangePassword: false } },
+        nextUrl: { pathname: "/dashboard" },
+        url: "http://localhost:3000/dashboard",
+        cookies: {
+          get: (key: string) => (key === "setup-completed" ? { value: "true" } : undefined),
+        },
+      } as unknown as NextRequestWithAuth
 
-    const response = proxyHandler(req)
-    expect(response).toBeUndefined()
-  })
+      const response = await proxyHandler(req)
+      expect(response).toBeUndefined()
+    })
 
-  it("allows /api/auth/* and /_next/* when token.mustChangePassword is true", () => {
-    const reqAuth = {
-      nextauth: { token: { id: "u-1", mustChangePassword: true } },
-      nextUrl: { pathname: "/api/auth/session" },
-      url: "http://localhost:3000/api/auth/session",
-    } as unknown as NextRequestWithAuth
-    expect(proxyHandler(reqAuth)).toBeUndefined()
+    it("redirects to /change-password when token.mustChangePassword is true on regular pages", async () => {
+      const req = {
+        nextauth: { token: { id: "u-1", mustChangePassword: true } },
+        nextUrl: { pathname: "/dashboard" },
+        url: "http://localhost:3000/dashboard",
+        cookies: {
+          get: (key: string) => (key === "setup-completed" ? { value: "true" } : undefined),
+        },
+      } as unknown as NextRequestWithAuth
 
-    const reqNext = {
-      nextauth: { token: { id: "u-1", mustChangePassword: true } },
-      nextUrl: { pathname: "/_next/data/test.json" },
-      url: "http://localhost:3000/_next/data/test.json",
-    } as unknown as NextRequestWithAuth
-    expect(proxyHandler(reqNext)).toBeUndefined()
+      const response = await proxyHandler(req)
+      expect(response?.status).toBe(307)
+      expect(response?.headers.get("location")).toBe("http://localhost:3000/change-password")
+    })
+
+    it("allows /change-password when token.mustChangePassword is true", async () => {
+      const req = {
+        nextauth: { token: { id: "u-1", mustChangePassword: true } },
+        nextUrl: { pathname: "/change-password" },
+        url: "http://localhost:3000/change-password",
+        cookies: {
+          get: (key: string) => (key === "setup-completed" ? { value: "true" } : undefined),
+        },
+      } as unknown as NextRequestWithAuth
+
+      const response = await proxyHandler(req)
+      expect(response).toBeUndefined()
+    })
+
+    it("allows /api/auth/* and /_next/* when token.mustChangePassword is true", async () => {
+      const reqAuth = {
+        nextauth: { token: { id: "u-1", mustChangePassword: true } },
+        nextUrl: { pathname: "/api/auth/session" },
+        url: "http://localhost:3000/api/auth/session",
+      } as unknown as NextRequestWithAuth
+      expect(await proxyHandler(reqAuth)).toBeUndefined()
+
+      const reqNext = {
+        nextauth: { token: { id: "u-1", mustChangePassword: true } },
+        nextUrl: { pathname: "/_next/data/test.json" },
+        url: "http://localhost:3000/_next/data/test.json",
+      } as unknown as NextRequestWithAuth
+      expect(await proxyHandler(reqNext)).toBeUndefined()
+    })
   })
 })
