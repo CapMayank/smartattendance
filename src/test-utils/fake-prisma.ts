@@ -18,7 +18,7 @@ export type Fixtures = {
   /** Optional; defaults to no assignments. */
   assignments?: { staffId: string; effectiveFrom: string; shiftId: string | null }[]
   /** Optional; stored daily records returned by `dailyRecord.findMany`. */
-  dailyRecords?: { staffId: string; date: Date; status: string; lateMinutes: number }[]
+  dailyRecords?: { id?: string; staffId: string; date: Date; status: string; lateMinutes?: number; workMinutes?: number; checkIn?: Date | null; checkOut?: Date | null; overtimeMinutes?: number }[]
   /** Optional; stored shift suggestions. */
   suggestions?: SuggestionRow[]
   /** Optional; stored punch requests. */
