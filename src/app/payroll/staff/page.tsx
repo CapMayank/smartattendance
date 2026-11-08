@@ -1,16 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Wallet, Search, Edit2, Save, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
-import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Select, Skeleton } from '@/components/ui'
+import { Avatar, Button, Card, Chip, ChipGroup, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Select, Skeleton } from '@/components/ui'
 import { formatINR } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { staffPhotoUrl } from '@/lib/photo-url'
+
+type PayGroupFilter = 'ALL' | 'BANK_EPF' | 'CASH'
 
 export default function StaffPayrollPage() {
   const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [groupFilter, setGroupFilter] = useState<PayGroupFilter>('ALL')
   const [editingStaff, setEditingStaff] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
@@ -24,7 +27,7 @@ export default function StaffPayrollPage() {
     try {
       const res = await fetch('/api/payroll/staff')
       const data = await res.json()
-      setStaff(data)
+      setStaff(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to fetch staff:', error)
     } finally {
@@ -73,12 +76,26 @@ export default function StaffPayrollPage() {
     }
   }
 
-  const filteredStaff = staff.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.machineId?.toLowerCase().includes(search.toLowerCase()) ||
-    s.employeeCode?.toLowerCase().includes(search.toLowerCase()) ||
-    s.payrollInfo?.uan?.includes(search)
-  )
+  const counts = useMemo(() => {
+    let bank = 0
+    let cash = 0
+    for (const s of staff) {
+      if (s.payrollInfo?.payGroup === 'CASH') cash++
+      else bank++
+    }
+    return { all: staff.length, bank, cash }
+  }, [staff])
+
+  const filteredStaff = staff.filter(s => {
+    const pg = s.payrollInfo?.payGroup === 'CASH' ? 'CASH' : 'BANK_EPF'
+    if (groupFilter !== 'ALL' && pg !== groupFilter) return false
+    return (
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.machineId?.toLowerCase().includes(search.toLowerCase()) ||
+      s.employeeCode?.toLowerCase().includes(search.toLowerCase()) ||
+      s.payrollInfo?.uan?.includes(search)
+    )
+  })
 
   const isCashEdit = editForm.payGroup === 'CASH';
   const estGross = isCashEdit ? Math.round(editForm.monthlyCtc || 0) : Math.round((editForm.monthlyCtc || 0) / 1.12);
@@ -88,31 +105,33 @@ export default function StaffPayrollPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <PageHeader title="Staff payroll master" subtitle="Configure pay group (Bank/EPF or Cash), fixed CTC, and statutory banking details" />
+      <PageHeader title="Salary setup" subtitle="Configure pay group (Bank/EPF or Cash), monthly salary/CTC, and statutory banking details" />
 
       {/* Main Content Area */}
       <Card className="overflow-hidden !p-0">
-        <div className="flex flex-col gap-3 border-b border-line-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full max-w-md">
+        <div className="flex flex-col gap-3 border-b border-line-soft px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <ChipGroup label="Filter by pay group">
+            <Chip pressed={groupFilter === 'ALL'} onClick={() => setGroupFilter('ALL')} count={counts.all}>
+              All Staff
+            </Chip>
+            <Chip pressed={groupFilter === 'BANK_EPF'} onClick={() => setGroupFilter('BANK_EPF')} dot="accent" count={counts.bank}>
+              Bank / EPF
+            </Chip>
+            <Chip pressed={groupFilter === 'CASH'} onClick={() => setGroupFilter('CASH')} dot="present" count={counts.cash}>
+              Cash Payroll
+            </Chip>
+          </ChipGroup>
+
+          <div className="relative w-full lg:max-w-xs">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
             <Input
               type="text"
               aria-label="Search staff"
-              placeholder="Search by name, SAR-ID, or UAN..."
+              placeholder="Search name, SAR-ID, UAN..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
             />
-          </div>
-          <div className="hidden gap-5 text-[12.5px] text-subtle md:flex">
-            <div className="flex items-center gap-2">
-              <span className="size-[7px] rounded-full bg-present" aria-hidden="true"></span>
-              Active
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="size-[7px] rounded-full bg-absent" aria-hidden="true"></span>
-              Excluded
-            </div>
           </div>
         </div>
 
@@ -121,6 +140,7 @@ export default function StaffPayrollPage() {
             <thead>
               <tr>
                 <th>Staff Name</th>
+                <th>Pay Group</th>
                 <th className="text-right">Monthly Pay / CTC (₹)</th>
                 <th>Bank Details / Mode</th>
                 <th>UAN</th>
@@ -139,6 +159,7 @@ export default function StaffPayrollPage() {
                           <Skeleton className="h-4 w-32" />
                         </div>
                       </td>
+                      <td><Skeleton className="h-5 w-20" /></td>
                       <td><Skeleton className="ml-auto h-4 w-20" /></td>
                       <td><Skeleton className="h-4 w-28" /></td>
                       <td><Skeleton className="h-4 w-24" /></td>
@@ -149,7 +170,7 @@ export default function StaffPayrollPage() {
                 </>
               ) : filteredStaff.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="whitespace-normal">
+                  <td colSpan={7} className="whitespace-normal">
                     <EmptyState icon={AlertCircle} title="No matching staff found in directory." />
                   </td>
                 </tr>
@@ -170,15 +191,22 @@ export default function StaffPayrollPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="mt-0.5 flex items-center gap-2 text-xs text-subtle">
-                              <span>{s.department?.name || 'No Dept'}</span>
-                              <span>·</span>
-                              <span className="rounded bg-card-hi px-1.5 py-0.5 text-[10.5px] font-medium text-muted">
-                                {isCash ? 'CASH' : 'BANK / EPF'}
-                              </span>
+                            <div className="mt-0.5 text-xs text-subtle">
+                              {s.department?.name || 'No Dept'}
                             </div>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            isCash
+                              ? 'tint-badge tone-present inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium'
+                              : 'tint-badge tone-accent inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium'
+                          }
+                        >
+                          {isCash ? 'Cash (No PF)' : 'Bank / EPF'}
+                        </span>
                       </td>
                       <td className="text-right">
                         <div className="num font-medium text-text">

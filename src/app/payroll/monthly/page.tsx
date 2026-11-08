@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { FileText, Download, Save, RefreshCw, AlertCircle, IndianRupee, ShieldCheck, Lock, Unlock, Gift, Sparkles, Check, PencilLine, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Avatar, Button, Card, Chip, ChipGroup, EmptyState, Field, Input, Modal, PageHeader, Select, StatusBadge } from '@/components/ui'
@@ -74,6 +74,7 @@ export default function MonthlyPayrollPage() {
   const [bonusDistMode, setBonusDistMode] = useState<'DAYS' | 'FLAT'>('DAYS')
   const [bonusDaysInput, setBonusDaysInput] = useState<number>(1)
   const [bonusFlatInput, setBonusFlatInput] = useState<number>(1000)
+  const [groupFilter, setGroupFilter] = useState<'ALL' | 'BANK_EPF' | 'CASH'>('ALL')
 
   useEffect(() => {
     fetchPayroll()
@@ -193,6 +194,7 @@ export default function MonthlyPayrollPage() {
 
         return {
           id: p.id,
+          payGroup: p.payGroup || p.staff.payrollInfo?.payGroup || 'BANK_EPF',
           totalDays: p.totalDays,
           monthlyCtc,
           presentDays: itemEdit?.presentDays ?? p.presentDays,
@@ -294,6 +296,44 @@ export default function MonthlyPayrollPage() {
   const handleExport = (type: string) => {
     window.location.href = `/api/payroll/export/${type}?month=${selectedMonth}&year=${selectedYear}`
   }
+
+  const groupMetrics = useMemo(() => {
+    let bankCount = 0
+    let cashCount = 0
+    let bankNet = 0
+    let cashNet = 0
+    for (const p of payrolls) {
+      const pg = (p.payGroup || p.staff.payrollInfo?.payGroup) === 'CASH' ? 'CASH' : 'BANK_EPF'
+      const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
+      const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
+      const currentBonusAmount = isBonusModeEnabled ? (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) : 0
+      const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
+      const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable, pg) || p
+      if (pg === 'CASH') {
+        cashCount++
+        cashNet += calc.netPayment || 0
+      } else {
+        bankCount++
+        bankNet += calc.netPayment || 0
+      }
+    }
+    return {
+      allCount: payrolls.length,
+      bankCount,
+      cashCount,
+      bankNet,
+      cashNet,
+      totalNet: bankNet + cashNet,
+    }
+  }, [payrolls, edits, isBonusModeEnabled, isBonusPfApplicable])
+
+  const filteredPayrolls = useMemo(() => {
+    if (groupFilter === 'ALL') return payrolls
+    return payrolls.filter((p) => {
+      const pg = (p.payGroup || p.staff.payrollInfo?.payGroup) === 'CASH' ? 'CASH' : 'BANK_EPF'
+      return pg === groupFilter
+    })
+  }, [payrolls, groupFilter])
 
   const isMonthLocked = payrolls.length > 0 && payrolls.every(p => p.isLocked)
   const hasUnsavedEdits = Object.keys(edits).some(id => {
@@ -633,6 +673,42 @@ export default function MonthlyPayrollPage() {
 
       {/* Main Table Area */}
       <Card className="overflow-hidden !p-0">
+        <div className="flex flex-col justify-between gap-3 border-b border-line-soft px-5 py-4 lg:flex-row lg:items-center">
+          <ChipGroup label="Filter monthly payroll by pay group">
+            <Chip pressed={groupFilter === 'ALL'} onClick={() => setGroupFilter('ALL')} count={groupMetrics.allCount}>
+              All Payroll
+            </Chip>
+            <Chip
+              pressed={groupFilter === 'BANK_EPF'}
+              onClick={() => setGroupFilter('BANK_EPF')}
+              dot="accent"
+              count={groupMetrics.bankCount}
+            >
+              Bank / EPF
+            </Chip>
+            <Chip
+              pressed={groupFilter === 'CASH'}
+              onClick={() => setGroupFilter('CASH')}
+              dot="present"
+              count={groupMetrics.cashCount}
+            >
+              Cash Payroll
+            </Chip>
+          </ChipGroup>
+
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <span className="text-muted">
+              Bank Net: <b className="num text-text">{formatINR(groupMetrics.bankNet, { exact: true })}</b>
+            </span>
+            <span className="text-muted">
+              Cash Net: <b className="num text-present">{formatINR(groupMetrics.cashNet, { exact: true })}</b>
+            </span>
+            <span className="rounded-lg border border-line bg-card-hi px-2.5 py-1 text-muted">
+              Total Net: <b className="num text-present">{formatINR(groupMetrics.totalNet, { exact: true })}</b>
+            </span>
+          </div>
+        </div>
+
         <div className="table-wrap hidden md:block">
           <table className="data-table">
             <thead>
@@ -659,18 +735,18 @@ export default function MonthlyPayrollPage() {
                     </div>
                   </td>
                 </tr>
-              ) : payrolls.length === 0 ? (
+              ) : filteredPayrolls.length === 0 ? (
                 <tr>
                   <td colSpan={isBonusModeEnabled ? 8 : 7} className="whitespace-normal">
                     <EmptyState
                       icon={ShieldCheck}
                       title="No Active Payrolls"
-                      hint="There are no staff members configured for payroll this month. Head to the Staff Payroll Master to configure them."
+                      hint="There are no staff members in this pay group for the selected month."
                     />
                   </td>
                 </tr>
               ) : (
-                payrolls.map((p) => {
+                filteredPayrolls.map((p) => {
                   const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays;
                   const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance;
                   const currentBonusDays = isBonusModeEnabled ? (edits[p.id]?.bonusDays ?? p.bonusDays ?? 0) : 0;
@@ -834,14 +910,14 @@ export default function MonthlyPayrollPage() {
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
               Calculating payroll metrics...
             </div>
-          ) : payrolls.length === 0 ? (
+          ) : filteredPayrolls.length === 0 ? (
             <EmptyState
               icon={ShieldCheck}
               title="No Active Payrolls"
-              hint="No staff are configured for payroll this month."
+              hint="No staff in this pay group for this month."
             />
           ) : (
-            payrolls.map((p) => {
+            filteredPayrolls.map((p) => {
               const currentPresentDays = edits[p.id]?.presentDays ?? p.presentDays
               const currentRefund = edits[p.id]?.refundOfAdvance ?? p.refundOfAdvance
               const currentBonusDays = isBonusModeEnabled ? (edits[p.id]?.bonusDays ?? p.bonusDays ?? 0) : 0

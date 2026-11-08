@@ -8,6 +8,7 @@ import Papa from 'papaparse'
 
 type MonthlyPayroll = {
   id: string
+  payGroup?: string
   month: number
   year: number
   totalDays: number
@@ -23,9 +24,11 @@ type Staff = {
   id: string
   name: string
   machineId: string
+  employeeCode?: string | null
   department: { name: string } | null
   designation: { name: string } | null
   payrollInfo: {
+    payGroup?: string
     monthlyCtc: number
     bankAccount: string | null
     ifsc: string | null
@@ -102,10 +105,11 @@ export default function MemberPayrollPage() {
       const monthName = new Date(p.year, p.month - 1).toLocaleString('default', { month: 'long' });
       return {
         'Period': `${monthName} ${p.year}`,
+        'Pay Group': p.payGroup || staffData.payrollInfo?.payGroup || 'BANK_EPF',
         'Total Days': p.totalDays,
         'Present/Paid Days': p.presentDays,
         'NCP Days': p.ncpDays,
-        'Actual CTC': p.actualCtc,
+        'Actual CTC / Pay': p.actualCtc,
         'Gross Wage': p.grossWage,
         'Net Payment': p.netPayment,
         'Status': p.isLocked ? 'Locked' : 'Draft'
@@ -125,12 +129,14 @@ export default function MemberPayrollPage() {
     document.body.removeChild(link)
   }
 
+  const isStaffCash = staffData?.payrollInfo?.payGroup === 'CASH'
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <PageHeader
         title="Member payroll history"
-        subtitle="View detailed payroll history for individual staff members."
+        subtitle="View detailed payroll history and payslips for individual staff members."
         actions={
           <Button
             icon={Download}
@@ -155,7 +161,7 @@ export default function MemberPayrollPage() {
                 <option value="" disabled>Select Staff Member</option>
                 {staffList.map((staff) => (
                   <option key={staff.id} value={staff.id}>
-                    {staff.machineId} - {staff.name}
+                    {staff.employeeCode || staff.machineId} - {staff.name} ({staff.payrollInfo?.payGroup === 'CASH' ? 'Cash' : 'Bank/EPF'})
                   </option>
                 ))}
               </Select>
@@ -167,7 +173,7 @@ export default function MemberPayrollPage() {
         {staffData && !loading && (
           <div className="grid grid-cols-1 gap-3 border-b border-line-soft px-5 py-4 md:grid-cols-3">
             <div className="flex flex-col rounded-xl border border-line-soft bg-canvas p-4">
-              <span className="mb-1 text-[12.5px] text-muted">Current CTC</span>
+              <span className="mb-1 text-[12.5px] text-muted">{isStaffCash ? 'Monthly Cash Salary' : 'Current CTC'}</span>
               <span className="num text-2xl font-medium text-present">{formatCurrency(staffData.payrollInfo?.monthlyCtc || 0)}</span>
             </div>
             <div className="flex flex-col rounded-xl border border-line-soft bg-canvas p-4">
@@ -176,9 +182,18 @@ export default function MemberPayrollPage() {
               <span className="text-[13px] text-subtle">{staffData.designation?.name || '-'}</span>
             </div>
             <div className="flex flex-col rounded-xl border border-line-soft bg-canvas p-4">
-              <span className="mb-1 text-[12.5px] text-muted">Bank Details</span>
-              <span className="num break-all text-sm text-text">{staffData.payrollInfo?.bankAccount || 'Not Provided'}</span>
-              <span className="num text-xs text-subtle">{staffData.payrollInfo?.ifsc || 'No IFSC'}</span>
+              <span className="mb-1 text-[12.5px] text-muted">Pay Group &amp; Mode</span>
+              {isStaffCash ? (
+                <>
+                  <span className="text-sm font-medium text-present">Cash Payroll (No EPF)</span>
+                  <span className="text-xs text-subtle">Paid in cash</span>
+                </>
+              ) : (
+                <>
+                  <span className="num break-all text-sm text-text">{staffData.payrollInfo?.bankAccount || 'Bank Account Not Set'}</span>
+                  <span className="num text-xs text-subtle">{staffData.payrollInfo?.ifsc || 'No IFSC'}</span>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -188,8 +203,9 @@ export default function MemberPayrollPage() {
             <thead>
               <tr>
                 <th>Period</th>
+                <th>Pay Group</th>
                 <th className="text-center">Days (Total / Paid)</th>
-                <th className="text-right">Actual CTC</th>
+                <th className="text-right">Actual Pay / CTC</th>
                 <th className="text-right">Gross Wage</th>
                 <th className="text-right">Net Payment</th>
                 <th className="text-center">Status</th>
@@ -198,7 +214,7 @@ export default function MemberPayrollPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <div className="flex items-center justify-center gap-2 py-16 text-muted">
                       <Loader2 size={16} className="animate-spin" aria-hidden="true" />
                       Fetching payroll history...
@@ -208,6 +224,7 @@ export default function MemberPayrollPage() {
               ) : payrolls.length > 0 ? (
                 payrolls.map((payroll) => {
                   const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('default', { month: 'short' });
+                  const rowCash = (payroll.payGroup || staffData?.payrollInfo?.payGroup) === 'CASH';
 
                   return (
                     <tr
@@ -222,6 +239,11 @@ export default function MemberPayrollPage() {
                           </span>
                           <span className="font-medium text-text">{monthName} <span className="num">{payroll.year}</span></span>
                         </div>
+                      </td>
+                      <td>
+                        <span className="rounded border border-line-soft bg-canvas px-2 py-0.5 text-xs text-muted">
+                          {rowCash ? 'Cash' : 'Bank / EPF'}
+                        </span>
                       </td>
                       <td className="text-center">
                         <div className="flex flex-col items-center gap-1">
@@ -255,7 +277,7 @@ export default function MemberPayrollPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="whitespace-normal">
+                  <td colSpan={7} className="whitespace-normal">
                     <EmptyState
                       icon={FileText}
                       title="No Payroll Records Found"
@@ -312,7 +334,7 @@ export default function MemberPayrollPage() {
 
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div className="rounded-lg border border-line-soft bg-ground p-3">
-                      <p className="text-[11px] text-subtle">Actual CTC</p>
+                      <p className="text-[11px] text-subtle">Actual Pay / CTC</p>
                       <p className="num mt-1 text-sm text-text">{formatCurrency(payroll.actualCtc)}</p>
                     </div>
                     <div className="rounded-lg border border-line-soft bg-ground p-3">

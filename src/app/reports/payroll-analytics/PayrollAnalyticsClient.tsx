@@ -26,9 +26,10 @@ interface KPICardProps {
   change: number
   icon: LucideIcon
   colorClass: string
+  subtitle?: string
 }
 
-const KPICard = ({ title, value, change, icon: Icon, colorClass }: KPICardProps) => {
+const KPICard = ({ title, value, change, icon: Icon, colorClass, subtitle }: KPICardProps) => {
   const isPositive = change >= 0
   return (
     <Card>
@@ -45,6 +46,7 @@ const KPICard = ({ title, value, change, icon: Icon, colorClass }: KPICardProps)
       </div>
       <h3 className="text-muted text-sm font-medium">{title}</h3>
       <p className="num text-2xl font-semibold text-text mt-1">{formatCurrency(value)}</p>
+      {subtitle && <p className="num mt-1.5 text-xs text-subtle">{subtitle}</p>}
     </Card>
   )
 }
@@ -52,13 +54,18 @@ const KPICard = ({ title, value, change, icon: Icon, colorClass }: KPICardProps)
 interface PayrollRow {
   year: number
   month: number
+  payGroup?: string | null
   grossWage?: number | null
   netPayment?: number | null
   employeeEpf?: number | null
   employerEpf?: number | null
   employerEps?: number | null
   actualCtc?: number | null
-  staff?: { department?: { name?: string | null } | null } | null
+  staff?: { department?: { name?: string | null } | null; payrollInfo?: { payGroup?: string | null } | null } | null
+}
+
+function isCashRow(p: PayrollRow): boolean {
+  return p.payGroup === 'CASH' || p.staff?.payrollInfo?.payGroup === 'CASH'
 }
 
 export default function PayrollAnalyticsClient({ payrollData }: { payrollData: PayrollRow[] }) {
@@ -76,12 +83,18 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
     const previousMonthData = previousMonthKey ? payrollData.filter(p => `${p.year}-${String(p.month).padStart(2, '0')}` === previousMonthKey) : []
 
     // 1. KPI Calculations
-    const calcKPIs = (data: PayrollRow[]) => ({
-      gross: data.reduce((sum, p) => sum + (p.grossWage || 0), 0),
-      net: data.reduce((sum, p) => sum + (p.netPayment || 0), 0),
-      epf: data.reduce((sum, p) => sum + (p.employeeEpf || 0) + (p.employerEpf || 0) + (p.employerEps || 0), 0),
-      avgSalary: data.length > 0 ? data.reduce((sum, p) => sum + (p.actualCtc || 0), 0) / data.length : 0
-    })
+    const calcKPIs = (data: PayrollRow[]) => {
+      const bankRows = data.filter(p => !isCashRow(p))
+      const cashRows = data.filter(p => isCashRow(p))
+      return {
+        gross: data.reduce((sum, p) => sum + (p.grossWage || 0), 0),
+        net: data.reduce((sum, p) => sum + (p.netPayment || 0), 0),
+        bankNet: bankRows.reduce((sum, p) => sum + (p.netPayment || 0), 0),
+        cashNet: cashRows.reduce((sum, p) => sum + (p.netPayment || 0), 0),
+        epf: bankRows.reduce((sum, p) => sum + (p.employeeEpf || 0) + (p.employerEpf || 0) + (p.employerEps || 0), 0),
+        avgSalary: data.length > 0 ? data.reduce((sum, p) => sum + (p.actualCtc || 0), 0) / data.length : 0
+      }
+    }
 
     const latestKPIs = calcKPIs(latestMonthData)
     const prevKPIs = calcKPIs(previousMonthData)
@@ -93,7 +106,12 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
 
     const kpis = {
       gross: { value: latestKPIs.gross, change: calcChange(latestKPIs.gross, prevKPIs.gross) },
-      net: { value: latestKPIs.net, change: calcChange(latestKPIs.net, prevKPIs.net) },
+      net: {
+        value: latestKPIs.net,
+        change: calcChange(latestKPIs.net, prevKPIs.net),
+        bankNet: latestKPIs.bankNet,
+        cashNet: latestKPIs.cashNet,
+      },
       epf: { value: latestKPIs.epf, change: calcChange(latestKPIs.epf, prevKPIs.epf) },
       avgSalary: { value: latestKPIs.avgSalary, change: calcChange(latestKPIs.avgSalary, prevKPIs.avgSalary) }
     }
@@ -108,7 +126,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
       return {
         name: monthName,
         Gross: p.reduce((sum, d) => sum + (d.grossWage || 0), 0),
-        Net: p.reduce((sum, d) => sum + (d.netPayment || 0), 0)
+        Net: p.reduce((sum, d) => sum + (d.netPayment || 0), 0),
+        'Bank Net': p.filter(d => !isCashRow(d)).reduce((sum, d) => sum + (d.netPayment || 0), 0),
+        'Cash Net': p.filter(d => isCashRow(d)).reduce((sum, d) => sum + (d.netPayment || 0), 0),
       }
     })
 
@@ -122,9 +142,9 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
     const deptData = Array.from(deptMap.entries()).map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
 
-    // 4. Compliance/Deduction Data
+    // 4. Compliance/Deduction Data (BANK_EPF only)
     const complianceData = monthKeys.map(key => {
-      const p = payrollData.filter(d => `${d.year}-${String(d.month).padStart(2, '0')}` === key)
+      const p = payrollData.filter(d => `${d.year}-${String(d.month).padStart(2, '0')}` === key && !isCashRow(d))
       const [year, month] = key.split('-')
       const date = new Date(parseInt(year), parseInt(month) - 1)
       const monthName = date.toLocaleString('default', { month: 'short' })
@@ -177,17 +197,18 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
           value={analytics.kpis.net.value} 
           change={analytics.kpis.net.change} 
           icon={IndianRupee} 
-          colorClass="bg-acc-3/70" 
+          colorClass="bg-acc-3/70"
+          subtitle={`Bank: ${formatCurrency(analytics.kpis.net.bankNet)} · Cash: ${formatCurrency(analytics.kpis.net.cashNet)}`}
         />
         <KPICard 
-          title="Total PF Liability" 
+          title="Total PF Liability (Bank/EPF)" 
           value={analytics.kpis.epf.value} 
           change={analytics.kpis.epf.change} 
           icon={ShieldAlert} 
           colorClass="bg-line" 
         />
         <KPICard 
-          title="Avg. CTC per Employee" 
+          title="Avg. Pay / CTC per Staff" 
           value={analytics.kpis.avgSalary.value} 
           change={analytics.kpis.avgSalary.change} 
           icon={TrendingUp} 
@@ -275,7 +296,7 @@ export default function PayrollAnalyticsClient({ payrollData }: { payrollData: P
 
         {/* Compliance Stacked Bar Chart */}
         <Card className="xl:col-span-3">
-          <CardHeader title="EPF Compliance Contributions" />
+          <CardHeader title="EPF Compliance Contributions (Bank / EPF Group)" />
           <div role="figure" aria-label={analytics.complianceSummary} className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics.complianceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
