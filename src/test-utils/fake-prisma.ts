@@ -21,6 +21,8 @@ export type Fixtures = {
   dailyRecords?: { staffId: string; date: Date; status: string; lateMinutes: number }[]
   /** Optional; stored shift suggestions. */
   suggestions?: SuggestionRow[]
+  /** Optional; stored punch requests. */
+  punchRequests?: PunchRequestRow[]
 }
 
 export type SuggestionRow = {
@@ -58,6 +60,32 @@ type StaffUpdate = {
   where: { id: string }
   data: { shiftId?: string | null; profilePhotoId?: string | null; profilePhotoPinned?: boolean }
 }
+export type PunchRequestRow = {
+  id: string
+  staffId: string
+  date: string
+  punchType: string
+  requestedTime?: string | null
+  requestedInTime?: string | null
+  requestedOutTime?: string | null
+  reason: string
+  explanation?: string | null
+  status: string
+  decidedByUserId?: string | null
+  decidedAt?: Date | null
+  decisionRemarks?: string | null
+  createdAt?: Date
+  updatedAt?: Date
+  staff?: {
+    id: string
+    name: string
+    employeeCode?: string | null
+    machineId?: string
+    departmentId?: string | null
+    department?: { id: string; name: string } | null
+  }
+}
+
 export type PunchPhotoRow = {
   id: string
   staffId: string
@@ -97,6 +125,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   const punchPhotos: PunchPhotoRow[] = []
   let photoSeq = 0
   let suggestionSeq = 0
+  const punchRequests: PunchRequestRow[] = (fixtures.punchRequests ?? []).map((r) => ({ ...r }))
+  let punchRequestSeq = 0
   const shiftRows: { id: string; name: string; startTime: string; endTime: string }[] = (() => {
     if (fixtures.shifts) return fixtures.shifts.map((x) => ({ ...x }))
     const byId = new Map<string, NonNullable<Fixtures['staff'][number]['shift']>>()
@@ -107,14 +137,17 @@ export function createFakePrisma(fixtures: Fixtures): {
   const matchValue = (v: unknown, cond: unknown): boolean => {
     if (cond instanceof Date) return v instanceof Date && v.getTime() === cond.getTime()
     if (cond && typeof cond === 'object') {
-      const c = cond as { lt?: Date | string; gte?: Date | string; in?: unknown[] }
+      const c = cond as { lt?: Date | string; lte?: Date | string; gt?: Date | string; gte?: Date | string; in?: unknown[]; startsWith?: string }
       if (Array.isArray(c.in)) return c.in.includes(v)
+      if (c.startsWith !== undefined && typeof v === 'string') return v.startsWith(c.startsWith)
       if (v === null || v === undefined) return false
       const a = v instanceof Date ? v.getTime() : (v as string)
       const val = (x: Date | string) => (x instanceof Date ? x.getTime() : x)
-      if ('gte' in c && c.gte !== undefined) return a >= val(c.gte)
-      if (!('lt' in c) || c.lt === undefined) return false
-      return a < val(c.lt)
+      if ('gte' in c && c.gte !== undefined && a < val(c.gte)) return false
+      if ('gt' in c && c.gt !== undefined && a <= val(c.gt)) return false
+      if ('lte' in c && c.lte !== undefined && a > val(c.lte)) return false
+      if ('lt' in c && c.lt !== undefined && a >= val(c.lt)) return false
+      if ('gte' in c || 'gt' in c || 'lte' in c || 'lt' in c) return true
     }
     return v === cond
   }
@@ -124,6 +157,11 @@ export function createFakePrisma(fixtures: Fixtures): {
       // PunchPhoto relation filter: `profileOf: { none: {} }` means no Staff points at this photo
       if (k === 'profileOf' && v && typeof v === 'object' && 'none' in v) {
         return !staffRows.some((s) => s.profilePhotoId === row.id)
+      }
+      if (k === 'staff' && v && typeof v === 'object') {
+        const sRow = (row.staff ?? staffRows.find((s) => s.id === row.staffId)) as Record<string, unknown> | undefined
+        if (!sRow) return false
+        return matchesWhere(sRow, v as Record<string, unknown>)
       }
       return matchValue(row[k], v)
     })
@@ -139,6 +177,18 @@ export function createFakePrisma(fixtures: Fixtures): {
       if (bv === undefined || bv === null) return -1
       return (av < bv ? -1 : 1) * sign
     })
+  }
+
+const resolvePunchRequest = (
+    r: PunchRequestRow,
+    include?: { staff?: boolean | { include?: Record<string, boolean>; select?: Record<string, boolean> } }
+  ) => {
+    if (!include?.staff) return { ...r }
+    const s = (r.staff ?? staffRows.find((x) => x.id === r.staffId))
+    return {
+      ...r,
+      staff: s ? { ...s } : null,
+    }
   }
 
   const inRange = (t: Date, f?: TimeFilter) =>
@@ -353,6 +403,105 @@ export function createFakePrisma(fixtures: Fixtures): {
       findMany: async (args?: { where?: { staffId?: string } }) =>
         fixtures.lockedPayrolls.filter((p) => !args?.where?.staffId || p.staffId === args.where.staffId),
     },
+    punchRequest: {
+      findMany: async (args?: {
+        where?: Record<string, unknown>
+        orderBy?: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[]
+        include?: { staff?: boolean | Record<string, unknown> }
+        take?: number
+        skip?: number
+      }) => {
+        let rows = punchRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where))
+        if (args?.orderBy) {
+          const order = Array.isArray(args.orderBy) ? args.orderBy[0] : args.orderBy
+          rows = sortBy(rows, order)
+        }
+        if (args?.skip) rows = rows.slice(args.skip)
+        if (args?.take) rows = rows.slice(0, args.take)
+        return rows.map((r) => resolvePunchRequest(r, args?.include))
+      },
+      findUnique: async (args: { where: { id: string }; include?: { staff?: boolean | Record<string, unknown> } }) => {
+        const row = punchRequests.find((r) => r.id === args.where.id)
+        return row ? resolvePunchRequest(row, args?.include) : null
+      },
+      findFirst: async (args?: {
+        where?: Record<string, unknown>
+        orderBy?: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[]
+        include?: { staff?: boolean | Record<string, unknown> }
+      }) => {
+        let rows = punchRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where))
+        if (args?.orderBy) {
+          const order = Array.isArray(args.orderBy) ? args.orderBy[0] : args.orderBy
+          rows = sortBy(rows, order)
+        }
+        const row = rows[0] ?? null
+        return row ? resolvePunchRequest(row, args?.include) : null
+      },
+      count: async (args?: { where?: Record<string, unknown> }) =>
+        punchRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where)).length,
+      create: async ({
+        data,
+        include,
+      }: {
+        data: Omit<PunchRequestRow, 'id'> & { id?: string }
+        include?: { staff?: boolean | Record<string, unknown> }
+      }) => {
+        const now = new Date()
+        const row: PunchRequestRow = {
+          id: data.id ?? `pr-${++punchRequestSeq}`,
+          createdAt: now,
+          updatedAt: now,
+          status: 'PENDING',
+          requestedTime: null,
+          requestedInTime: null,
+          requestedOutTime: null,
+          explanation: null,
+          decidedByUserId: null,
+          decidedAt: null,
+          decisionRemarks: null,
+          ...data,
+        }
+        punchRequests.push(row)
+        return resolvePunchRequest(row, include)
+      },
+      update: async ({
+        where,
+        data,
+        include,
+      }: {
+        where: { id: string }
+        data: Partial<PunchRequestRow>
+        include?: { staff?: boolean | Record<string, unknown> }
+      }) => {
+        const row = punchRequests.find((r) => r.id === where.id)
+        if (!row) throw new Error(`punchRequest ${where.id} not found`)
+        Object.assign(row, data, { updatedAt: new Date() })
+        return resolvePunchRequest(row, include)
+      },
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Partial<PunchRequestRow> }) => {
+        const rows = punchRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, where))
+        for (const r of rows) Object.assign(r, data, { updatedAt: new Date() })
+        return { count: rows.length }
+      },
+      delete: async ({ where }: { where: { id: string } }) => {
+        const i = punchRequests.findIndex((r) => r.id === where.id)
+        if (i < 0) throw new Error(`punchRequest ${where.id} not found`)
+        return punchRequests.splice(i, 1)[0]
+      },
+      deleteMany: async ({ where }: { where: Record<string, unknown> }) => {
+        const doomed = punchRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, where))
+        for (const r of doomed) punchRequests.splice(punchRequests.indexOf(r), 1)
+        return { count: doomed.length }
+      },
+    },
+    auditLog: {
+      create: async ({ data }: { data: Record<string, unknown> }) => ({
+        id: `audit-${Date.now()}`,
+        at: new Date(),
+        ...data,
+      }),
+      findMany: async () => [],
+    },
     attendanceLog: {
       findMany: async (args?: {
         where?: { timestamp?: TimeFilter; staffId?: string }
@@ -367,6 +516,11 @@ export function createFakePrisma(fixtures: Fixtures): {
         })
       },
       findFirst: async (args?: { where?: { timestamp?: TimeFilter; staffId?: string } }) => sortedLogs(args?.where)[0] ?? null,
+      create: async ({ data }: { data: { staffId: string; timestamp: Date; type: string; id?: string } }) => {
+        const row = { id: data.id ?? `log-${fixtures.logs.length + 1}`, ...data }
+        fixtures.logs.push(row)
+        return row
+      },
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
       // Roll back photo rows and staff photo pointers when the callback throws.
@@ -416,7 +570,16 @@ export function createFakePrisma(fixtures: Fixtures): {
         get punchPhoto() {
           return client.punchPhoto
         },
+        get punchRequest() {
+          return client.punchRequest
+        },
+        get attendanceLog() {
+          return client.attendanceLog
+        },
+        get auditLog() {
+          return client.auditLog
+        },
       })
 
-  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos }
+  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests }
 }

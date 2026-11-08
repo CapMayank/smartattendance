@@ -203,6 +203,7 @@ model Staff {
   shiftAssignments ShiftAssignment[]
   shiftSuggestions ShiftSuggestion[]
   punchPhotos      PunchPhoto[]      @relation("PunchPhotoOwner")
+  punchRequests    PunchRequest[]
 }
 
 model AttendanceLog {
@@ -416,4 +417,28 @@ model SystemSetting {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PunchRequest {
+  id               String    @id @default(cuid())
+  staffId          String
+  date             String    // YYYY-MM-DD IST day key
+  punchType        String    // "IN" | "OUT" | "BOTH"
+  requestedTime    String?
+  requestedInTime  String?
+  requestedOutTime String?
+  reason           String    // e.g. "FORGOT_SWIPE" | "DUTY_OUTSIDE" | "DEVICE_OFFLINE" | "POWER_FAILURE" | "OTHER"
+  explanation      String?
+  status           String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"
+  decidedByUserId  String?
+  decidedAt        DateTime?
+  decisionRemarks  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  @@index([staffId, status])
+  @@index([date])
+  @@index([status])
 }
