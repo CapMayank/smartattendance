@@ -35,14 +35,21 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  accounts      Account[]
-  sessions      Session[]
+  id                     String               @id @default(cuid())
+  name                   String?
+  email                  String?              @unique
+  emailVerified          DateTime?
+  image                  String?
+  password               String?
+  role                   String               @default("ADMIN") // ADMIN | APPROVER | EMPLOYEE
+  staffId                String?              @unique
+  mustChangePassword     Boolean              @default(false)
+  disabledAt             DateTime?
+  approvesAllDepartments Boolean              @default(false)
+  accounts               Account[]
+  sessions               Session[]
+  staff                  Staff?               @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  approverDepartments   ApproverDepartment[]
 }
 
 model VerificationToken {
@@ -54,11 +61,12 @@ model VerificationToken {
 }
 
 model Department {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  staffs    Staff[]
+  id                  String               @id @default(cuid())
+  name                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  staffs              Staff[]
+  approverDepartments ApproverDepartment[]
 }
 
 model Designation {
@@ -91,7 +99,7 @@ model ShiftAssignment {
   createdByUserId String?
   createdAt       DateTime @default(now())
 
-  staff Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff Staff  @relation(fields: [staffId], references: [id], onDelete: Restrict)
   shift Shift? @relation(fields: [shiftId], references: [id], onDelete: Restrict)
 
   @@unique([staffId, effectiveFrom])
@@ -119,7 +127,7 @@ model ShiftSuggestion {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  staff          Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff          Staff  @relation(fields: [staffId], references: [id], onDelete: Restrict)
   suggestedShift Shift? @relation("SuggestedShift", fields: [suggestedShiftId], references: [id], onDelete: SetNull)
 
   @@index([staffId, status])
@@ -170,6 +178,8 @@ model Staff {
   id                 String   @id @default(cuid())
   machineId          String   @unique // ID as known to the attendance machine
   name               String
+  employeeCode       String?  @unique
+  joiningDate        String?  // YYYY-MM-DD (IST day key)
   departmentId       String?
   designationId      String?
   shiftId            String?
@@ -182,6 +192,9 @@ model Staff {
   designation  Designation? @relation(fields: [designationId], references: [id])
   shift        Shift?       @relation(fields: [shiftId], references: [id])
   profilePhoto PunchPhoto?  @relation("StaffProfilePhoto", fields: [profilePhotoId], references: [id], onDelete: SetNull)
+
+  user              User?
+  employmentPeriods EmploymentPeriod[]
 
   attendanceLogs   AttendanceLog[]
   dailyRecords     DailyRecord[]
@@ -198,7 +211,7 @@ model AttendanceLog {
   timestamp DateTime
   type      String // "IN" or "OUT"
 
-  staff Staff       @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff Staff       @relation(fields: [staffId], references: [id], onDelete: Restrict)
   photo PunchPhoto?
 
   @@index([staffId])
@@ -214,7 +227,7 @@ model PunchPhoto {
   isProfile Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  staff Staff          @relation("PunchPhotoOwner", fields: [staffId], references: [id], onDelete: Cascade)
+  staff Staff          @relation("PunchPhotoOwner", fields: [staffId], references: [id], onDelete: Restrict)
   log   AttendanceLog? @relation(fields: [logId], references: [id], onDelete: SetNull)
 
   profileOf Staff[] @relation("StaffProfilePhoto")
@@ -234,7 +247,7 @@ model DailyRecord {
   workMinutes     Int       @default(0)
   overtimeMinutes Int       @default(0)
 
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Restrict)
 
   @@unique([staffId, date])
   @@index([date])
@@ -251,6 +264,7 @@ model Holiday {
 model StaffPayrollInfo {
   id                 String  @id @default(cuid())
   staffId            String  @unique
+  payGroup           String  @default("BANK_EPF") // BANK_EPF | CASH
   isActiveForPayroll Boolean @default(true)
   monthlyCtc         Float   @default(0)
   bankAccount        String?
@@ -288,12 +302,14 @@ model StaffPayrollInfo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff           Staff            @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  payGroupChanges PayGroupChange[]
 }
 
 model MonthlyPayroll {
   id                  String   @id @default(cuid())
   staffId             String
+  payGroup            String   @default("BANK_EPF") // BANK_EPF | CASH
   month               Int
   year                Int
   totalDays           Int
@@ -318,8 +334,86 @@ model MonthlyPayroll {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Restrict)
 
   @@unique([staffId, month, year])
   @@index([month, year])
+}
+
+model EmploymentPeriod {
+  id              String    @id @default(cuid())
+  staffId         String
+  startDate       String    // YYYY-MM-DD
+  endDate         String?   // YYYY-MM-DD
+  exitReason      String?   // RESIGNED | TERMINATED | RETIRED | END_OF_CONTRACT | OTHER
+  notes           String?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+}
+
+model ApproverDepartment {
+  id           String     @id @default(cuid())
+  userId       String
+  departmentId String
+  createdAt    DateTime   @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+}
+
+model PayGroupChange {
+  id                 String           @id @default(cuid())
+  staffPayrollInfoId String
+  payGroup           String           // BANK_EPF | CASH
+  effectiveFromMonth String           // YYYY-MM
+  createdByUserId    String?
+  createdAt          DateTime         @default(now())
+
+  staffPayrollInfo StaffPayrollInfo @relation(fields: [staffPayrollInfoId], references: [id], onDelete: Cascade)
+
+  @@index([staffPayrollInfoId])
+}
+
+model UnmatchedPunch {
+  id               String    @id @default(cuid())
+  machineId        String
+  timestamp        DateTime
+  type             String    // IN | OUT
+  receivedAt       DateTime  @default(now())
+  reason           String    // UNKNOWN_ID | NOT_EMPLOYED
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolution       String?   // ATTACHED | DISMISSED
+  attachedStaffId  String?
+
+  @@index([machineId])
+  @@index([resolvedAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  at          DateTime @default(now())
+  actorUserId String?
+  action      String   // JOIN | EXIT | REJOIN | ROLE_CHANGE | SETUP_COMPLETED | etc.
+  targetType  String   // Staff | User | Punch
+  targetId    String?
+  details     String?  // JSON string
+
+  @@index([at])
+  @@index([actorUserId])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
