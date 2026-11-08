@@ -8,7 +8,7 @@ function isEmployedOnDate(staff, dateKey) {
     return false;
   }
 
-  const periods = staff.periods;
+  const periods = staff.periods || staff.employmentPeriods;
   if (!periods || periods.length === 0) {
     return true;
   }

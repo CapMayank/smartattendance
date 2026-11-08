@@ -6,17 +6,18 @@ export type EmploymentPeriodLite = {
 export type StaffEmploymentProfile = {
   id: string;
   periods?: EmploymentPeriodLite[];
+  employmentPeriods?: EmploymentPeriodLite[];
 };
 
 /**
  * Determines whether a staff member is considered employed on a specific date (YYYY-MM-DD).
  *
  * Rule 1 (Legacy Staff):
- * If `staff.periods` is undefined or empty (`length === 0`), return `true`.
+ * If `staff.periods` (or `staff.employmentPeriods`) is undefined or empty (`length === 0`), return `true`.
  * Legacy staff without recorded employment periods are treated as active across all dates.
  *
  * Rule 2 (Active Period Check):
- * If `staff.periods` has items, return `true` if any period satisfies:
+ * If `staff.periods` (or `staff.employmentPeriods`) has items, return `true` if any period satisfies:
  *   `period.startDate <= dateKey && (period.endDate === null || period.endDate >= dateKey)`
  * Otherwise, return `false`.
  */
@@ -28,7 +29,7 @@ export function isEmployedOnDate(
     return false;
   }
 
-  const periods = staff.periods;
+  const periods = staff.periods ?? staff.employmentPeriods;
   if (!periods || periods.length === 0) {
     return true;
   }
