@@ -1,12 +1,21 @@
 import {
   Home, Users, Calendar, Clock, PlusCircle, BarChart3, UserCheck, Wallet,
   IndianRupee, PieChart, Building2, IdCard, Server, Settings,
-  AlertCircle, KeyRound, ScrollText,
+  AlertCircle, KeyRound, ScrollText, CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 
-export type NavItem = { label: string; href: string; icon: LucideIcon };
-export type NavGroup = { group: "Overview" | "Attendance" | "Payroll" | "System" | "My Portal"; items: NavItem[] };
+export type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: number | string;
+};
+
+export type NavGroup = {
+  group: "Overview" | "Attendance" | "Payroll" | "System" | "My Portal";
+  items: NavItem[];
+};
 
 const APPROVER_HIDDEN_HREFS = new Set(["/staff", "/attendance/manual", "/punches/unmatched"]);
 
@@ -23,6 +32,7 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "Calendar", href: "/calendar", icon: Calendar },
       { label: "Shifts", href: "/shifts", icon: Clock },
+      { label: "Punch requests", href: "/punches/requests", icon: CheckCircle2 },
       { label: "Manual punch", href: "/attendance/manual", icon: PlusCircle },
       { label: "Unmatched punches", href: "/punches/unmatched", icon: AlertCircle },
       { label: "Reports", href: "/reports", icon: BarChart3 },
@@ -55,6 +65,9 @@ export const EMPLOYEE_NAV: NavGroup[] = [
     group: "My Portal",
     items: [
       { label: "My Overview", href: "/", icon: Home },
+      { label: "To School", href: "/to-school", icon: Calendar },
+      { label: "My Punches & Requests", href: "/punch-requests", icon: Clock },
+      { label: "My Payslips", href: "/payslips", icon: Wallet },
       { label: "Change password", href: "/change-password", icon: KeyRound },
     ],
   },

@@ -7,7 +7,13 @@ import { IconButton } from "@/components/ui";
 import type { ShellData } from "@/lib/shell-data";
 import { Sidebar } from "./Sidebar";
 
-export function MobileNav({ shell }: { shell: ShellData }) {
+export function MobileNav({
+  shell,
+  pendingPunchRequestsCount,
+}: {
+  shell: ShellData;
+  pendingPunchRequestsCount?: number;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const pathname = usePathname();
@@ -45,7 +51,7 @@ export function MobileNav({ shell }: { shell: ShellData }) {
         onClose={() => wrapRef.current?.querySelector<HTMLButtonElement>("button[aria-haspopup]")?.focus()}
         className="m-0 h-dvh max-h-none w-[280px] max-w-[85vw] border-r border-line bg-ground p-4 text-text backdrop:bg-ground/80 min-[981px]:hidden"
       >
-        <Sidebar shell={shell} />
+        <Sidebar shell={shell} pendingPunchRequestsCount={pendingPunchRequestsCount} />
       </dialog>
     </span>
   );

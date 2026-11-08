@@ -12,7 +12,15 @@ import type { ShellData } from "@/lib/shell-data";
 import { IntimeLockup, SchoolBadge } from "@/components/brand/Brand";
 import { getNavForRole, activeHref } from "./nav";
 
-export function Sidebar({ shell, className }: { shell: ShellData; className?: string }) {
+export function Sidebar({
+  shell,
+  className,
+  pendingPunchRequestsCount,
+}: {
+  shell: ShellData;
+  className?: string;
+  pendingPunchRequestsCount?: number;
+}) {
   const pathname = usePathname();
   const navGroups = getNavForRole(shell.roleCode);
   const active = activeHref(pathname, navGroups);
@@ -22,6 +30,9 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
   const online = shell.devices.length - offline;
   const isEmployee = shell.roleCode === "EMPLOYEE";
   const isAdmin = shell.roleCode === "ADMIN";
+  const pendingRequests =
+    pendingPunchRequestsCount ??
+    (shell as { pendingPunchRequestsCount?: number }).pendingPunchRequestsCount;
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col gap-[18px]", className)}>
@@ -104,7 +115,7 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
             <div className="px-3 pt-3.5 pb-1.5 text-[11px] tracking-[0.08em] text-subtle uppercase first:pt-0.5">
               {g.group}
             </div>
-            {g.items.map(({ label, href, icon: Icon }) => {
+            {g.items.map(({ label, href, icon: Icon, badge }) => {
               const isActive = href === active;
               return (
                 <Link
@@ -127,6 +138,16 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
                     <span className="num ml-auto rounded-full bg-absent/15 px-[7px] text-[11px] text-absent">
                       <span className="sr-only">Offline devices: </span>
                       {offline}
+                    </span>
+                  ) : null}
+                  {href === "/punches/requests" && typeof pendingRequests === "number" && pendingRequests > 0 ? (
+                    <span className="num ml-auto rounded-full bg-acc-1/15 px-[7px] text-[11px] font-semibold text-acc-1">
+                      <span className="sr-only">Pending requests: </span>
+                      {pendingRequests}
+                    </span>
+                  ) : badge !== undefined && badge !== null && badge !== "" ? (
+                    <span className="num ml-auto rounded-full bg-card-hi px-[7px] text-[11px] font-semibold text-subtle">
+                      {badge}
                     </span>
                   ) : null}
                 </Link>
