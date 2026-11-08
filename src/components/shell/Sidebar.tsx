@@ -4,21 +4,23 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { ChevronDown, HelpCircle, LogOut, Plus } from "lucide-react";
+import { ChevronDown, HelpCircle, KeyRound, LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { initials } from "@/lib/initials";
 import { formatTime } from "@/lib/format";
 import type { ShellData } from "@/lib/shell-data";
 import { IntimeLockup, SchoolBadge } from "@/components/brand/Brand";
-import { NAV, activeHref } from "./nav";
+import { getNavForRole, activeHref } from "./nav";
 
 export function Sidebar({ shell, className }: { shell: ShellData; className?: string }) {
   const pathname = usePathname();
-  const active = activeHref(pathname);
+  const navGroups = getNavForRole(shell.roleCode);
+  const active = activeHref(pathname, navGroups);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
   const offline = shell.devices.filter((d) => !d.online).length;
   const online = shell.devices.length - offline;
+  const isEmployee = shell.roleCode === "EMPLOYEE";
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col gap-[18px]", className)}>
@@ -47,7 +49,15 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
           </span>
           <span className="min-w-0 flex-1">
             <b className="block truncate text-[13.5px] font-medium">{shell.userName}</b>
-            <span className="block text-xs text-subtle">{shell.userRole}</span>
+            <span className="block truncate text-xs text-subtle">
+              {shell.employeeCode ? (
+                <>
+                  {shell.userRole} · <span className="num text-acc-1">{shell.employeeCode}</span>
+                </>
+              ) : (
+                shell.userRole
+              )}
+            </span>
           </span>
           <ChevronDown
             size={16}
@@ -56,7 +66,15 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
           />
         </button>
         {menuOpen ? (
-          <div id={menuId} className="border-t border-line-soft p-1.5">
+          <div id={menuId} className="space-y-0.5 border-t border-line-soft p-1.5">
+            <Link
+              href="/change-password"
+              onClick={() => setMenuOpen(false)}
+              className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-muted transition-colors duration-150 hover:bg-card hover:text-text"
+            >
+              <KeyRound size={15} aria-hidden="true" />
+              Change password
+            </Link>
             <button
               type="button"
               onClick={() => signOut()}
@@ -69,16 +87,18 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
         ) : null}
       </div>
 
-      <Link
-        href="/attendance/manual"
-        className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-[10px] bg-text text-[13.5px] font-medium text-ground transition-colors duration-150 hover:bg-white"
-      >
-        <Plus size={16} aria-hidden="true" />
-        Manual punch
-      </Link>
+      {!isEmployee && (
+        <Link
+          href="/attendance/manual"
+          className="inline-flex h-[42px] w-full items-center justify-center gap-2 rounded-[10px] bg-text text-[13.5px] font-medium text-ground transition-colors duration-150 hover:bg-white"
+        >
+          <Plus size={16} aria-hidden="true" />
+          Manual punch
+        </Link>
+      )}
 
       <nav aria-label="Main navigation" className="flex min-h-0 flex-col gap-0.5 overflow-y-auto">
-        {NAV.map((g) => (
+        {navGroups.map((g) => (
           <div key={g.group} className="flex flex-col gap-0.5">
             <div className="px-3 pt-3.5 pb-1.5 text-[11px] tracking-[0.08em] text-subtle uppercase first:pt-0.5">
               {g.group}
@@ -115,45 +135,47 @@ export function Sidebar({ shell, className }: { shell: ShellData; className?: st
         ))}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-2.5">
-        <div className="rounded-xl border border-line bg-canvas p-3">
-          <div className="mb-1 flex justify-between text-[13px] font-medium">
-            <span>Punch devices</span>
-            {shell.devices.length > 0 ? (
-              <span className="num text-muted">
-                {online} / {shell.devices.length}
-              </span>
-            ) : null}
-          </div>
-          {shell.devices.length === 0 ? (
-            <p className="py-1 text-[12.5px] text-muted">No devices yet</p>
-          ) : (
-            shell.devices.map((d) => (
-              <div key={d.id} className="flex items-center justify-between gap-2 py-[3px] text-[12.5px] text-muted">
-                <span className="flex min-w-0 items-center">
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "status-dot mr-2 size-[7px] flex-none rounded-full",
-                      d.online ? "tone-present" : "tone-absent",
-                    )}
-                  />
-                  <span className="truncate">{d.name}</span>
-                  <span className="sr-only">{d.online ? " online" : " offline"}</span>
+      {!isEmployee && (
+        <div className="mt-auto flex flex-col gap-2.5">
+          <div className="rounded-xl border border-line bg-canvas p-3">
+            <div className="mb-1 flex justify-between text-[13px] font-medium">
+              <span>Punch devices</span>
+              {shell.devices.length > 0 ? (
+                <span className="num text-muted">
+                  {online} / {shell.devices.length}
                 </span>
-                <span className="num flex-none">{d.online ? formatTime(new Date(d.lastPing)) : "Offline"}</span>
-              </div>
-            ))
-          )}
+              ) : null}
+            </div>
+            {shell.devices.length === 0 ? (
+              <p className="py-1 text-[12.5px] text-muted">No devices yet</p>
+            ) : (
+              shell.devices.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-2 py-[3px] text-[12.5px] text-muted">
+                  <span className="flex min-w-0 items-center">
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "status-dot mr-2 size-[7px] flex-none rounded-full",
+                        d.online ? "tone-present" : "tone-absent",
+                      )}
+                    />
+                    <span className="truncate">{d.name}</span>
+                    <span className="sr-only">{d.online ? " online" : " offline"}</span>
+                  </span>
+                  <span className="num flex-none">{d.online ? formatTime(new Date(d.lastPing)) : "Offline"}</span>
+                </div>
+              ))
+            )}
+          </div>
+          <Link
+            href="/settings"
+            className="flex items-center gap-3 rounded-[9px] px-3 py-2 text-muted transition-colors duration-150 hover:text-text"
+          >
+            <HelpCircle size={18} aria-hidden="true" />
+            Help &amp; guide
+          </Link>
         </div>
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 rounded-[9px] px-3 py-2 text-muted transition-colors duration-150 hover:text-text"
-        >
-          <HelpCircle size={18} aria-hidden="true" />
-          Help &amp; guide
-        </Link>
-      </div>
+      )}
     </div>
   );
 }

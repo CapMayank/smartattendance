@@ -8,6 +8,7 @@ const mockPrisma = vi.hoisted(() => ({
   },
   staff: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
   employmentPeriod: {
@@ -64,6 +65,7 @@ describe("POST /api/staff/[id]/lifecycle", () => {
       approverDepartments: [],
     });
     mockPrisma.shift.findUnique.mockResolvedValue({ id: "sh1", name: "General" });
+    mockPrisma.staff.findMany.mockResolvedValue([]);
     session.mockResolvedValue({ user: { id: "u-admin", role: "ADMIN" } } as never);
   });
 
@@ -352,6 +354,54 @@ describe("POST /api/staff/[id]/lifecycle", () => {
           targetType: "Staff",
           targetId: "s1",
           actorUserId: "u-admin",
+        }),
+      });
+    });
+  });
+
+  describe("action: RESET_PASSWORD", () => {
+    it("generates a new temporary password, ensures employeeCode, updates or creates linked user, and logs PASSWORD_RESET", async () => {
+      mockPrisma.staff.findUnique.mockResolvedValue({
+        id: "s1",
+        name: "Kiran Verma",
+        machineId: "105",
+        employeeCode: null,
+        joiningDate: null,
+        employmentPeriods: [],
+        user: null,
+      });
+      mockPrisma.staff.findMany.mockResolvedValue([{ employeeCode: "SAR-2024-004" }]);
+      mockPrisma.staff.update.mockResolvedValue({
+        id: "s1",
+        name: "Kiran Verma",
+        employeeCode: "SAR-2024-005",
+        joiningDate: "2024-07-01",
+      });
+
+      const res = await createRequest("s1", {
+        action: "RESET_PASSWORD",
+        joiningDate: "2024-07-01",
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.employeeCode).toBe("SAR-2024-005");
+      expect(typeof data.temporaryPassword).toBe("string");
+      expect(data.temporaryPassword.length).toBeGreaterThanOrEqual(8);
+      expect(mockPrisma.user.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: "Kiran Verma",
+          role: "EMPLOYEE",
+          mustChangePassword: true,
+          staffId: "s1",
+        }),
+      });
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: "PASSWORD_RESET",
+          targetType: "Staff",
+          targetId: "s1",
         }),
       });
     });

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { requireRole } from '@/lib/rbac';
 import { istDateKey } from '@/lib/dashboard-calc';
+import { formatEmployeeCode, parseEmployeeCode } from '@/lib/employee-code';
 import { generateTemporaryPassword } from '@/lib/temporary-password';
 import bcrypt from 'bcryptjs';
 
@@ -246,12 +247,108 @@ export async function POST(
         success: true,
         staff: result.staff,
         period: result.period,
+        employeeCode: staff.employeeCode,
+        temporaryPassword: tempPassword,
+      });
+    }
+
+    if (action === 'RESET_PASSWORD') {
+      const requestedJoiningDate = isValidDateKey(body?.joiningDate)
+        ? body.joiningDate
+        : staff.joiningDate || istDateKey(new Date());
+
+      const tempPassword = generateTemporaryPassword(10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      const employeeCode = await prisma.$transaction(async (tx: any) => {
+        let code = staff.employeeCode;
+        const jDate = staff.joiningDate || requestedJoiningDate;
+
+        if (!code) {
+          const year = parseInt(jDate.slice(0, 4), 10);
+          const staffInYear = await tx.staff.findMany({
+            where: { employeeCode: { startsWith: `SAR-${year}-` } },
+            select: { employeeCode: true },
+          });
+
+          let maxSeq = 0;
+          for (const s of staffInYear) {
+            if (!s.employeeCode) continue;
+            const parsed = parseEmployeeCode(s.employeeCode);
+            if (parsed && parsed.year === year && parsed.sequence > maxSeq) {
+              maxSeq = parsed.sequence;
+            }
+          }
+          code = formatEmployeeCode(year, maxSeq + 1);
+        }
+
+        if (code !== staff.employeeCode || jDate !== staff.joiningDate) {
+          await tx.staff.update({
+            where: { id: staff.id },
+            data: {
+              employeeCode: code,
+              joiningDate: jDate,
+            },
+          });
+        }
+
+        if (!staff.employmentPeriods || staff.employmentPeriods.length === 0) {
+          await tx.employmentPeriod.create({
+            data: {
+              staffId: staff.id,
+              startDate: jDate,
+              endDate: null,
+              createdByUserId: auth.user.id,
+            },
+          });
+        }
+
+        if (staff.user) {
+          await tx.user.update({
+            where: { id: staff.user.id },
+            data: {
+              password: hashedPassword,
+              mustChangePassword: true,
+              disabledAt: null,
+            },
+          });
+        } else {
+          await tx.user.create({
+            data: {
+              name: staff.name,
+              role: 'EMPLOYEE',
+              password: hashedPassword,
+              mustChangePassword: true,
+              staffId: staff.id,
+            },
+          });
+        }
+
+        await tx.auditLog.create({
+          data: {
+            actorUserId: auth.user.id,
+            action: 'PASSWORD_RESET',
+            targetType: 'Staff',
+            targetId: staff.id,
+            details: JSON.stringify({
+              employeeCode: code,
+              resetAt: new Date().toISOString(),
+            }),
+          },
+        });
+
+        return code;
+      });
+
+      return NextResponse.json({
+        success: true,
+        employeeCode,
         temporaryPassword: tempPassword,
       });
     }
 
     return NextResponse.json(
-      { error: 'Invalid action. Supported actions: EXIT, REJOIN' },
+      { error: 'Invalid action. Supported actions: EXIT, REJOIN, RESET_PASSWORD' },
       { status: 400 }
     );
   } catch (error) {

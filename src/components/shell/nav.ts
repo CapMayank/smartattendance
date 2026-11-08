@@ -1,19 +1,19 @@
 import {
   Home, Users, Calendar, Clock, PlusCircle, BarChart3, UserCheck, Wallet,
-  IndianRupee, PieChart, Building2, IdCard, Server, UserCog, Settings,
-  AlertCircle,
+  IndianRupee, PieChart, Building2, IdCard, Server, Settings,
+  AlertCircle, KeyRound,
   type LucideIcon,
 } from "lucide-react";
 
 export type NavItem = { label: string; href: string; icon: LucideIcon };
-export type NavGroup = { group: "Overview" | "Attendance" | "Payroll" | "System"; items: NavItem[] };
+export type NavGroup = { group: "Overview" | "Attendance" | "Payroll" | "System" | "My Portal"; items: NavItem[] };
 
 export const NAV: NavGroup[] = [
   {
     group: "Overview",
     items: [
       { label: "Dashboard", href: "/", icon: Home },
-      { label: "Staff", href: "/staff", icon: Users },
+      { label: "Staff & Access", href: "/staff", icon: Users },
     ],
   },
   {
@@ -42,16 +42,36 @@ export const NAV: NavGroup[] = [
       { label: "Departments", href: "/departments", icon: Building2 },
       { label: "Designations", href: "/designations", icon: IdCard },
       { label: "Devices", href: "/devices", icon: Server },
-      { label: "Users", href: "/users", icon: UserCog },
       { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];
 
+export const EMPLOYEE_NAV: NavGroup[] = [
+  {
+    group: "My Portal",
+    items: [
+      { label: "My Overview", href: "/", icon: Home },
+      { label: "Change password", href: "/change-password", icon: KeyRound },
+    ],
+  },
+];
+
+export function getNavForRole(role?: string): NavGroup[] {
+  if (role === "EMPLOYEE") return EMPLOYEE_NAV;
+  if (role === "APPROVER") {
+    return NAV.filter((g) => g.group === "Overview" || g.group === "Attendance").map((g) => ({
+      ...g,
+      items: g.items.filter((item) => item.href !== "/staff"),
+    }));
+  }
+  return NAV;
+}
+
 /** Returns the href of the longest matching nav item for a pathname, or null. */
-export function activeHref(pathname: string): string | null {
+export function activeHref(pathname: string, groups: NavGroup[] = NAV): string | null {
   let best: string | null = null;
-  for (const g of NAV) {
+  for (const g of groups) {
     for (const { href } of g.items) {
       const match = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
       if (match && (best === null || href.length > best.length)) best = href;

@@ -2,6 +2,21 @@ import { withAuth, type NextRequestWithAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 import { isSetupCompleted } from "@/lib/setup"
 
+const EMPLOYEE_BLOCKED_PAGE_PREFIXES = [
+  "/staff",
+  "/users",
+  "/payroll",
+  "/settings",
+  "/departments",
+  "/designations",
+  "/devices",
+  "/attendance/manual",
+  "/punches/unmatched",
+  "/shifts",
+  "/reports",
+  "/calendar",
+]
+
 export async function proxyHandler(req: NextRequestWithAuth) {
   const pathname = req.nextUrl?.pathname || ""
 
@@ -63,6 +78,16 @@ export async function proxyHandler(req: NextRequestWithAuth) {
 
     if (!isAllowed) {
       return NextResponse.redirect(new URL("/change-password", req.url))
+    }
+  }
+
+  // 4. Role-based Page Guard: Employees use the personal portal at `/` and `/change-password`
+  if (token?.role === "EMPLOYEE" && !pathname.startsWith("/api/")) {
+    const isBlockedAdminPage = EMPLOYEE_BLOCKED_PAGE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+    )
+    if (isBlockedAdminPage) {
+      return NextResponse.redirect(new URL("/", req.url))
     }
   }
 

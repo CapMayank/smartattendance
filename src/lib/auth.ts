@@ -174,13 +174,16 @@ export const authOptions: AuthOptions = {
       }
       return session
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
         token.role = user.role
         token.staffId = user.staffId ?? null
         token.employeeCode = user.employeeCode ?? null
         token.mustChangePassword = Boolean(user.mustChangePassword)
+      }
+      if (trigger === "update" && session?.mustChangePassword !== undefined) {
+        token.mustChangePassword = Boolean(session.mustChangePassword)
       }
       return token
     },

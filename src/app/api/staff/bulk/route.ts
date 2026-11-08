@@ -30,6 +30,12 @@ export async function POST(request: Request) {
     let processedCount = 0
     let recalculationFailed = 0
     const todayKey = istDateKey(new Date())
+    const generatedCredentials: Array<{
+      name: string
+      machineId: string
+      employeeCode: string
+      temporaryPassword: string
+    }> = []
 
     // Fetch existing staff to identify existing vs new machine IDs
     const existingStaff = await prisma.staff.findMany({
@@ -252,13 +258,20 @@ export async function POST(request: Request) {
           return staff
         })
 
+        generatedCredentials.push({
+          name,
+          machineId,
+          employeeCode,
+          temporaryPassword: tempPassword,
+        })
+
         existingByMachineId.set(machineId, { id: newStaff.id, machineId, shiftId: chosenShiftId })
       }
 
       processedCount++
     }
 
-    return NextResponse.json({ success: true, processedCount, recalculationFailed })
+    return NextResponse.json({ success: true, processedCount, recalculationFailed, generatedCredentials })
   } catch (error) {
     console.error('Bulk Import Error:', error)
     return NextResponse.json({ error: 'Failed to process bulk import' }, { status: 500 })

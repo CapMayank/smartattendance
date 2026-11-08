@@ -31,7 +31,28 @@ export async function GET() {
     console.error('[staff] sync failed:', error)
   }
   const staff = await prisma.staff.findMany({ 
-    include: { department: true, designation: true, shift: true }
+    include: {
+      department: true,
+      designation: true,
+      shift: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          disabledAt: true,
+          mustChangePassword: true,
+        },
+      },
+      payrollInfo: {
+        select: {
+          payGroup: true,
+        },
+      },
+      employmentPeriods: {
+        orderBy: { startDate: 'desc' },
+      },
+    }
   })
   
   // Sort numerically by machineId so they appear in logical order everywhere (e.g. dropdowns)
@@ -48,7 +69,7 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const { name, machineId, joiningDate, departmentId, designationId, shiftId, payGroup } = data
+    const { name, machineId, joiningDate, departmentId, designationId, shiftId, payGroup, role, email } = data
 
     if (!name || !machineId || !joiningDate) {
       return NextResponse.json({ error: 'Name, machineId, and joiningDate are required' }, { status: 400 })
@@ -71,6 +92,8 @@ export async function POST(request: Request) {
     }
 
     const year = parseInt(joiningDate.slice(0, 4), 10)
+    const userRole = role === 'ADMIN' || role === 'APPROVER' || role === 'EMPLOYEE' ? role : 'EMPLOYEE'
+    const normalizedEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : undefined
 
     const temporaryPassword = generateTemporaryPassword(10)
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10)
@@ -133,14 +156,19 @@ export async function POST(request: Request) {
         })
       }
 
+      const userCreateData: Record<string, unknown> = {
+        name: staff.name,
+        role: userRole,
+        password: hashedPassword,
+        mustChangePassword: true,
+        staffId: staff.id,
+      }
+      if (normalizedEmail) {
+        userCreateData.email = normalizedEmail
+      }
+
       await tx.user.create({
-        data: {
-          name: staff.name,
-          role: 'EMPLOYEE',
-          password: hashedPassword,
-          mustChangePassword: true,
-          staffId: staff.id,
-        },
+        data: userCreateData,
       })
 
       await tx.auditLog.create({
@@ -158,6 +186,7 @@ export async function POST(request: Request) {
             designationId,
             shiftId,
             payGroup: payGroup || 'BANK_EPF',
+            role: userRole,
           }),
         },
       })
@@ -252,7 +281,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: START_BEFORE_ALWAYS_ERROR }, { status: 400 })
     }
 
-    const current = await prisma.staff.findUnique({ where: { id }, select: { shiftId: true } })
+    const current = await prisma.staff.findUnique({
+      where: { id },
+      select: {
+        shiftId: true,
+        employeeCode: true,
+        joiningDate: true,
+      },
+    })
     if (!current) return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
 
     const nextShiftId: string | null = updateData.shiftId || null
@@ -261,17 +297,126 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unknown shift' }, { status: 400 })
     }
 
+    let generatedEmployeeCode = current.employeeCode
+    let updatedJoiningDate = current.joiningDate
+    let issuedTemporaryPassword: string | undefined
+
+    if (updateData.joiningDate && isValidDateKey(updateData.joiningDate)) {
+      const nextJoinDate: string = updateData.joiningDate
+      updatedJoiningDate = nextJoinDate
+      if (!generatedEmployeeCode) {
+        const year = parseInt(nextJoinDate.slice(0, 4), 10)
+        const staffInYear = await prisma.staff.findMany({
+          where: { employeeCode: { startsWith: `SAR-${year}-` } },
+          select: { employeeCode: true },
+        })
+        let maxSeq = 0
+        for (const s of staffInYear) {
+          if (!s.employeeCode) continue
+          const parsed = parseEmployeeCode(s.employeeCode)
+          if (parsed && parsed.year === year && parsed.sequence > maxSeq) {
+            maxSeq = parsed.sequence
+          }
+        }
+        generatedEmployeeCode = formatEmployeeCode(year, maxSeq + 1)
+      }
+    }
+
+    const staffUpdateFields: Record<string, unknown> = {
+      name: updateData.name,
+      machineId: updateData.machineId,
+      departmentId: updateData.departmentId || null,
+      designationId: updateData.designationId || null,
+    }
+    if (updatedJoiningDate !== current.joiningDate) {
+      staffUpdateFields.joiningDate = updatedJoiningDate
+    }
+    if (generatedEmployeeCode !== current.employeeCode) {
+      staffUpdateFields.employeeCode = generatedEmployeeCode
+    }
+
     // Ensure nulls are handled for optional relations. The shift is changed through the
     // shift change service (dated history + recalculation), never written here.
     let staff = await prisma.staff.update({ 
       where: { id },
-      data: {
-        name: updateData.name,
-        machineId: updateData.machineId,
-        departmentId: updateData.departmentId || null,
-        designationId: updateData.designationId || null,
-      }
+      data: staffUpdateFields,
     })
+
+    // Optional onboarding / access / payGroup updates when provided from unified Staff & Access modal
+    if (updateData.payGroup && (updateData.payGroup === 'BANK_EPF' || updateData.payGroup === 'CASH')) {
+      if (prisma.staffPayrollInfo?.upsert) {
+        await prisma.staffPayrollInfo.upsert({
+          where: { staffId: id },
+          update: { payGroup: updateData.payGroup },
+          create: { staffId: id, payGroup: updateData.payGroup },
+        })
+      }
+    }
+
+    if (updatedJoiningDate && prisma.employmentPeriod?.findFirst) {
+      const existingPeriod = await prisma.employmentPeriod.findFirst({ where: { staffId: id } })
+      if (!existingPeriod) {
+        await prisma.employmentPeriod.create({
+          data: {
+            staffId: id,
+            startDate: updatedJoiningDate,
+            endDate: null,
+            createdByUserId: auth.user.id,
+          },
+        })
+      }
+    }
+
+    if (
+      (updateData.role !== undefined || updateData.email !== undefined || generatedEmployeeCode !== current.employeeCode) &&
+      prisma.user?.findFirst
+    ) {
+      const existingUser = await prisma.user.findFirst({ where: { staffId: id } })
+      const nextRole =
+        updateData.role === 'ADMIN' || updateData.role === 'APPROVER' || updateData.role === 'EMPLOYEE'
+          ? updateData.role
+          : undefined
+      const nextEmail =
+        typeof updateData.email === 'string'
+          ? updateData.email.trim() ? updateData.email.trim().toLowerCase() : null
+          : undefined
+
+      if (existingUser) {
+        if (nextRole && nextRole !== 'ADMIN' && existingUser.role === 'ADMIN' && existingUser.disabledAt === null) {
+          const activeAdminCount = await prisma.user.count({
+            where: { role: 'ADMIN', disabledAt: null },
+          })
+          if (activeAdminCount <= 1) {
+            return NextResponse.json(
+              { error: 'Cannot demote the last remaining active Admin user' },
+              { status: 400 }
+            )
+          }
+        }
+        const userUpdate: Record<string, unknown> = {
+          name: updateData.name || staff.name,
+        }
+        if (nextRole) userUpdate.role = nextRole
+        if (nextEmail !== undefined) userUpdate.email = nextEmail
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: userUpdate,
+        })
+      } else if (generatedEmployeeCode) {
+        issuedTemporaryPassword = generateTemporaryPassword(10)
+        const hashedPassword = await bcrypt.hash(issuedTemporaryPassword, 10)
+        await prisma.user.create({
+          data: {
+            name: updateData.name || staff.name,
+            email: nextEmail || null,
+            role: nextRole || 'EMPLOYEE',
+            password: hashedPassword,
+            mustChangePassword: true,
+            staffId: id,
+          },
+        })
+      }
+    }
 
     if (shiftChanges) {
       const shiftChange = await applyShiftChange({
@@ -282,9 +427,16 @@ export async function PUT(request: Request) {
         createdByUserId: session!.user?.id,
       })
       staff = (await prisma.staff.findUnique({ where: { id } })) ?? staff
-      return NextResponse.json({ ...staff, shiftChange })
+      return NextResponse.json({
+        ...staff,
+        shiftChange,
+        ...(issuedTemporaryPassword ? { temporaryPassword: issuedTemporaryPassword } : {}),
+      })
     }
-    return NextResponse.json(staff)
+    return NextResponse.json({
+      ...staff,
+      ...(issuedTemporaryPassword ? { temporaryPassword: issuedTemporaryPassword } : {}),
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update staff' }, { status: 500 })
   }

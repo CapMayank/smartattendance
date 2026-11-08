@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import AutoRefresh from "@/components/AutoRefresh";
 import { Card, CardHeader, EmptyState, KpiTile, SectionLabel, PageHeader } from "@/components/ui";
 import { getDashboardData, istDateKey, type DashboardData } from "@/lib/dashboard";
+import { getEmployeePortalData } from "@/lib/employee-portal";
 import { istMinutes, turnoutPercent } from "@/lib/dashboard-calc";
 import { formatDateLong, formatTime, formatHHmm } from "@/lib/format";
 import { ArrivalsChart } from "@/components/dashboard/ArrivalsChart";
@@ -14,6 +15,7 @@ import { TrendChart } from "@/components/dashboard/TrendChart";
 import { DepartmentTurnout } from "@/components/dashboard/DepartmentTurnout";
 import { AttentionList } from "@/components/dashboard/AttentionList";
 import { StaffToday } from "@/components/dashboard/StaffToday";
+import { EmployeeMyDashboard } from "@/components/dashboard/EmployeeMyDashboard";
 
 /** Dev-only `?at=<ISO>` override of "now" for checking other days. */
 function resolveNow(at: string | string[] | undefined): Date {
@@ -53,6 +55,31 @@ export default async function Dashboard({
   const now = resolveNow((await searchParams).at);
   const firstName = (session.user?.name ?? "").trim().split(/\s+/)[0] || "there";
   const title = `${greeting(now)}, ${firstName}`;
+
+  // Employee Role: Render the personal "My" Portal instead of the school-wide admin dashboard
+  if (session.user?.role === "EMPLOYEE" && session.user?.staffId) {
+    const portalData = await getEmployeePortalData(session.user.staffId, now).catch((err) => {
+      console.error("[employee-portal] failed to load data:", err);
+      return null;
+    });
+
+    if (portalData) {
+      const empSubtitle = [
+        formatDateLong(now),
+        formatTime(now),
+        portalData.profile.employeeCode ? `ID ${portalData.profile.employeeCode}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      return (
+        <>
+          <AutoRefresh />
+          <EmployeeMyDashboard title={title} subtitle={empSubtitle} data={portalData} />
+        </>
+      );
+    }
+  }
 
   let data: DashboardData;
   try {
