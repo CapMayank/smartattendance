@@ -642,8 +642,7 @@ export function PunchRequestsAdminClient({
                   {isPending && (
                     <div className="flex items-center justify-end gap-3 border-t border-line/70 pt-3">
                       <Button
-                        variant="outline"
-                        tone="absent"
+                        variant="danger"
                         icon={X}
                         disabled={actionInProgressId === req.id}
                         onClick={() => openRejectModal(req)}
@@ -652,7 +651,6 @@ export function PunchRequestsAdminClient({
                       </Button>
                       <Button
                         variant="primary"
-                        tone="present"
                         icon={Check}
                         disabled={actionInProgressId === req.id}
                         onClick={() => handleApprove(req)}
@@ -698,15 +696,14 @@ export function PunchRequestsAdminClient({
 
             <div className="flex justify-end gap-2.5 pt-2">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setRejectModalRequest(null)}
                 disabled={isRejecting}
               >
                 Cancel
               </Button>
               <Button
-                variant="primary"
-                tone="absent"
+                variant="danger"
                 onClick={handleConfirmReject}
                 disabled={isRejecting}
               >

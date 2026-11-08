@@ -1,5 +1,5 @@
 export type Fixtures = {
-  staff: {
+  staff: ({
     id: string
     name: string
     shiftId: string | null
@@ -8,10 +8,10 @@ export type Fixtures = {
     machineId?: string
     profilePhotoId?: string | null
     profilePhotoPinned?: boolean
-  }[]
+  } & Record<string, unknown>)[]
   policy: Record<string, unknown> | null
   holidays: { date: Date; name: string }[]
-  lockedPayrolls: { staffId: string; month: number; year: number }[]
+  lockedPayrolls: ({ staffId: string; month: number; year: number } & Record<string, unknown>)[]
   logs: { id: string; staffId: string; timestamp: Date; type: string }[]
   /** Optional; defaults to the distinct shifts carried by `staff[].shift`. */
   shifts?: { id: string; name: string; startTime: string; endTime: string }[]
@@ -128,6 +128,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   /** Live punch photo rows (push to seed). */
   punchPhotos: PunchPhotoRow[]
   punchRequests: PunchRequestRow[]
+  auditLogs: Record<string, unknown>[]
+  dailyRecordRows: Record<string, unknown>[]
 } {
   const created: Record<string, unknown>[] = []
   const deleteCalls: unknown[] = []
@@ -144,6 +146,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   let suggestionSeq = 0
   const punchRequests: PunchRequestRow[] = (fixtures.punchRequests ?? []).map((r) => ({ ...r }))
   let punchRequestSeq = 0
+  const dailyRecordRows: Array<{ id?: string; staffId: string; date: Date; status: string; lateMinutes?: number; workMinutes?: number; checkIn?: Date | null; checkOut?: Date | null; overtimeMinutes?: number }> = (fixtures.dailyRecords ?? []).map((r) => ({ ...r }))
+  const auditLogs: Record<string, unknown>[] = []
   const shiftRows: { id: string; name: string; startTime: string; endTime: string }[] = (() => {
     if (fixtures.shifts) return fixtures.shifts.map((x) => ({ ...x }))
     const byId = new Map<string, NonNullable<Fixtures['staff'][number]['shift']>>()
@@ -391,7 +395,7 @@ const resolvePunchRequest = (
     },
     dailyRecord: {
       findMany: async (args?: { where?: { staffId?: string; date?: TimeFilter } }) =>
-        (fixtures.dailyRecords ?? [])
+        dailyRecordRows
           .filter((r) => !args?.where?.staffId || r.staffId === args.where.staffId)
           .filter((r) => inRange(r.date, args?.where?.date)),
     },
@@ -438,10 +442,21 @@ const resolvePunchRequest = (
         fixtures.holidays.filter((h) => inRange(h.date, args?.where?.date)),
     },
     monthlyPayroll: {
-      findUnique: async (args: { where: { staffId_month_year: { staffId: string; month: number; year: number } } }) => {
-        const { staffId, month, year } = args.where.staffId_month_year
-        const row = fixtures.lockedPayrolls.find((p) => p.staffId === staffId && p.month === month && p.year === year)
-        return row ? { ...row, isLocked: true } : null
+      findUnique: async (args: { where: { staffId_month_year?: { staffId: string; month: number; year: number }; id?: string }; include?: Record<string, unknown> }) => {
+        if (args.where.id) {
+          const row = (fixtures.lockedPayrolls as Array<Record<string, unknown>>).find((p) => p.id === args.where.id)
+          if (!row) return null
+          const s = (row.staff ?? staffRows.find((x) => x.id === row.staffId)) as Record<string, unknown> | undefined
+          return { ...row, isLocked: row.isLocked ?? true, staff: s ? { ...s } : null }
+        }
+        if (args.where.staffId_month_year) {
+          const { staffId, month, year } = args.where.staffId_month_year
+          const row = (fixtures.lockedPayrolls as Array<Record<string, unknown>>).find((p) => p.staffId === staffId && p.month === month && p.year === year)
+          if (!row) return null
+          const s = (row.staff ?? staffRows.find((x) => x.id === row.staffId)) as Record<string, unknown> | undefined
+          return { ...row, isLocked: row.isLocked ?? true, staff: s ? { ...s } : null }
+        }
+        return null
       },
       findFirst: async (args?: { where?: { staffId?: string; month?: number; year?: number; isLocked?: boolean } }) => {
         const row = fixtures.lockedPayrolls.find(
@@ -569,12 +584,12 @@ const resolvePunchRequest = (
       },
     },
     auditLog: {
-      create: async ({ data }: { data: Record<string, unknown> }) => ({
-        id: `audit-${Date.now()}`,
-        at: new Date(),
-        ...data,
-      }),
-      findMany: async () => [],
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const row = { id: `audit-${Date.now()}-${auditLogs.length + 1}`, at: new Date(), ...data }
+        auditLogs.push(row)
+        return row
+      },
+      findMany: async (args?: { where?: Record<string, unknown> }) => auditLogs.filter((r) => matchesWhere(r, args?.where)),
     },
     attendanceLog: {
       findMany: async (args?: {
@@ -630,12 +645,23 @@ const resolvePunchRequest = (
   const runTransaction = (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
         dailyRecord: {
-          deleteMany: async (arg: unknown) => {
+          deleteMany: async (arg: { where?: { staffId?: string; date?: TimeFilter } } = {}) => {
             deleteCalls.push(arg)
+            if (arg?.where) {
+              for (let i = dailyRecordRows.length - 1; i >= 0; i--) {
+                const r = dailyRecordRows[i]
+                if ((!arg.where.staffId || r.staffId === arg.where.staffId) && inRange(r.date, arg.where.date)) {
+                  dailyRecordRows.splice(i, 1)
+                }
+              }
+            } else {
+              dailyRecordRows.length = 0
+            }
             return { count: 0 }
           },
           createMany: async ({ data }: { data: Record<string, unknown>[] }) => {
             created.push(...data)
+            dailyRecordRows.push(...(data as typeof dailyRecordRows))
             return { count: data.length }
           },
         },
@@ -668,5 +694,5 @@ const resolvePunchRequest = (
         },
       })
 
-  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests }
+  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests, auditLogs, dailyRecordRows }
 }

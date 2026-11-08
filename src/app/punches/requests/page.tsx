@@ -25,7 +25,7 @@ export default async function PunchRequestsAdminPage() {
 
   const auth = await requireRole(session, ["ADMIN", "APPROVER"]);
   if (auth.errorResponse) {
-    if (auth.user?.role === "EMPLOYEE") {
+    if ((session.user as { role?: string })?.role === "EMPLOYEE") {
       redirect("/punch-requests");
       return null;
     }
