@@ -2,82 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-
-function calculatePayroll(
-  monthlyCtc: number,
-  presentDays: number,
-  totalDays: number,
-  refundOfAdvance: number = 0,
-  bonusAmount: number = 0,
-  bonusDays: number = 0,
-  bonusType: string = "CUSTOM",
-  isBonusPfApplicable: boolean = false
-) {
-  if (totalDays === 0) return null;
-
-  // Base Total Wage (Gross) from CTC (CTC = Gross + 12% of Gross) -> Gross = CTC / 1.12
-  const baseGrossWage = monthlyCtc / 1.12;
-  const wagePerDay = Math.round(baseGrossWage / totalDays);
-  
-  // Cap presentDays to totalDays to keep attendance valid and prevent wage distortions
-  const validPresentDays = Math.min(presentDays, totalDays);
-  
-  // Calculate Actual Basic Wage based on valid present days
-  let basicWage = 0;
-  if (validPresentDays === totalDays) {
-    basicWage = baseGrossWage;
-  } else {
-    basicWage = wagePerDay * validPresentDays;
-  }
-
-  // Calculate bonus if bonusType is DAYS and bonusAmount is 0
-  let finalBonus = Number(bonusAmount) || 0;
-  if (bonusType === "DAYS" && bonusDays > 0 && finalBonus === 0) {
-    finalBonus = Math.round(wagePerDay * bonusDays);
-  }
-
-  const grossWage = Math.round(basicWage + finalBonus);
-  
-  // EPF wage: basicWage (+ bonus only if isBonusPfApplicable is true)
-  const epfWages = Math.round(isBonusPfApplicable ? basicWage + finalBonus : basicWage);
-  const epsWages = Math.min(epfWages, 25000);
-  const edliWages = Math.min(epfWages, 25000);
-  
-  const employeeEpf = Math.round(epfWages * 0.12);
-  
-  // EPFO ECR calculation for EPS (Account 10):
-  // 8.33% on EPS wages (up to 25,000)
-  // PLUS 1.16% on wages exceeding 15,000 for POHW cases (EPFO ECR rule RFE-25)
-  const baseEps = Math.round(epsWages * 0.0833);
-  const excessEpsWage = Math.max(0, epsWages - 15000);
-  const pohwSurcharge = Math.round(excessEpsWage * 0.0116);
-  const employerEps = baseEps + pohwSurcharge;
-  
-  // Employer PF contribution (Account 1): strictly Due EPF - Due EPS (EPFO ECR rule RFE-37)
-  const employerEpf = Math.round(epfWages * 0.12) - employerEps;
-  
-  const ncpDays = Math.max(0, totalDays - validPresentDays);
-  
-  const netPayment = Math.round(grossWage - employeeEpf - refundOfAdvance);
-
-  return {
-    actualCtc: Math.round(grossWage + employeeEpf), // Actual CTC consumed
-    grossWage,
-    basicWage: Math.round(basicWage),
-    bonusAmount: Math.round(finalBonus),
-    bonusDays,
-    bonusType,
-    isBonusPfApplicable,
-    epfWages: Math.round(epfWages),
-    epsWages: Math.round(epsWages),
-    edliWages: Math.round(edliWages),
-    employeeEpf,
-    employerEps,
-    employerEpf,
-    ncpDays,
-    netPayment
-  };
-}
+import { calculateStaffPayroll, PayGroup } from "@/lib/payroll-calc";
 
 export async function GET(request: Request) {
   try {
@@ -193,7 +118,14 @@ export async function GET(request: Request) {
         }
 
         const monthlyCtc = staff.payrollInfo?.monthlyCtc || 0;
-        const calc = calculatePayroll(monthlyCtc, presentDays, totalDays, 0);
+        const payGroup = (staff.payrollInfo?.payGroup as PayGroup) || "BANK_EPF";
+        const calc = calculateStaffPayroll({
+          payGroup,
+          monthlyCtc,
+          presentDays,
+          totalDays,
+          refundOfAdvance: 0,
+        });
 
         return {
           staffId: staff.id,
@@ -268,7 +200,9 @@ export async function POST(request: Request) {
         return null; // Skip updating locked payrolls
       }
       
-      const calc = calculatePayroll(
+      const payGroup = (p.payGroup || existing?.payGroup || "BANK_EPF") as PayGroup;
+      const calc = calculateStaffPayroll({
+        payGroup,
         monthlyCtc,
         presentDays,
         totalDays,
@@ -276,8 +210,8 @@ export async function POST(request: Request) {
         bonusAmount,
         bonusDays,
         bonusType,
-        isBonusPfApplicable
-      );
+        isBonusPfApplicable,
+      });
 
       if (calc) {
         return prisma.monthlyPayroll.update({

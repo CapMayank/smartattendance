@@ -32,6 +32,13 @@ function numberToIndianWords(num: number): string {
   return res.trim();
 }
 
+function isCashRecord(p: {
+  payGroup?: string | null;
+  staff: { payrollInfo?: { payGroup?: string | null } | null };
+}): boolean {
+  return p.payGroup === "CASH" || p.staff.payrollInfo?.payGroup === "CASH";
+}
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(
@@ -78,6 +85,7 @@ export async function GET(
     const lastDay = new Date(year, month, 0).getDate();
 
     if (type === "bank-payment") {
+      const bankPayrolls = payrolls.filter((p) => !isCashRecord(p));
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Bank Payment");
 
@@ -139,7 +147,7 @@ export async function GET(
       let total = 0;
       let sno = 1;
 
-      for (const p of payrolls) {
+      for (const p of bankPayrolls) {
         if (p.netPayment > 0) {
           const row = sheet.getRow(o);
           row.values = [
@@ -191,7 +199,122 @@ export async function GET(
         },
       });
 
+    } else if (type === "cash-payment") {
+      const cashPayrolls = payrolls.filter((p) => isCashRecord(p));
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Cash Payment");
+
+      sheet.columns = [
+        { width: 10 }, // S.No
+        { width: 40 }, // Employee Name
+        { width: 20 }, // Payment Amount
+        { width: 30 }  // Signature / Remarks
+      ];
+
+      // Setup page for perfect printing on A4 portrait
+      sheet.pageSetup = {
+        paperSize: 9, // A4
+        orientation: 'portrait',
+        margins: {
+          left: 0.7, right: 0.7,
+          top: 0.75, bottom: 0.75,
+          header: 0.3, footer: 0.3
+        },
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0 // Scale height automatically
+      };
+
+      // Merge and set titles
+      sheet.mergeCells('A1:D1');
+      const titleCell = sheet.getCell('A1');
+      titleCell.value = "Sarvodaya English Higher Secondary School Lakhandon";
+      titleCell.font = { bold: true, size: 14 };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      sheet.mergeCells('A2:D2');
+      const subtitleCell = sheet.getCell('A2');
+      subtitleCell.value = `Cash Payment Statement for ${format(monthDate, "MMMM yyyy")} (1st to ${lastDay}th)`;
+      subtitleCell.font = { bold: true, size: 11 };
+      subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      sheet.getRow(1).height = 22;
+      sheet.getRow(2).height = 22;
+
+      // Header row
+      const hdrRow = sheet.getRow(4);
+      hdrRow.values = ["S.No", "Employee Name", "Payment Amount", "Receiver Signature"];
+      hdrRow.height = 22;
+      
+      hdrRow.eachCell((cell) => {
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      let o = 5;
+      let total = 0;
+      let sno = 1;
+
+      for (const p of cashPayrolls) {
+        if (p.netPayment > 0) {
+          const row = sheet.getRow(o);
+          row.values = [
+            sno,
+            p.staff.payrollInfo?.nameAsPerBank || p.staff.name,
+            p.netPayment,
+            ""
+          ];
+          row.getCell(1).alignment = { horizontal: 'center' };
+          row.getCell(3).numFmt = '#,##0';
+          
+          row.eachCell((cell) => {
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+          });
+
+          total += p.netPayment;
+          o++;
+          sno++;
+        }
+      }
+
+      const totRow = sheet.getRow(o);
+      totRow.getCell(2).value = "TOTAL PAYMENT:";
+      totRow.getCell(3).value = total;
+      totRow.getCell(3).numFmt = '#,##0';
+      totRow.getCell(2).font = { bold: true };
+      totRow.getCell(3).font = { bold: true };
+      totRow.getCell(2).border = { top: { style: 'medium' } };
+      totRow.getCell(3).border = { top: { style: 'medium' } };
+
+      const wordsRow = sheet.getRow(o + 2);
+      sheet.mergeCells(`A${o + 2}:D${o + 2}`);
+      const wordsCell = wordsRow.getCell(1);
+      wordsCell.value = `Amount in Words: ${numberToIndianWords(total)} Rupees Only`;
+      wordsCell.font = { italic: true };
+      wordsCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      return new NextResponse(buffer, {
+        headers: {
+          "Content-Disposition": `attachment; filename="Cash_Payment_${monthLabel.toUpperCase()}.xlsx"`,
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      });
+
     } else if (type === "ecr-final") {
+      const epfPayrolls = payrolls.filter((p) => !isCashRecord(p));
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("ECR Format");
 
@@ -232,7 +355,7 @@ export async function GET(
       });
 
       let o = 2;
-      for (const p of payrolls) {
+      for (const p of epfPayrolls) {
         if (p.grossWage > 0) {
           const epfW = Math.round(p.epfWages);
           const epsW = Math.round(p.epsWages);
@@ -291,8 +414,9 @@ export async function GET(
       });
 
     } else if (type === "ecr-text") {
+      const epfPayrolls = payrolls.filter((p) => !isCashRecord(p));
       let textContent = "";
-      for (const p of payrolls) {
+      for (const p of epfPayrolls) {
         if (p.grossWage > 0) {
           const uan = p.staff.payrollInfo?.uan || "";
           const name = p.staff.payrollInfo?.nameOnUan || p.staff.name;
@@ -338,8 +462,9 @@ export async function GET(
       });
 
     } else if (type === "bulk-reg") {
+      const epfPayrolls = payrolls.filter((p) => !isCashRecord(p));
       let textContent = "";
-      for (const p of payrolls) {
+      for (const p of epfPayrolls) {
         const info = p.staff.payrollInfo;
         if (!info) continue;
 
