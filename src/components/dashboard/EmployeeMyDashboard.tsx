@@ -7,10 +7,10 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Download,
   FileText,
   IndianRupee,
   KeyRound,
-  Printer,
   XCircle,
 } from "lucide-react";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui";
 import type { EmployeePortalData } from "@/lib/employee-portal";
 import { formatHHmm, formatTime } from "@/lib/format";
+import { amountInWords } from "@/lib/amount-in-words";
 import { staffPhotoUrl } from "@/lib/photo-url";
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -291,7 +292,18 @@ export function EmployeeMyDashboard({
 
         <Card className="overflow-hidden !p-0 min-[1150px]:col-span-5">
           <div className="p-4 pb-2">
-            <CardHeader title="My Payslips" caption="Monthly salary statements" />
+            <CardHeader
+              title="My Payslips"
+              caption="Monthly salary statements"
+              action={
+                <Link
+                  href="/payslips"
+                  className="text-xs font-semibold text-acc-2 hover:underline"
+                >
+                  View all payslips →
+                </Link>
+              }
+            />
           </div>
           {payslips.length === 0 ? (
             <div className="p-5">
@@ -318,14 +330,22 @@ export function EmployeeMyDashboard({
                       Paid days: {slip.presentDays} / {slip.totalDays}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
+                  <div className="flex items-center gap-2">
+                    <div className="text-right mr-1">
                       <span className="num block font-semibold text-present">{formatInr(slip.netPayment)}</span>
                       <span className="text-[11px] text-subtle">Net Pay</span>
                     </div>
                     <Button variant="secondary" size="sm" icon={FileText} onClick={() => setSelectedSlip(slip)}>
                       Slip
                     </Button>
+                    <a
+                      href={`/api/payroll/${slip.id}/pdf`}
+                      download
+                      className="inline-flex h-8 items-center gap-1 rounded-[10px] border border-line bg-card-hi px-2.5 text-xs font-medium text-text transition-colors hover:border-subtle"
+                    >
+                      <Download size={13} aria-hidden="true" />
+                      PDF
+                    </a>
                   </div>
                 </div>
               ))}
@@ -344,10 +364,19 @@ export function EmployeeMyDashboard({
         }
         footer={
           <>
-            <Button variant="secondary" icon={Printer} onClick={() => window.print()}>
-              Print / Save PDF
+            {selectedSlip && (
+              <a
+                href={`/api/payroll/${selectedSlip.id}/pdf`}
+                download
+                className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-text px-3.5 text-[13px] font-medium text-ground transition-colors hover:bg-text/90"
+              >
+                <Download size={15} aria-hidden="true" />
+                Download PDF
+              </a>
+            )}
+            <Button variant="secondary" onClick={() => setSelectedSlip(null)}>
+              Close
             </Button>
-            <Button onClick={() => setSelectedSlip(null)}>Close</Button>
           </>
         }
       >
@@ -405,9 +434,14 @@ export function EmployeeMyDashboard({
                   <span className="num text-absent">-{formatInr(selectedSlip.employeeEpf)}</span>
                 </div>
               )}
-              <div className="flex justify-between bg-card-hi px-3.5 py-3 font-semibold">
-                <span className="text-text">Net Payable Salary</span>
-                <span className="num text-[15px] text-present">{formatInr(selectedSlip.netPayment)}</span>
+              <div className="bg-card-hi px-3.5 py-3">
+                <div className="flex justify-between font-semibold">
+                  <span className="text-text">Net Payable Salary</span>
+                  <span className="num text-[15px] text-present">{formatInr(selectedSlip.netPayment)}</span>
+                </div>
+                <p className="mt-1 text-xs italic text-muted">
+                  {amountInWords(selectedSlip.netPayment)}
+                </p>
               </div>
             </div>
           </div>
