@@ -1,6 +1,7 @@
 import {
   Home, Users, Calendar, Clock, PlusCircle, BarChart3, UserCheck, Wallet,
   IndianRupee, PieChart, Building2, IdCard, Server, UserCog, Settings,
+  AlertCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export const NAV: NavGroup[] = [
       { label: "Calendar", href: "/calendar", icon: Calendar },
       { label: "Shifts", href: "/shifts", icon: Clock },
       { label: "Manual punch", href: "/attendance/manual", icon: PlusCircle },
+      { label: "Unmatched punches", href: "/punches/unmatched", icon: AlertCircle },
       { label: "Reports", href: "/reports", icon: BarChart3 },
       { label: "Member attendance", href: "/reports/member-attendance", icon: UserCheck },
     ],

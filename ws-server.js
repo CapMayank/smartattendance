@@ -8,6 +8,8 @@ const path = require('path');
 const { redactForLog, summarizeMessage, clip, clipJson } = require('./ws-lib/redact');
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS entry run by pm2
 const { collectPhoto, processPhotosAfterAck } = require('./ws-lib/photo-ingest');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS entry run by pm2
+const { ingestPunchRecord } = require('./ws-lib/unmatched-ingest');
 
 function getISTTimeStr() {
   const d = new Date();
@@ -164,74 +166,28 @@ wss.on('connection', function connection(ws, req) {
         }
 
         for (const record of records) {
-          // Extract necessary fields, with fallbacks for different machine formats
-          const machineUserId = String(record.enrollid || record.pin || record.user_id || record.userid || '');
-          const timestampStr = record.verifytime || record.time || record.timestamp || record.datetime;
-          
-          if (!machineUserId || !timestampStr) {
-             console.log(`⚠️ [Biometric WS] Incomplete record found, skipping:`, redactForLog(record));
-             continue;
-          }
-
-          // The timestampStr from the machine is usually "YYYY-MM-DD HH:mm:ss"
-          // We must use this instead of the server time so offline punches retain their actual time
-          let punchTime = new Date();
-          try {
-             // Replace space with T and append +05:30 to explicitly parse as IST
-             const cleanTimeStr = String(timestampStr).replace(' ', 'T') + '+05:30';
-             const parsedTime = new Date(cleanTimeStr);
-             if (!isNaN(parsedTime.getTime())) {
-                 punchTime = parsedTime;
-             }
-          } catch(e) {
-             console.log(`⚠️ [Biometric WS] Failed to parse timestamp ${clip(timestampStr)}, falling back to server time`);
-          }
-
-          // Attempt to find staff member by machineId
-          const staff = await prisma.staff.findUnique({
-            where: { machineId: machineUserId }
-          });
-
-          if (!staff) {
-            console.log(`⚠️ [Biometric WS] Staff not found for machine ID: ${clip(machineUserId)}. Log not saved.`);
+          const result = await ingestPunchRecord(prisma, record, { photoItems, collectPhoto });
+          if (result.status === 'SKIPPED') {
+            console.log(`⚠️ [Biometric WS] Incomplete record found, skipping:`, redactForLog(record));
             continue;
           }
-
-          // Create Attendance Log
-          // In some devices, logtype / status denotes IN or OUT. If not explicitly set, infer based on existing punches today.
-          let type = (record.logtype === 1 || record.status === 1) ? 'OUT' : 'IN';
-
-          if (type !== 'OUT') {
-            const todayStart = new Date(punchTime);
-            todayStart.setHours(0, 0, 0, 0);
-            const todayEnd = new Date(punchTime);
-            todayEnd.setHours(23, 59, 59, 999);
-
-            const existingCount = await prisma.attendanceLog.count({
-              where: {
-                staffId: staff.id,
-                timestamp: { gte: todayStart, lte: todayEnd }
-              }
-            });
-
-            if (existingCount % 2 === 1) {
-              type = 'OUT';
-            }
+          if (result.status === 'UNMATCHED_UNKNOWN') {
+            console.log(`⚠️ [Biometric WS] Unknown machine ID: ${clip(record.enrollid || record.pin || record.user_id || record.userid)}. Diverted to UnmatchedPunch.`);
+            savedCount++;
+            broadcastToUI();
+            continue;
           }
-
-          const log = await prisma.attendanceLog.create({
-            data: {
-              staffId: staff.id,
-              timestamp: punchTime,
-              type: type,
-            }
-          });
-
-          collectPhoto(photoItems, { staff, log, image: record.image });
-          
-          console.log(`💾 [Biometric WS] Saved punch for ${staff.name} (${clip(machineUserId)}) at ${punchTime.toISOString()} (${type})`);
-          savedCount++;
-          broadcastToUI();
+          if (result.status === 'UNMATCHED_NOT_EMPLOYED') {
+            console.log(`⚠️ [Biometric WS] Staff not employed on date for machine ID: ${clip(record.enrollid || record.pin || record.user_id || record.userid)}. Diverted to UnmatchedPunch.`);
+            savedCount++;
+            broadcastToUI();
+            continue;
+          }
+          if (result.status === 'SAVED') {
+            console.log(`💾 [Biometric WS] Saved punch for ${result.staff.name} (${clip(result.staff.machineId)}) at ${result.punchTime.toISOString()} (${result.type})`);
+            savedCount++;
+            broadcastToUI();
+          }
         }
 
         // Send ACK back for logs so the machine clears them from buffer

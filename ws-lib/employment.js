@@ -21,7 +21,18 @@ function isEmployedOnDate(staff, dateKey) {
   });
 }
 
+function istDateKey(d) {
+  if (!d) return '';
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (isNaN(dateObj.getTime())) return '';
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(dateObj.getTime() + istOffset);
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `${istDate.getUTCFullYear()}-${pad(istDate.getUTCMonth() + 1)}-${pad(istDate.getUTCDate())}`;
+}
+
 module.exports = {
   isEmployedOnDate,
   isEmployed: isEmployedOnDate,
+  istDateKey,
 };
