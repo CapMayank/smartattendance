@@ -235,6 +235,25 @@ export default function SetupPage() {
     }
   }
 
+  // Download prefilled CSV template with existing staff
+  const handleDownloadTemplate = () => {
+    const templateData = existingStaff.map((s) => ({
+      machineId: s.machineId,
+      name: s.name,
+      joiningDate: s.joiningDate || '',
+      payGroup: 'BANK_EPF',
+    }))
+    const csvContent = Papa.unparse(templateData)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'staff-joining-dates-template.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Download Generated Credentials CSV
   const handleDownloadCredentialsCsv = () => {
     if (generatedCredentials.length === 0) return
@@ -483,8 +502,22 @@ export default function SetupPage() {
               <div className="flex items-center gap-3">
                 <FileUp size={24} className="text-primary flex-none" />
                 <div className="flex-1 text-xs text-muted">
-                  <div className="font-medium text-text">Upload Staff CSV</div>
-                  Columns supported: <code className="text-primary">machineId, joiningDate, payGroup</code>
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-text">Staff Onboarding CSV</div>
+                    {existingStaff.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleDownloadTemplate}
+                      >
+                        <Download size={14} className="mr-1.5" /> Download Prefilled Template
+                      </Button>
+                    )}
+                  </div>
+                  <div className="mt-1">
+                    Download the prefilled template above, fill in the <code className="text-primary">joiningDate</code> (YYYY-MM-DD), and upload it below.
+                  </div>
                 </div>
               </div>
               <div className="mt-3">
@@ -673,3 +706,4 @@ export default function SetupPage() {
     </div>
   )
 }
+
