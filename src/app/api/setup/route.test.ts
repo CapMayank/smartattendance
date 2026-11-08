@@ -36,7 +36,7 @@ const mockPrisma = vi.hoisted(() => ({
   auditLog: {
     create: vi.fn(),
   },
-  $transaction: vi.fn(async (cb: any) => {
+  $transaction: vi.fn(async (cb: any, _options?: any) => {
     if (typeof cb === "function") {
       return cb(mockPrisma);
     }
@@ -323,6 +323,53 @@ describe("/api/setup route", () => {
       expect(data.success).toBe(true);
       expect(data.generatedCredentials).toBeDefined();
       expect(data.generatedCredentials.length).toBeGreaterThanOrEqual(2);
+      expect(mockPrisma.$transaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ timeout: 60000 })
+      );
+    });
+
+    it("uses joiningDate and payGroup from staffJoiningDates when LINKed admin staff is also in the CSV batch", async () => {
+      mockPrisma.staff.findUnique.mockResolvedValue({
+        id: "staff-existing-1",
+        name: "Existing Admin Staff",
+        machineId: "101",
+        employeeCode: null,
+        joiningDate: null,
+      });
+      mockPrisma.staff.findMany.mockResolvedValue([]);
+      mockPrisma.staff.update.mockImplementation(({ data }: any) => Promise.resolve(data));
+      mockPrisma.employmentPeriod.findFirst.mockResolvedValue(null);
+      mockPrisma.employmentPeriod.create.mockResolvedValue({ id: "ep-1" });
+      mockPrisma.staffPayrollInfo.findUnique.mockResolvedValue(null);
+      mockPrisma.staffPayrollInfo.create.mockResolvedValue({ id: "spi-1" });
+      mockPrisma.staffPayrollInfo.upsert.mockResolvedValue({ id: "spi-1" });
+      mockPrisma.user.update.mockResolvedValue({ id: "u-admin-1", staffId: "staff-existing-1" });
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "u-admin-1", staffId: "staff-existing-1" });
+
+      const res = await POST(
+        new Request("http://localhost/api/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            secret: DEFAULT_SECRET,
+            adminAction: "LINK",
+            adminUserId: "u-admin-1",
+            existingStaffId: "staff-existing-1",
+            staffJoiningDates: [
+              { machineId: "101", joiningDate: "2022-06-15", payGroup: "CASH" },
+            ],
+          }),
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockPrisma.staff.update).toHaveBeenCalledWith({
+        where: { id: "staff-existing-1" },
+        data: {
+          joiningDate: "2022-06-15",
+          employeeCode: "SAR-2022-001",
+        },
+      });
     });
   });
 });
