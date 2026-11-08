@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { isEmployedOnDate } from "@/lib/employment"
 import { istDateKey } from "@/lib/dashboard-calc"
@@ -227,7 +228,7 @@ export async function approvePunchRequest(params: {
   isApproverRole?: boolean
   decisionRemarks?: string | null
 }) {
-  const request = await prisma.punchRequest.findUnique({
+  const preCheck = await prisma.punchRequest.findUnique({
     where: { id: params.requestId },
     include: {
       staff: {
@@ -238,42 +239,50 @@ export async function approvePunchRequest(params: {
     },
   })
 
-  if (!request) {
+  if (!preCheck) {
     throw new PunchRequestError("Punch request not found", 404)
   }
 
   // Check department authority for scoped approvers
   if (params.isApproverRole && params.reviewerDepartmentIds) {
-    const deptId = request.staff?.departmentId
+    const deptId = preCheck.staff?.departmentId
     if (!deptId || !params.reviewerDepartmentIds.includes(deptId)) {
       throw new PunchRequestError("Forbidden", 403)
     }
   }
 
-  if (request.status !== "PENDING") {
-    throw new PunchRequestError("Only pending requests can be approved", 400)
-  }
+  // Perform transaction with concurrency protection: verify pending status and locked payroll atomically
+  const { updated, targetDate } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const request = await tx.punchRequest.findUnique({
+      where: { id: params.requestId },
+    })
 
-  // Check if payroll month is locked
-  const [yStr, mStr] = request.date.split("-")
-  const year = parseInt(yStr, 10)
-  const month = parseInt(mStr, 10)
+    if (!request) {
+      throw new PunchRequestError("Punch request not found", 404)
+    }
 
-  const lockedPayroll = await prisma.monthlyPayroll.findUnique({
-    where: {
-      staffId_month_year: {
-        staffId: request.staffId,
-        month,
-        year,
+    if (request.status !== "PENDING") {
+      throw new PunchRequestError("Only pending requests can be approved", 400)
+    }
+
+    // Check if payroll month is locked inside transaction
+    const [yStr, mStr] = request.date.split("-")
+    const year = parseInt(yStr, 10)
+    const month = parseInt(mStr, 10)
+
+    const lockedPayroll = await tx.monthlyPayroll.findUnique({
+      where: {
+        staffId_month_year: {
+          staffId: request.staffId,
+          month,
+          year,
+        },
       },
-    },
-  })
-  if (lockedPayroll?.isLocked) {
-    throw new PunchRequestError("Cannot approve request for a locked payroll month", 400)
-  }
+    })
+    if (lockedPayroll?.isLocked) {
+      throw new PunchRequestError("Cannot approve request for a locked payroll month", 400)
+    }
 
-  // Perform transaction
-  const updated = await prisma.$transaction(async (tx: any) => {
     // 1. Create AttendanceLogs in IST
     if (request.punchType === "IN") {
       const time = request.requestedTime ?? request.requestedInTime
@@ -342,11 +351,13 @@ export async function approvePunchRequest(params: {
       },
     })
 
-    return updatedReq
+    return {
+      updated: updatedReq,
+      targetDate: new Date(`${request.date}T00:00:00+05:30`),
+    }
   })
 
   // 4. Recalculate attendance for the day outside transaction
-  const targetDate = new Date(`${request.date}T00:00:00+05:30`)
   await recalculateAttendance(targetDate, targetDate)
 
   return updated
@@ -359,7 +370,7 @@ export async function rejectPunchRequest(params: {
   isApproverRole?: boolean
   decisionRemarks?: string | null
 }) {
-  const request = await prisma.punchRequest.findUnique({
+  const preCheck = await prisma.punchRequest.findUnique({
     where: { id: params.requestId },
     include: {
       staff: {
@@ -370,48 +381,58 @@ export async function rejectPunchRequest(params: {
     },
   })
 
-  if (!request) {
+  if (!preCheck) {
     throw new PunchRequestError("Punch request not found", 404)
   }
 
   // Check department authority for scoped approvers
   if (params.isApproverRole && params.reviewerDepartmentIds) {
-    const deptId = request.staff?.departmentId
+    const deptId = preCheck.staff?.departmentId
     if (!deptId || !params.reviewerDepartmentIds.includes(deptId)) {
       throw new PunchRequestError("Forbidden", 403)
     }
   }
 
-  if (request.status !== "PENDING") {
-    throw new PunchRequestError("Only pending requests can be rejected", 400)
-  }
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const request = await tx.punchRequest.findUnique({
+      where: { id: params.requestId },
+    })
 
-  const updatedReq = await prisma.punchRequest.update({
-    where: { id: request.id },
-    data: {
-      status: "REJECTED",
-      decidedByUserId: params.reviewerUserId,
-      decidedAt: new Date(),
-      decisionRemarks: params.decisionRemarks ?? null,
-    },
-  })
+    if (!request) {
+      throw new PunchRequestError("Punch request not found", 404)
+    }
 
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: params.reviewerUserId,
-      action: "PUNCH_REQUEST_REJECTED",
-      targetType: "PunchRequest",
-      targetId: request.id,
-      details: JSON.stringify({
-        staffId: request.staffId,
-        date: request.date,
-        punchType: request.punchType,
+    if (request.status !== "PENDING") {
+      throw new PunchRequestError("Only pending requests can be rejected", 400)
+    }
+
+    const updatedReq = await tx.punchRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "REJECTED",
+        decidedByUserId: params.reviewerUserId,
+        decidedAt: new Date(),
         decisionRemarks: params.decisionRemarks ?? null,
-      }),
-    },
-  })
+      },
+    })
 
-  return updatedReq
+    await tx.auditLog.create({
+      data: {
+        actorUserId: params.reviewerUserId,
+        action: "PUNCH_REQUEST_REJECTED",
+        targetType: "PunchRequest",
+        targetId: request.id,
+        details: JSON.stringify({
+          staffId: request.staffId,
+          date: request.date,
+          punchType: request.punchType,
+          decisionRemarks: params.decisionRemarks ?? null,
+        }),
+      },
+    })
+
+    return updatedReq
+  })
 }
 
 export async function cancelPunchRequest(params: {
