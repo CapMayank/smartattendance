@@ -3,8 +3,9 @@
 Date: 2026-11-08
 Status: Draft for review
 Part of: "Employee Service Portal" roadmap, sub-project 1 of 4 (next: "My" area, attendance
-regularization, notices and notifications). This spec covers only sub-project 1 plus the
-joining/leaving flow.
+regularization, notices and notifications). This spec covers sub-project 1 plus the
+joining/leaving flow, "everyone is a member" (admins and the owner included), and pay groups
+with a separate cash payroll.
 
 ## 1. Intent
 
@@ -27,12 +28,18 @@ in and the app can tell an admin from a teacher. Today it cannot:
   auto-create), so there is no recorded "joining".
 
 **Who uses it.** About 82 staff (teachers) of Sarvodaya Higher Secondary School, Lakhnadon,
-one or two admins, and a Principal and Heads of Department as approvers.
+plus the owner, one or two office admins, and a Principal and Heads of Department as
+approvers. Everyone, the owner and admins included, is a member of the school: one person,
+one record, one employee code, one login. "Admin" is a role a member holds, not a separate
+kind of account.
 
 **Success looks like this:**
 - A teacher signs in with their employee code (for example `SAR-2024-012`) and a password
   they chose, and reaches only their own area. They cannot call an admin API.
-- Existing admin logins keep working unchanged on day one.
+- Existing admin logins keep working unchanged until slice 3, when each is linked to a
+  member record. After that no login exists without a person behind it.
+- Some members are paid in cash with no PF and a different calculation. They get their own
+  pay group and payroll run, and are never put through the EPF/bank payroll.
 - An admin can record a joining, an exit and a rejoining. Nothing is hard-deleted when
   someone leaves, and a rejoiner keeps their code and their entire history.
 - Reports, the calendar and payroll no longer treat days outside someone's employment as
@@ -48,7 +55,14 @@ one or two admins, and a Principal and Heads of Department as approvers.
 |---|---|---|
 | Employee ID | Own `employeeCode`, format `SAR-<joining year>-<sequence>`, for example `SAR-2024-001`. Sequence restarts each year, 3 digits, grows to 4 past 999. Never edited, never reused, kept on rejoin (first joining year). | User |
 | Machine ID as login | No. The machine ID belongs to the device and is guessable. | Recommendation, user agreed |
-| Login screen | One box accepting email or employee code. Existing accounts become Admin. An admin who is also a teacher is linked to their staff record. | User |
+| Login screen | One box accepting email or employee code. Existing accounts become Admin. | User |
+| Admin is a member | Every login belongs to a person (`staffId` required once slice 3 ships). The owner and admins are members with an employee code, sign in by code like everyone else, and are tracked for attendance and payroll like teachers. Role is a property of the member. No non-person "system" accounts. | User |
+| Existing admin accounts | Keep working through slices 1 and 2. In slice 3 an unlinked admin is asked at next sign-in to link to an existing staff record or create their own member profile (code, joining date, pay group) before continuing. The first-ever bootstrap admin is created together with its member profile. | User |
+| Pay groups | Each member has a pay group: `BANK_EPF` (today's payroll, the default for everyone existing) or `CASH`. | User |
+| Cash payroll calculation | Monthly pay is a plain salary figure, not a CTC. Gross = pay ÷ days in month × days present. No EPF, EPS or EDLI. Net = gross − advance refund. Payslip says "Paid in cash" with no bank details. Cash members are left out of the EPFO files and the bank export. | User |
+| Pay group changes | Each month's payroll record remembers the pay group it was calculated under. A change takes effect from an effective-from month, applies to unlocked months from then on, and never touches locked months or old payslips. | User |
+| Payroll visibility among admins | Every Admin sees everyone's pay, the owner's included. A separate payroll permission is a later addition if a restricted clerk is ever needed. | User |
+| Slice order | 1 roles and lockdown, 2 pay groups and cash payroll, 3 joining dates, codes and employee login, 4 exit and rejoin, 5 unmatched punches and audit view. Nobody except current admins signs in until cash payroll exists. | User |
 | Roles | `ADMIN`, `APPROVER`, `EMPLOYEE` | User |
 | Approver scope | Department-bound. Assigned departments only. The Principal is an Approver for all departments. | User |
 | Approver visibility | Attendance, shifts and leave. No salary. The Principal can see payroll summaries only if an Admin turns that setting on. | User |
@@ -57,6 +71,7 @@ one or two admins, and a Principal and Heads of Department as approvers.
 | Days outside employment | "Not employed": blank in the calendar, not counted as absent, late or NCP in reports and payroll. First and last month pay is still worked out from days present, as today. | User |
 | Punches from non-employed IDs | Held in an Unmatched punches list for the Admin, who attaches them to a person or dismisses them. Nothing creates staff automatically on the device paths. | User |
 | Rollout for existing staff | Everyone stays Active and nothing changes at deploy. A "Set joining dates" screen (CSV import and bulk edit) lists staff without a date. A code and login are issued only once the date is set. | User |
+| Deployment & Activation | The complete upgrade is built, tested, and pushed at once. On deployment, an initial setup screen requires a server secret (`UPGRADE_SETUP_SECRET`) to unlock. The setup wizard walks the admin through required bootstrap tasks (e.g. creating/linking the primary Admin member profile, setting initial joining dates or confirming migration) before opening normal access. | User |
 | Rejoin | Same person, same record, same code. New period, new joining date, prefilled and confirmed details, fresh shift assignment from the joining date. Old data is untouched. | User |
 | Audit | Simple immutable audit log, visible to Admins only. | User |
 | `POST /api/attendance` | Left as it is for now. Known open risk (see Section 11). | User |
@@ -75,6 +90,9 @@ one or two admins, and a Principal and Heads of Department as approvers.
 - Unmatched punches list.
 - Audit log (table, helper, Admin view).
 - Approver assignment to departments (data and enforcement on the existing screens an Approver may see).
+- Pay groups (`BANK_EPF`, `CASH`), the cash payroll calculation, its payslip, and keeping cash
+  members out of the EPFO files and bank export.
+- Linking every existing admin account to a member record, and making every account person-backed.
 
 **Out of scope (later sub-projects or later):**
 - "My" area (attendance calendar, payslips, profile editing), regularization, leave requests,
@@ -89,6 +107,8 @@ one or two admins, and a Principal and Heads of Department as approvers.
 - An exit or a delete that removes any past attendance, payroll or shift data.
 - A teacher being able to read another person's data or any payroll data.
 - Existing admins locked out at deploy, or payroll figures changing for staff with no joining date.
+- A cash-paid member ever getting an EPF deduction, or appearing in the EPFO or bank files.
+- An account that works but belongs to no member (after slice 3).
 
 ## 4. Constraints
 
@@ -125,6 +145,19 @@ Names are indicative. The builder owns exact naming and migration shape.
 - `employeeCode String? @unique`: null until a joining date exists.
 - `joiningDate String?`: IST day key of the first joining. Set from the first period.
 
+**`StaffPayrollInfo`** adds `payGroup` (`BANK_EPF | CASH`, default `BANK_EPF`), and the
+payroll-info model gains an effective-from change history (`PayGroupChange`: `staffId`,
+`payGroup`, `effectiveFromMonth`, `createdByUserId`, `createdAt`) so the group for any month
+can be resolved. Existing `doj` and `isActiveForPayroll` already exist there: `doj` can prefill
+the "Set joining dates" screen as a suggestion (never applied silently).
+
+**`MonthlyPayroll`** adds `payGroup`, the group the row was calculated under, so locked
+months and old payslips stay as issued. For `CASH` rows, EPF, EPS, EDLI and employer-share
+fields are zero, and `monthlyCtc` on the payroll info is interpreted as plain monthly pay.
+
+**`Staff.machineId`** stays required and unique: everyone, the owner and admins included, is
+tracked on the device (user decision).
+
 **`EmploymentPeriod`** (new):
 - `id`, `staffId`, `startDate` (day key), `endDate` (day key, null while open, inclusive last working day),
   `exitReason` (`RESIGNED | TERMINATED | RETIRED | END_OF_CONTRACT | OTHER`, my call), `notes`,
@@ -134,7 +167,10 @@ Names are indicative. The builder owns exact naming and migration shape.
 
 **`User`** adds:
 - `role` (`ADMIN | APPROVER | EMPLOYEE`), default `ADMIN` so every existing account keeps working.
-- `staffId String? @unique` linking to `Staff` (null for admins who are not staff).
+- `staffId String? @unique` linking to `Staff`. Nullable only so existing admin accounts keep
+  working until slice 3. From slice 3 every sign-in requires a linked staff record, and the
+  bootstrap admin is created together with its member. Role is one value per member
+  (`ADMIN` includes approver rights for all departments; `APPROVER` includes employee rights).
 - `mustChangePassword Boolean @default(false)`.
 - `disabledAt DateTime?`.
 - `approvesAllDepartments Boolean @default(false)` (the Principal, my call).
@@ -239,24 +275,28 @@ relations become `Restrict`, the allowed delete removes the child rows that casc
 remove (`StaffPayrollInfo`, the initial `ShiftAssignment`, the period, the linked user)
 explicitly, in one transaction.
 
-**Creating staff (my call).** Once slice 2 ships, no route creates a dateless staff record.
+**Creating staff (my call).** Once slice 3 ships, no route creates a dateless staff record.
 `POST /api/staff` and new rows in the bulk CSV upsert go through the joining flow: a joining
 date is required, and a bulk row without one for a new machine ID is rejected with a
 per-row error. Existing records are untouched, and existing rows in a bulk upsert keep
 updating details without a date. The "legacy" (no period) state therefore only ever holds
-people who were already in the system at deploy. Until slice 2, these routes behave as
+people who were already in the system at deploy. Until slice 3, these routes behave as
 today.
 
 **Bulk import.** The existing CSV upsert keeps updating details but never sets an exit, and
 accepts an optional joining date column (required for rows that create a new person, as above).
 
 **Users page (my call).** Admins manage logins from the existing Users page. It edits
-`role`, the linked staff record (`staffId`) and approver departments, and can disable a
-user and reset a password. Principal and Heads of Department are normally teachers, so
-they are staff-linked users who sign in by employee code with a temporary password, like
-employees. Admin-only accounts that are not staff keep signing in by email. An existing
-admin who is also a teacher is linked to their staff record here. Changing the role of a
-staff-linked user is allowed. The last remaining enabled Admin cannot be disabled or demoted.
+`role`, approver departments, and the linked staff record, and can disable a user and reset a
+password. Every account is a member (see Section 2): the owner, admins, the Principal and
+Heads of Department all have a staff record, an employee code and sign in by code with a
+temporary password, like employees. Email stays as an optional alternative sign-in for
+members who have one. Existing admin accounts have no staff link until slice 3. From
+slice 3, an unlinked admin is stopped at their next sign-in and asked to link themselves to
+an existing staff record, or to create their own member profile (code, joining date, pay
+group), before continuing. The first-ever bootstrap admin is created together with its
+member profile. Changing the role of a member is allowed. The last remaining enabled Admin
+cannot be disabled or demoted.
 
 ## 10. Employment-aware reports, device punches, audit
 
@@ -289,6 +329,51 @@ deploy. `POST /api/attendance` is not changed (Section 11).
 department changes, password resets, user create and delete, unmatched punch decisions.
 Admin-only read view, newest first, filter by actor, target and action.
 
+## 10a. Pay groups and cash payroll
+
+**Pay group per month.** The group for a month is resolved from `PayGroupChange` (latest
+change whose effective-from month is on or before that month); a person with no change
+history is `BANK_EPF`. The pay-group choice is set at joining and edited on the Salary setup
+page. Changing it takes effect from the chosen month, applies only to unlocked months, and
+the group each `MonthlyPayroll` row was calculated under is stored on the row.
+
+**Calculation.**
+- `BANK_EPF`: exactly today's formula (gross from CTC ÷ 1.12, EPF/EPS/EDLI, net = gross − EPF − advance).
+  Existing tests for it stay green and its output is byte-for-byte unchanged.
+- `CASH`: monthly pay is a plain salary figure (the existing `monthlyCtc` field is read as
+  plain monthly pay for this group). Gross = pay ÷ days in month × days present (days
+  present capped at the month's days, as today). EPF, EPS, EDLI and employer shares are zero.
+  Net = gross − advance refund. Bonus and advance refund keep working as today, with no PF
+  on the bonus.
+
+**Where cash members show up.**
+- Monthly payroll screen, member payroll, and the payslip: shown, with the group labelled.
+  The cash payslip says "Paid in cash" and omits bank, UAN and EPF lines.
+- EPFO files and the bank payment export: cash members are excluded.
+- Cash payment sheet (my call): a simple export of cash members' name, code and net amount
+  with a signature column, in place of a bank export.
+- Payroll analytics (my call): totals include both groups with a split by group. EPF figures
+  count `BANK_EPF` only.
+
+**Until this ships (slice 2).** Nothing changes: everyone is `BANK_EPF`. No cash member exists
+in the system before the group does, so no wrong PF deduction can occur.
+
+## 10b. Deployment Activation & Initial Setup Wizard
+
+**All-in-one release.** All capabilities (roles, pay groups, employee codes, lifecycle, setup wizard)
+are built and verified completely in the codebase before a single combined production push.
+
+**Post-deployment gate (`/setup`):**
+- Upon deployment, if the system flags that initial setup is incomplete (e.g. `SystemSetting.setupCompleted = false`
+  or existing Admin accounts have unlinked staff records):
+  - All standard pages redirect to `/setup`.
+  - The setup wizard requires entering a secret setup code configured via environment variable (`SETUP_SECRET` or `INITIAL_SETUP_KEY`).
+  - Entering the correct secret unlocks the setup wizard steps:
+    1. **Primary Admin Profile:** Link the primary admin account to an existing staff record or create the admin's own member profile (name, code `SAR-...`, joining date, pay group, machineId).
+    2. **Rollout Configuration:** Option to upload or set initial staff joining dates via CSV or bulk grid, generating codes and temporary credentials.
+    3. **Confirmation & Lock:** Marks `setupCompleted = true` and logs the completion in `AuditLog`. The `/setup` gate is permanently closed and redirects to standard login.
+- Device routes (`/iclock`, `ws-server.js`) continue receiving punch data normally in the background during this period without interruption.
+
 ## 11. Known risks left open
 
 - `POST /api/attendance` is unauthenticated, auto-creates staff and accepts forged punches.
@@ -299,21 +384,17 @@ Admin-only read view, newest first, filter by actor, target and action.
 - Cascade to Restrict will make any code or script that deletes staff directly fail. The
   builder should grep for such usage (the staff routes and bulk route are the known ones).
 
-## 12. Delivery slices (each shippable on its own)
+## 12. Implementation phases (Single Combined Release)
 
-1. **Roles and lockdown.** Schema (`role`, `staffId`, `ApproverDepartment`, `AuditLog`),
-   `requireRole` (with the per-request database check) on all routes, `proxy.ts` gating,
-   `/api/users` Admin-only with bcrypt, Users page edits role, staff link and approver
-   departments, session carries role, audit helper. Security fix, goes first. Existing
-   accounts are Admin so nobody loses access.
-2. **Joining dates, codes, employee login.** `EmploymentPeriod` table, Set-joining-dates
-   screen, the Joining (new person) form, code generation, employee login, forced password
-   change, rate limit, Admin reset, employee landing page, and the rule that no route creates
-   dateless staff.
-3. **Exit, rejoin, employment-aware reports.** Exit and rejoin flows, `isEmployed`
-   everywhere (including `recalculateRange`), delete guard, Cascade to Restrict.
-4. **Unmatched punches and audit view.** `ws-server.js` change and `ws-lib` rule, review
-   list, audit read UI.
+The upgrade will be developed and tested across logical phases, but merged and pushed in a single all-in-one deployment protected by the initial setup wizard:
+
+1. **Roles, authorization, and lockdown:** Schema (`role`, `staffId`, `ApproverDepartment`, `AuditLog`), `requireRole` check, route gating in `proxy.ts`, `/api/users` Admin-only with bcrypt, session carrying role/staff metadata.
+2. **Pay groups and cash payroll:** `payGroup` on payroll info and monthly payroll rows, `PayGroupChange` history, `CASH` formula implementation, cash payslip and exclusion from EPFO/bank exports, cash payment report.
+3. **Identity, codes, employee login, and lifecycle:** `EmploymentPeriod` table, employee code generator (`SAR-YYYY-NNN`), login flow with case/hyphen-insensitive normalization, forced password changes, exit & rejoin flows, `isEmployed` filter across all reports & calendar, cascade to `Restrict` with duplicate delete guard.
+4. **Device punch review and audit log:** `UnmatchedPunch` store and review UI for unknown/non-employed machine IDs in `ws-server.js` and `ws-lib`, immutable audit log explorer.
+5. **Initial Setup Wizard (`/setup`):** System bootstrap gate requiring `SETUP_SECRET`, admin member profile binding, initial staff onboarding / joining date configuration wizard, audit completion event, and locking the gate.
+
+Tests: unit tests for code generator, login normalization, `isEmployed`, role checks, cash payroll math, and rate limits. Route characterization tests stay green.
 
 Tests: unit tests for the code generator, login normalisation, `isEmployed`, role helper and
 rate limit. Route tests (existing fake-prisma pattern) for every gated route covering each role.
@@ -327,3 +408,5 @@ The existing characterization tests stay green.
   following the existing Space Black UI.
 - Exact wording, validation messages and CSV column names.
 - The Principal payroll-summary content and where its setting is stored.
+- Exact layout and file format of the cash payment sheet and the cash payslip, following the
+  existing payslip design.
