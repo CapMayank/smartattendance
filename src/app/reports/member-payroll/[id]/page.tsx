@@ -96,10 +96,11 @@ export default function PayslipPage() {
 
   const { payroll, systemPresentDays } = data
   const staff = payroll.staff
+  const isCash = payroll.payGroup === 'CASH' || staff.payrollInfo?.payGroup === 'CASH'
   const monthName = new Date(payroll.year, payroll.month - 1).toLocaleString('en-IN', { month: 'long' })
   const monthKey = `${payroll.year}-${String(payroll.month).padStart(2, '0')}`
   const isMismatch = systemPresentDays !== payroll.presentDays
-  const totalDeductions = (payroll.employeeEpf || 0) + (payroll.refundOfAdvance || 0)
+  const totalDeductions = (isCash ? 0 : payroll.employeeEpf || 0) + (payroll.refundOfAdvance || 0)
   const generatedOn = new Intl.DateTimeFormat('en-GB', { timeZone: SCHOOL_TZ, day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
 
   return (
@@ -180,10 +181,19 @@ export default function PayslipPage() {
             <p className="truncate text-[13px] text-muted">{staff.designation?.name || 'No designation'}</p>
           </div>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-            <Meta label="Employee ID" mono>{staff.machineId}</Meta>
+            <Meta label="Employee ID" mono>{staff.employeeCode || staff.machineId}</Meta>
             <Meta label="Department">{staff.department?.name || '-'}</Meta>
-            <Meta label="Bank account" mono>{staff.payrollInfo?.bankAccount || 'Not provided'}</Meta>
-            <Meta label="IFSC" mono>{staff.payrollInfo?.ifsc || 'N/A'}</Meta>
+            {isCash ? (
+              <>
+                <Meta label="Pay group">Cash Payroll</Meta>
+                <Meta label="Payment mode">Paid in cash</Meta>
+              </>
+            ) : (
+              <>
+                <Meta label="Bank account" mono>{staff.payrollInfo?.bankAccount || 'Not provided'}</Meta>
+                <Meta label="IFSC" mono>{staff.payrollInfo?.ifsc || 'N/A'}</Meta>
+              </>
+            )}
           </dl>
         </section>
 
@@ -231,8 +241,11 @@ export default function PayslipPage() {
           </div>
           <div className="border-t border-line px-6 py-5 sm:px-8 md:border-t-0">
             <h3 className="mb-1 text-[11px] tracking-[0.1em] text-subtle uppercase">Deductions</h3>
-            <Row label="Employee EPF" note="12% of EPF wages" amount={payroll.employeeEpf} tone="minus" />
+            {!isCash && <Row label="Employee EPF" note="12% of EPF wages" amount={payroll.employeeEpf} tone="minus" />}
             {payroll.refundOfAdvance > 0 && <Row label="Advance recovery" amount={payroll.refundOfAdvance} tone="minus" />}
+            {isCash && (payroll.refundOfAdvance || 0) === 0 && (
+              <p className="py-2.5 text-[13px] text-subtle">No statutory deductions (Paid in cash)</p>
+            )}
             <TotalRow label="Total deductions" amount={totalDeductions} />
           </div>
         </section>
@@ -242,7 +255,11 @@ export default function PayslipPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-[11px] tracking-[0.1em] text-subtle uppercase">Net pay</p>
-              <p className="mt-1 text-[12.5px] text-muted">Gross earnings minus total deductions, credited to bank</p>
+              <p className="mt-1 text-[12.5px] text-muted">
+                {isCash
+                  ? 'Gross earnings minus advance recovery · Paid in cash'
+                  : 'Gross earnings minus total deductions, credited to bank'}
+              </p>
             </div>
             <p className="num text-[30px] leading-none font-semibold tracking-tight text-present sm:text-[36px]">
               {money(payroll.netPayment)}

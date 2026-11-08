@@ -14,10 +14,12 @@ function calculatePayroll(
   totalDays: number,
   refundOfAdvance: number = 0,
   bonusAmount: number = 0,
-  isBonusPfApplicable: boolean = false
+  isBonusPfApplicable: boolean = false,
+  payGroup: string = 'BANK_EPF'
 ) {
   if (totalDays === 0) return null;
-  const baseGrossWage = monthlyCtc / 1.12;
+  const isCash = payGroup === 'CASH';
+  const baseGrossWage = isCash ? monthlyCtc : monthlyCtc / 1.12;
   const wagePerDay = Math.round(baseGrossWage / totalDays);
   
   const validPresentDays = Math.min(presentDays, totalDays);
@@ -29,8 +31,8 @@ function calculatePayroll(
   }
   
   const grossWage = Math.round(basicWage + (Number(bonusAmount) || 0));
-  const epfWages = Math.round(isBonusPfApplicable ? basicWage + (Number(bonusAmount) || 0) : basicWage);
-  const employeeEpf = Math.round(epfWages * 0.12);
+  const epfWages = isCash ? 0 : Math.round(isBonusPfApplicable ? basicWage + (Number(bonusAmount) || 0) : basicWage);
+  const employeeEpf = isCash ? 0 : Math.round(epfWages * 0.12);
   const netPayment = Math.round(grossWage - employeeEpf - refundOfAdvance);
 
   return {
@@ -91,7 +93,8 @@ export default function MonthlyPayrollPage() {
 
       data.forEach((p: any) => {
         const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-        const baseGrossWage = monthlyCtc / 1.12
+        const isCash = (p.payGroup || p.staff.payrollInfo?.payGroup) === 'CASH'
+        const baseGrossWage = isCash ? monthlyCtc : monthlyCtc / 1.12
         const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
 
         let bDays = p.bonusDays ?? 0
@@ -153,7 +156,8 @@ export default function MonthlyPayrollPage() {
   const handleBonusDaysChange = (p: any, days: number) => {
     const safeDays = Math.max(0, days)
     const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-    const baseGrossWage = monthlyCtc / 1.12
+    const isCash = (p.payGroup || p.staff.payrollInfo?.payGroup) === 'CASH'
+    const baseGrossWage = isCash ? monthlyCtc : monthlyCtc / 1.12
     const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
     const computedAmount = Math.round(wagePerDay * safeDays)
 
@@ -175,7 +179,8 @@ export default function MonthlyPayrollPage() {
       const updates = payrolls.map(p => {
         const itemEdit = edits[p.id]
         const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-        const baseGrossWage = monthlyCtc / 1.12
+        const isCash = (p.payGroup || p.staff.payrollInfo?.payGroup) === 'CASH'
+        const baseGrossWage = isCash ? monthlyCtc : monthlyCtc / 1.12
         const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
 
         const bDays = isBonusModeEnabled ? (itemEdit?.bonusDays ?? p.bonusDays ?? 0) : 0
@@ -220,7 +225,8 @@ export default function MonthlyPayrollPage() {
     const newEdits = { ...edits }
     payrolls.forEach(p => {
       const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-      const baseGrossWage = monthlyCtc / 1.12
+      const isCash = (p.payGroup || p.staff.payrollInfo?.payGroup) === 'CASH'
+      const baseGrossWage = isCash ? monthlyCtc : monthlyCtc / 1.12
       const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
       
       let amount = 0
@@ -322,7 +328,7 @@ export default function MonthlyPayrollPage() {
       {/* Header */}
       <PageHeader
         title="Monthly payroll"
-        subtitle="Follow the steps below to process, adjust bonuses, and export payroll"
+        subtitle="Follow the steps below to process, adjust bonuses, and export Bank/EPF and Cash payroll"
         actions={payrolls.length > 0 && (
           isMonthLocked ? (
             <StatusBadge status="locked" />
@@ -481,6 +487,14 @@ export default function MonthlyPayrollPage() {
                   variant="secondary"
                   size="sm"
                   icon={Download}
+                  onClick={() => handleExport('cash-payment')}
+                >
+                  Cash Pay
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Download}
                   onClick={() => handleExport('ecr-final')}
                 >
                   ECR (Excel)
@@ -625,7 +639,7 @@ export default function MonthlyPayrollPage() {
               <tr>
                 <th>Staff Name</th>
                 <th className="text-center">Total / Present</th>
-                <th className="text-right">Fixed CTC</th>
+                <th className="text-right">Monthly Pay / CTC</th>
                 {isBonusModeEnabled && (
                   <th className="text-center">Bonus Days & Pay</th>
                 )}
@@ -663,7 +677,8 @@ export default function MonthlyPayrollPage() {
                   const currentBonusAmount = isBonusModeEnabled ? (edits[p.id]?.bonusAmount ?? p.bonusAmount ?? 0) : 0;
 
                   const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0;
-                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p;
+                  const rowPayGroup = p.payGroup || p.staff.payrollInfo?.payGroup || 'BANK_EPF';
+                  const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable, rowPayGroup) || p;
 
                   return (
                     <tr key={p.id}>
@@ -671,8 +686,22 @@ export default function MonthlyPayrollPage() {
                         <div className="flex items-center gap-3">
                           <Avatar name={p.staff.name} src={staffPhotoUrl(p.staff)} />
                           <div>
-                            <div className="font-medium text-text">{p.staff.name}</div>
-                            <div className="num text-[11px] text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-text">{p.staff.name}</span>
+                              {p.staff.employeeCode && (
+                                <span className="num rounded border border-line bg-card-hi px-1.5 py-0.5 text-[11px] text-acc-1">
+                                  {p.staff.employeeCode}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-2 text-[11px] text-subtle">
+                              <span className="rounded bg-card-hi px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                                {rowPayGroup === 'CASH' ? 'CASH' : 'BANK / EPF'}
+                              </span>
+                              <span className="num">
+                                {rowPayGroup === 'CASH' ? 'Cash Payroll' : p.staff.payrollInfo?.uan || 'No UAN'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -755,7 +784,11 @@ export default function MonthlyPayrollPage() {
 
                       {/* Employee PF */}
                       <td className="text-right">
-                        <span className="num text-absent">-{formatINR(calc.employeeEpf, { exact: true })}</span>
+                        {rowPayGroup === 'CASH' ? (
+                          <span className="text-xs text-subtle">—</span>
+                        ) : (
+                          <span className="num text-absent">-{formatINR(calc.employeeEpf, { exact: true })}</span>
+                        )}
                       </td>
 
                       {/* Advance Refund */}
@@ -817,7 +850,8 @@ export default function MonthlyPayrollPage() {
                                currentRefund !== p.refundOfAdvance ||
                                (isBonusModeEnabled && (currentBonusAmount !== (p.bonusAmount ?? 0) || currentBonusDays !== (p.bonusDays ?? 0)))
               const monthlyCtc = p.staff.payrollInfo?.monthlyCtc || 0
-              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable) || p
+              const rowPayGroup = p.payGroup || p.staff.payrollInfo?.payGroup || 'BANK_EPF'
+              const calc = calculatePayroll(monthlyCtc, currentPresentDays, p.totalDays, currentRefund, currentBonusAmount, isBonusPfApplicable, rowPayGroup) || p
               const setPresent = (v: number) => {
                 const clamped = Math.max(0, Math.min(p.totalDays, v))
                 setEdits({
@@ -835,7 +869,10 @@ export default function MonthlyPayrollPage() {
                     <Avatar name={p.staff.name} src={staffPhotoUrl(p.staff)} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium leading-tight text-text">{p.staff.name}</p>
-                      <p className="num truncate text-[11px] text-subtle">{p.staff.payrollInfo?.uan || 'No UAN'}</p>
+                      <p className="num truncate text-[11px] text-subtle">
+                        {p.staff.employeeCode ? `${p.staff.employeeCode} · ` : ''}
+                        {rowPayGroup === 'CASH' ? 'CASH' : p.staff.payrollInfo?.uan || 'No UAN'}
+                      </p>
                     </div>
                     {isEdited && (
                       <span className="tone-accent tint-badge inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full px-2 text-[11px]">
@@ -852,7 +889,7 @@ export default function MonthlyPayrollPage() {
 
                   <div className={`grid ${isBonusModeEnabled ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mt-3`}>
                     <div className="rounded-lg border border-line-soft bg-ground p-2">
-                      <p className="text-[10px] text-subtle">Fixed CTC</p>
+                      <p className="text-[10px] text-subtle">Monthly Pay</p>
                       <p className="num mt-1 truncate text-[12px] text-muted">{formatINR(monthlyCtc, { exact: true })}</p>
                     </div>
                     {isBonusModeEnabled && (
@@ -867,7 +904,9 @@ export default function MonthlyPayrollPage() {
                     </div>
                     <div className="rounded-lg border border-line-soft bg-ground p-2">
                       <p className="text-[10px] text-absent">PF</p>
-                      <p className="num mt-1 truncate text-[12px] text-absent">-{formatINR(calc.employeeEpf, { exact: true })}</p>
+                      <p className="num mt-1 truncate text-[12px] text-absent">
+                        {rowPayGroup === 'CASH' ? '—' : `-${formatINR(calc.employeeEpf, { exact: true })}`}
+                      </p>
                     </div>
                   </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Wallet, Search, Edit2, Save, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
-import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Skeleton } from '@/components/ui'
+import { Avatar, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Select, Skeleton } from '@/components/ui'
 import { formatINR } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { staffPhotoUrl } from '@/lib/photo-url'
@@ -36,6 +36,7 @@ export default function StaffPayrollPage() {
     setSaveSuccess(false)
     setEditingStaff(s)
     setEditForm({
+      payGroup: s.payrollInfo?.payGroup || 'BANK_EPF',
       monthlyCtc: s.payrollInfo?.monthlyCtc || 0,
       bankAccount: s.payrollInfo?.bankAccount || '',
       ifsc: s.payrollInfo?.ifsc || '',
@@ -75,17 +76,19 @@ export default function StaffPayrollPage() {
   const filteredStaff = staff.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.machineId?.toLowerCase().includes(search.toLowerCase()) ||
+    s.employeeCode?.toLowerCase().includes(search.toLowerCase()) ||
     s.payrollInfo?.uan?.includes(search)
   )
 
-  const estGross = Math.round((editForm.monthlyCtc || 0) / 1.12);
-  const empPf = Math.round(estGross * 0.12);
+  const isCashEdit = editForm.payGroup === 'CASH';
+  const estGross = isCashEdit ? Math.round(editForm.monthlyCtc || 0) : Math.round((editForm.monthlyCtc || 0) / 1.12);
+  const empPf = isCashEdit ? 0 : Math.round(estGross * 0.12);
   const estNet = estGross - empPf;
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <PageHeader title="Staff payroll master" subtitle="Configure fixed CTC and statutory banking details" />
+      <PageHeader title="Staff payroll master" subtitle="Configure pay group (Bank/EPF or Cash), fixed CTC, and statutory banking details" />
 
       {/* Main Content Area */}
       <Card className="overflow-hidden !p-0">
@@ -95,7 +98,7 @@ export default function StaffPayrollPage() {
             <Input
               type="text"
               aria-label="Search staff"
-              placeholder="Search by name or UAN..."
+              placeholder="Search by name, SAR-ID, or UAN..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -118,8 +121,8 @@ export default function StaffPayrollPage() {
             <thead>
               <tr>
                 <th>Staff Name</th>
-                <th className="text-right">Monthly CTC (₹)</th>
-                <th>Bank Details</th>
+                <th className="text-right">Monthly Pay / CTC (₹)</th>
+                <th>Bank Details / Mode</th>
                 <th>UAN</th>
                 <th>Status</th>
                 <th className="text-center">Actions</th>
@@ -151,69 +154,101 @@ export default function StaffPayrollPage() {
                   </td>
                 </tr>
               ) : (
-                filteredStaff.map((s) => (
-                  <tr key={s.id}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <Avatar name={s.name} src={staffPhotoUrl(s)} />
-                        <div>
-                          <div className="font-medium text-text">{s.name}</div>
-                          <div className="text-xs text-subtle">{s.department?.name || 'No Dept'}</div>
+                filteredStaff.map((s) => {
+                  const isCash = s.payrollInfo?.payGroup === 'CASH'
+                  return (
+                    <tr key={s.id}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <Avatar name={s.name} src={staffPhotoUrl(s)} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-text">{s.name}</span>
+                              {s.employeeCode && (
+                                <span className="num rounded border border-line bg-card-hi px-1.5 py-0.5 text-[11px] text-acc-1">
+                                  {s.employeeCode}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-2 text-xs text-subtle">
+                              <span>{s.department?.name || 'No Dept'}</span>
+                              <span>·</span>
+                              <span className="rounded bg-card-hi px-1.5 py-0.5 text-[10.5px] font-medium text-muted">
+                                {isCash ? 'CASH' : 'BANK / EPF'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="text-right">
-                      <div className="num font-medium text-text">
-                        {formatINR(s.payrollInfo?.monthlyCtc || 0, { exact: true })}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12, { exact: true })}</span></div>
-                    </td>
-                    <td>
-                      <div className="num text-muted">
-                        {s.payrollInfo?.bankAccount || 'Not Set'}
-                      </div>
-                      <div className="mt-0.5 flex flex-col gap-0.5">
-                        <span className="num text-xs text-subtle">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
-                        {s.payrollInfo?.nameAsPerBank && (
-                          <span className="w-fit rounded bg-card-hi px-1.5 py-0.5 text-[11px] text-muted">
-                            {s.payrollInfo.nameAsPerBank}
+                      </td>
+                      <td className="text-right">
+                        <div className="num font-medium text-text">
+                          {formatINR(s.payrollInfo?.monthlyCtc || 0, { exact: true })}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-subtle">
+                          Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12, { exact: true })}</span>
+                        </div>
+                      </td>
+                      <td>
+                        {isCash ? (
+                          <span className="inline-flex rounded-md border border-line-soft bg-canvas px-2 py-0.5 text-xs text-muted">
+                            Paid in cash
+                          </span>
+                        ) : (
+                          <>
+                            <div className="num text-muted">
+                              {s.payrollInfo?.bankAccount || 'Not Set'}
+                            </div>
+                            <div className="mt-0.5 flex flex-col gap-0.5">
+                              <span className="num text-xs text-subtle">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
+                              {s.payrollInfo?.nameAsPerBank && (
+                                <span className="w-fit rounded bg-card-hi px-1.5 py-0.5 text-[11px] text-muted">
+                                  {s.payrollInfo.nameAsPerBank}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </td>
+                      <td>
+                        {isCash ? (
+                          <span className="text-xs text-subtle">Exempt (Cash)</span>
+                        ) : (
+                          <>
+                            <div className="num text-muted">
+                              {s.payrollInfo?.uan || 'Not Set'}
+                            </div>
+                            {s.payrollInfo?.nameOnUan && (
+                              <div className="mt-1 w-fit rounded bg-card-hi px-1.5 py-0.5 text-[11px] text-muted">
+                                {s.payrollInfo.nameOnUan}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </td>
+                      <td>
+                        {s.payrollInfo?.isActiveForPayroll !== false ? (
+                          <span className="tone-present tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                            <CheckCircle2 size={13} aria-hidden="true" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="tone-absent tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                            <XCircle size={13} aria-hidden="true" />
+                            Excluded
                           </span>
                         )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="num text-muted">
-                        {s.payrollInfo?.uan || 'Not Set'}
-                      </div>
-                      {s.payrollInfo?.nameOnUan && (
-                        <div className="mt-1 w-fit rounded bg-card-hi px-1.5 py-0.5 text-[11px] text-muted">
-                          {s.payrollInfo.nameOnUan}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      {s.payrollInfo?.isActiveForPayroll !== false ? (
-                        <span className="tone-present tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
-                          <CheckCircle2 size={13} aria-hidden="true" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="tone-absent tint-badge inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
-                          <XCircle size={13} aria-hidden="true" />
-                          Excluded
-                        </span>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <IconButton
-                        icon={Edit2}
-                        label="Edit Payroll Details"
-                        onClick={() => handleEdit(s)}
-                        className="mx-auto size-8"
-                      />
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="text-center">
+                        <IconButton
+                          icon={Edit2}
+                          label="Edit Payroll Details"
+                          onClick={() => handleEdit(s)}
+                          className="mx-auto size-8"
+                        />
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -236,7 +271,9 @@ export default function StaffPayrollPage() {
                     <Avatar name={s.name} src={staffPhotoUrl(s)} />
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate font-medium leading-tight text-text">{s.name}</span>
-                      <span className="text-[13px] text-subtle">{s.department?.name || 'No Dept'}</span>
+                      <span className="text-[13px] text-subtle">
+                        {s.employeeCode ? `${s.employeeCode} · ` : ''}{s.department?.name || 'No Dept'}
+                      </span>
                     </div>
                   </div>
                   {s.payrollInfo?.isActiveForPayroll !== false ? (
@@ -254,14 +291,16 @@ export default function StaffPayrollPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border border-line-soft bg-ground p-3">
-                    <span className="mb-1 block text-[11px] text-subtle">Monthly CTC</span>
+                    <span className="mb-1 block text-[11px] text-subtle">Monthly Pay / CTC</span>
                     <span className="num font-medium text-text">{formatINR(s.payrollInfo?.monthlyCtc || 0, { exact: true })}</span>
                     <span className="mt-0.5 block text-[11px] text-subtle">Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12, { exact: true })}</span></span>
                   </div>
                   <div className="rounded-lg border border-line-soft bg-ground p-3">
-                    <span className="mb-1 block text-[11px] text-subtle">Bank</span>
-                    <span className="num block truncate text-sm text-muted">{s.payrollInfo?.bankAccount || 'Not Set'}</span>
-                    <span className="num block text-[11px] text-subtle">{s.payrollInfo?.ifsc || 'No IFSC'}</span>
+                    <span className="mb-1 block text-[11px] text-subtle">Pay Group</span>
+                    <span className="block truncate text-sm text-muted">
+                      {s.payrollInfo?.payGroup === 'CASH' ? 'Cash (No PF)' : s.payrollInfo?.bankAccount || 'Bank / EPF'}
+                    </span>
+                    <span className="num block text-[11px] text-subtle">{s.payrollInfo?.ifsc || ''}</span>
                   </div>
                 </div>
 
@@ -313,24 +352,43 @@ export default function StaffPayrollPage() {
       >
         {editingStaff && (
           <div className="space-y-6">
-            <p className="text-[13px] text-subtle">Updating details for <span className="font-medium text-text">{editingStaff.name}</span></p>
+            <p className="text-[13px] text-subtle">
+              Updating details for <span className="font-medium text-text">{editingStaff.name}</span>
+              {editingStaff.employeeCode ? ` (${editingStaff.employeeCode})` : ''}
+            </p>
 
             {/* Financial Section */}
             <section className="space-y-4">
               <SectionLabel>Financial Basics</SectionLabel>
 
-              <Field label="Fixed Monthly CTC (₹)" htmlFor="payroll-monthly-ctc">
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-subtle" aria-hidden="true">₹</span>
-                  <Input
-                    id="payroll-monthly-ctc"
-                    type="number"
-                    value={editForm.monthlyCtc === 0 ? '' : editForm.monthlyCtc}
-                    onChange={(e) => setEditForm({...editForm, monthlyCtc: e.target.value === '' ? '' : parseFloat(e.target.value) || 0})}
-                    className="num pl-8"
-                  />
-                </div>
-              </Field>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Pay Group" htmlFor="payroll-pay-group">
+                  <Select
+                    id="payroll-pay-group"
+                    value={editForm.payGroup || 'BANK_EPF'}
+                    onChange={(e) => setEditForm({ ...editForm, payGroup: e.target.value })}
+                  >
+                    <option value="BANK_EPF">Bank / EPF Payroll</option>
+                    <option value="CASH">Cash Payroll (No EPF)</option>
+                  </Select>
+                </Field>
+
+                <Field
+                  label={isCashEdit ? 'Monthly Cash Salary (₹)' : 'Fixed Monthly CTC (₹)'}
+                  htmlFor="payroll-monthly-ctc"
+                >
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-subtle" aria-hidden="true">₹</span>
+                    <Input
+                      id="payroll-monthly-ctc"
+                      type="number"
+                      value={editForm.monthlyCtc === 0 ? '' : editForm.monthlyCtc}
+                      onChange={(e) => setEditForm({...editForm, monthlyCtc: e.target.value === '' ? '' : parseFloat(e.target.value) || 0})}
+                      className="num pl-8"
+                    />
+                  </div>
+                </Field>
+              </div>
 
               <button
                 type="button"
@@ -355,7 +413,7 @@ export default function StaffPayrollPage() {
               <div className="rounded-xl border border-line-soft bg-ground p-4">
                 <p className="mb-3 flex items-center gap-1.5 text-[11.5px] uppercase tracking-[0.09em] text-acc-1">
                   <Wallet size={12} aria-hidden="true" />
-                  31-Day Estimate
+                  31-Day Estimate ({isCashEdit ? 'Cash Payroll' : 'Bank / EPF'})
                 </p>
 
                 <div className="space-y-2 text-sm">
@@ -363,14 +421,18 @@ export default function StaffPayrollPage() {
                     <span>Gross Wage</span>
                     <span className="num text-text">{formatINR(estGross)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-muted">
-                    <span>Employee PF <span className="text-[11px] text-subtle">(12%)</span></span>
-                    <span className="num text-absent">-{formatINR(empPf)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-muted">
-                    <span>Employer Share <span className="text-[11px] text-subtle">(12%)</span></span>
-                    <span className="num text-subtle">{formatINR(empPf)}</span>
-                  </div>
+                  {!isCashEdit && (
+                    <>
+                      <div className="flex items-center justify-between text-muted">
+                        <span>Employee PF <span className="text-[11px] text-subtle">(12%)</span></span>
+                        <span className="num text-absent">-{formatINR(empPf)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted">
+                        <span>Employer Share <span className="text-[11px] text-subtle">(12%)</span></span>
+                        <span className="num text-subtle">{formatINR(empPf)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="mt-4 flex items-end justify-between border-t border-dashed border-line pt-3">
