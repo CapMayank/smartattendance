@@ -5,13 +5,19 @@ import { istDateKey } from '@/lib/dashboard-calc'
 import { shiftOn, type AssignmentLite, type ShiftLite } from '@/lib/shift-lookup'
 import { evaluateDay, type DayLog, type DayPolicy, type DayResult } from '@/lib/attendance-day'
 import { syncCurrentShifts } from '@/lib/shift-change-service'
+import { isEmployedOnDate } from '@/lib/employment'
 
 export type DailyRecordRow = DayResult & { staffId: string; date: Date }
 
 export type RangeInputs = {
   startDate: Date
   endDate: Date
-  staffList: { id: string; shiftId: string | null; shift: { startTime: string } | null }[]
+  staffList: {
+    id: string
+    shiftId: string | null
+    shift: { startTime: string } | null
+    employmentPeriods?: { startDate: string; endDate: string | null }[]
+  }[]
   /** Every shift by id; evaluation resolves each day's shift from these plus the assignments. */
   shiftsById: Map<string, ShiftLite>
   /** Per staff, their dated shift assignments (absent key = none, fall back to `shiftId`). */
@@ -46,7 +52,12 @@ export async function loadRangeInputs(opts: { startDate: Date; endDate: Date; st
 
   const staffList = await prisma.staff.findMany({
     ...(staffId ? { where: { id: staffId } } : {}),
-    include: { shift: true },
+    include: {
+      shift: true,
+      employmentPeriods: {
+        select: { startDate: true, endDate: true },
+      },
+    },
   })
 
   const shifts = await prisma.shift.findMany()
@@ -133,6 +144,8 @@ export function computeRangeRecords(inputs: RangeInputs, now: Date): DailyRecord
 
     for (const staff of staffList) {
       if (inputs.staffId && staff.id !== inputs.staffId) continue
+      const dayKey = istDateKey(day)
+      if (!isEmployedOnDate(staff, dayKey)) continue
       const myLogs = logsByStaffDay.get(staffDayKey(staff.id, day)) || []
 
       // If the date is strictly in the future and has no punches, skip creating any record

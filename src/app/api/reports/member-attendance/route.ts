@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
-import { startOfMonth, endOfMonth, format, startOfDay, endOfDay, isAfter } from 'date-fns'
+import { startOfMonth, endOfMonth, format, startOfDay, endOfDay, isAfter, eachDayOfInterval } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
+import { isEmployedOnDate } from '@/lib/employment'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
         department: true,
         designation: true,
         payrollInfo: true,
+        employmentPeriods: true,
       }
     });
 
@@ -95,72 +97,103 @@ export async function GET(request: Request) {
     });
 
     const today = startOfDay(new Date());
-    const dailyRecords = allDailyRecords.filter(r => 
-      r.date >= sOfMonth && 
-      r.date <= eOfMonth && 
-      (!isAfter(startOfDay(r.date), today) || (logsByDate[format(r.date, 'yyyy-MM-dd')] && logsByDate[format(r.date, 'yyyy-MM-dd')].length > 0))
-    );
-    let totalPayrollEligibleDays = 0;
-    
+    const systemStartDate = process.env.SYSTEM_START_DATE || null;
     const doj = staff.payrollInfo?.doj || staff.createdAt;
     const normalizedDoj = startOfDay(new Date(doj));
 
-    const days = dailyRecords.map(record => {
-      const dateStr = format(record.date, 'yyyy-MM-dd');
-      let payrollEligible = 0;
-      let isSandwiched = false;
+    const recordsByDate = new Map<string, typeof allDailyRecords[0]>();
+    for (const r of allDailyRecords) {
+      recordsByDate.set(format(r.date, 'yyyy-MM-dd'), r);
+    }
 
-      // If the date is before the employee joined, they are not eligible for any pay
-      if (record.date < normalizedDoj) {
-        payrollEligible = 0;
-      } else if (record.status === 'PRESENT') {
-        payrollEligible = 1;
-      } else if (record.status === 'HALF_DAY') {
-        payrollEligible = 0.5;
-      } else if (record.status === 'WEEKOFF' || record.status === 'HOLIDAY') {
-        // Apply Sandwich Rule using allDailyRecords
-        const i = allDailyRecords.findIndex(r => r.id === record.id);
-        
-        let prevWorkingDayStatus = null;
-        for (let j = i - 1; j >= 0; j--) {
-           if (allDailyRecords[j].status !== "WEEKOFF" && allDailyRecords[j].status !== "HOLIDAY") {
-              prevWorkingDayStatus = allDailyRecords[j].status;
-              break;
-           }
-        }
-        
-        let nextWorkingDayStatus = null;
-        for (let j = i + 1; j < allDailyRecords.length; j++) {
-           if (allDailyRecords[j].status !== "WEEKOFF" && allDailyRecords[j].status !== "HOLIDAY") {
-              nextWorkingDayStatus = allDailyRecords[j].status;
-              break;
-           }
-        }
+    const monthDays = eachDayOfInterval({ start: sOfMonth, end: eOfMonth });
+    const days: any[] = [];
+    let totalPayrollEligibleDays = 0;
 
-        if (prevWorkingDayStatus === "ABSENT" && nextWorkingDayStatus === "ABSENT") {
-           payrollEligible = 0;
-           isSandwiched = true;
-        } else {
-           payrollEligible = 1;
-        }
+    for (const dayDate of monthDays) {
+      const dateStr = format(dayDate, 'yyyy-MM-dd');
+      const isFuture = isAfter(startOfDay(dayDate), today);
+      const hasLogs = logsByDate[dateStr] && logsByDate[dateStr].length > 0;
+      if (isFuture && !hasLogs) continue;
+
+      const record = recordsByDate.get(dateStr);
+      const isEmployed = isEmployedOnDate(staff, dateStr);
+      const isPreSystem = Boolean(systemStartDate && dateStr < systemStartDate);
+
+      if (!isEmployed || isPreSystem) {
+        days.push({
+          id: record ? record.id : `not-employed-${dateStr}`,
+          staffId: staff.id,
+          date: dayDate,
+          status: 'NOT_EMPLOYED',
+          checkIn: null,
+          checkOut: null,
+          lateMinutes: 0,
+          workMinutes: 0,
+          overtimeMinutes: 0,
+          payrollEligible: 0,
+          isSandwiched: false,
+          logs: logsByDate[dateStr] || [],
+        });
+        continue;
       }
 
-      totalPayrollEligibleDays += payrollEligible;
+      if (record) {
+        let payrollEligible = 0;
+        let isSandwiched = false;
 
-      return {
-        ...record,
-        payrollEligible,
-        isSandwiched,
-        logs: logsByDate[dateStr] || []
-      };
-    });
+        // If the date is before the employee joined, they are not eligible for any pay
+        if (record.date < normalizedDoj) {
+          payrollEligible = 0;
+        } else if (record.status === 'PRESENT') {
+          payrollEligible = 1;
+        } else if (record.status === 'HALF_DAY') {
+          payrollEligible = 0.5;
+        } else if (record.status === 'WEEKOFF' || record.status === 'HOLIDAY') {
+          // Apply Sandwich Rule using allDailyRecords
+          const i = allDailyRecords.findIndex(r => r.id === record.id);
+          
+          let prevWorkingDayStatus = null;
+          for (let j = i - 1; j >= 0; j--) {
+             if (allDailyRecords[j].status !== "WEEKOFF" && allDailyRecords[j].status !== "HOLIDAY") {
+                prevWorkingDayStatus = allDailyRecords[j].status;
+                break;
+             }
+          }
+          
+          let nextWorkingDayStatus = null;
+          for (let j = i + 1; j < allDailyRecords.length; j++) {
+             if (allDailyRecords[j].status !== "WEEKOFF" && allDailyRecords[j].status !== "HOLIDAY") {
+                nextWorkingDayStatus = allDailyRecords[j].status;
+                break;
+             }
+          }
 
-    // Calculate totals (only count absents for past and current days)
-    const totalPresents = dailyRecords.filter(r => r.status === 'PRESENT').length;
-    const totalAbsents = dailyRecords.filter(r => r.status === 'ABSENT' && !isAfter(startOfDay(r.date), today)).length;
-    const totalHalfDays = dailyRecords.filter(r => r.status === 'HALF_DAY').length;
-    const totalLateMinutes = dailyRecords.reduce((sum, r) => sum + r.lateMinutes, 0);
-    const totalWorkMinutes = dailyRecords.reduce((sum, r) => sum + r.workMinutes, 0);
+          if (prevWorkingDayStatus === "ABSENT" && nextWorkingDayStatus === "ABSENT") {
+             payrollEligible = 0;
+             isSandwiched = true;
+          } else {
+             payrollEligible = 1;
+          }
+        }
+
+        totalPayrollEligibleDays += payrollEligible;
+
+        days.push({
+          ...record,
+          payrollEligible,
+          isSandwiched,
+          logs: logsByDate[dateStr] || []
+        });
+      }
+    }
+
+    // Calculate totals (only count absents for past and current days when employed and not pre-system)
+    const totalPresents = days.filter(r => r.status === 'PRESENT').length;
+    const totalAbsents = days.filter(r => r.status === 'ABSENT' && !isAfter(startOfDay(r.date), today)).length;
+    const totalHalfDays = days.filter(r => r.status === 'HALF_DAY').length;
+    const totalLateMinutes = days.reduce((sum, r) => sum + r.lateMinutes, 0);
+    const totalWorkMinutes = days.reduce((sum, r) => sum + r.workMinutes, 0);
 
     const monthlyPayroll = await prisma.monthlyPayroll.findUnique({
       where: {

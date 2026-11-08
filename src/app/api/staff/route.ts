@@ -6,6 +6,17 @@ import { requireRole } from "@/lib/rbac"
 import { istDateKey } from '@/lib/dashboard-calc'
 import { ALWAYS } from '@/lib/shift-lookup'
 import { applyShiftChange, isValidDayKey, START_BEFORE_ALWAYS_ERROR, syncCurrentShifts } from '@/lib/shift-change-service'
+import { formatEmployeeCode, parseEmployeeCode } from '@/lib/employee-code'
+import { generateTemporaryPassword } from '@/lib/temporary-password'
+import bcrypt from 'bcryptjs'
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
+
+function isValidDateKey(val: unknown): val is string {
+  if (typeof val !== 'string' || !DATE_REGEX.test(val)) return false
+  const d = new Date(`${val}T00:00:00Z`)
+  return !isNaN(d.getTime())
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -37,9 +48,126 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const staff = await prisma.staff.create({ data })
-    return NextResponse.json(staff, { status: 201 })
+    const { name, machineId, joiningDate, departmentId, designationId, shiftId, payGroup } = data
+
+    if (!name || !machineId || !joiningDate) {
+      return NextResponse.json({ error: 'Name, machineId, and joiningDate are required' }, { status: 400 })
+    }
+
+    if (!isValidDateKey(joiningDate)) {
+      return NextResponse.json({ error: 'joiningDate must be a valid YYYY-MM-DD date' }, { status: 400 })
+    }
+
+    const existingStaff = await prisma.staff.findUnique({ where: { machineId: String(machineId).trim() } })
+    if (existingStaff) {
+      return NextResponse.json({ error: 'Machine ID already exists' }, { status: 409 })
+    }
+
+    if (shiftId) {
+      const shiftExists = await prisma.shift.findUnique({ where: { id: shiftId } })
+      if (!shiftExists) {
+        return NextResponse.json({ error: 'Shift not found' }, { status: 400 })
+      }
+    }
+
+    const year = parseInt(joiningDate.slice(0, 4), 10)
+
+    const temporaryPassword = generateTemporaryPassword(10)
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10)
+
+    const createdStaff = await prisma.$transaction(async (tx: any) => {
+      // Find highest sequence number for that year among existing staff codes matching SAR-<year>-(\d+)
+      const staffInYear = await tx.staff.findMany({
+        where: { employeeCode: { startsWith: `SAR-${year}-` } },
+        select: { employeeCode: true },
+      })
+
+      let maxSeq = 0
+      for (const s of staffInYear) {
+        if (!s.employeeCode) continue
+        const parsed = parseEmployeeCode(s.employeeCode)
+        if (parsed && parsed.year === year && parsed.sequence > maxSeq) {
+          maxSeq = parsed.sequence
+        }
+      }
+
+      const employeeCode = formatEmployeeCode(year, maxSeq + 1)
+
+      const staff = await tx.staff.create({
+        data: {
+          name: name.trim(),
+          machineId: String(machineId).trim(),
+          employeeCode,
+          joiningDate,
+          departmentId: departmentId || null,
+          designationId: designationId || null,
+          shiftId: shiftId || null,
+        },
+      })
+
+      await tx.employmentPeriod.create({
+        data: {
+          staffId: staff.id,
+          startDate: joiningDate,
+          endDate: null,
+          createdByUserId: auth.user.id,
+        },
+      })
+
+      await tx.staffPayrollInfo.create({
+        data: {
+          staffId: staff.id,
+          payGroup: payGroup || 'BANK_EPF',
+        },
+      })
+
+      if (shiftId) {
+        await tx.shiftAssignment.create({
+          data: {
+            staffId: staff.id,
+            shiftId,
+            effectiveFrom: joiningDate,
+            source: 'INITIAL',
+            createdByUserId: auth.user.id,
+          },
+        })
+      }
+
+      await tx.user.create({
+        data: {
+          name: staff.name,
+          role: 'EMPLOYEE',
+          password: hashedPassword,
+          mustChangePassword: true,
+          staffId: staff.id,
+        },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: auth.user.id,
+          action: 'STAFF_JOIN',
+          targetType: 'Staff',
+          targetId: staff.id,
+          details: JSON.stringify({
+            name: staff.name,
+            machineId: staff.machineId,
+            employeeCode,
+            joiningDate,
+            departmentId,
+            designationId,
+            shiftId,
+            payGroup: payGroup || 'BANK_EPF',
+          }),
+        },
+      })
+
+      return staff
+    })
+
+    return NextResponse.json({ ...createdStaff, temporaryPassword }, { status: 201 })
   } catch (error) {
+    console.error('Failed to create staff:', error)
     return NextResponse.json({ error: 'Failed to create staff' }, { status: 500 })
   }
 }
@@ -54,17 +182,56 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id')
     const ids = searchParams.get('ids')
 
-    if (ids) {
-      const idArray = ids.split(',').filter(Boolean)
-      await prisma.staff.deleteMany({ where: { id: { in: idArray } } })
-      return NextResponse.json({ success: true, count: idArray.length })
-    } else if (id) {
-      await prisma.staff.delete({ where: { id } })
-      return NextResponse.json({ success: true })
-    } else {
+    const idList = ids ? ids.split(',').filter(Boolean) : id ? [id] : []
+    if (idList.length === 0) {
       return NextResponse.json({ error: 'ID or IDs required' }, { status: 400 })
     }
+
+    // Deletion guard: Check attendanceLogs, dailyRecords, monthlyPayrolls, and shiftAssignments > 1
+    const [logCount, recordCount, payrollCount] = await Promise.all([
+      prisma.attendanceLog.count({ where: { staffId: { in: idList } } }),
+      prisma.dailyRecord.count({ where: { staffId: { in: idList } } }),
+      prisma.monthlyPayroll.count({ where: { staffId: { in: idList } } }),
+    ])
+
+    if (logCount > 0 || recordCount > 0 || payrollCount > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete staff member with attendance or payroll history. Use Exit instead.' },
+        { status: 409 }
+      )
+    }
+
+    for (const staffId of idList) {
+      const assignmentCount = await prisma.shiftAssignment.count({ where: { staffId } })
+      if (assignmentCount > 1) {
+        return NextResponse.json(
+          { error: 'Cannot delete staff member with attendance or payroll history. Use Exit instead.' },
+          { status: 409 }
+        )
+      }
+    }
+
+    await prisma.$transaction(async (tx: any) => {
+      if (id && !ids) {
+        await tx.shiftAssignment.deleteMany({ where: { staffId: id } })
+        await tx.payGroupChange.deleteMany({ where: { staffPayrollInfo: { staffId: id } } })
+        await tx.staffPayrollInfo.deleteMany({ where: { staffId: id } })
+        await tx.user.deleteMany({ where: { staffId: id } })
+        await tx.employmentPeriod.deleteMany({ where: { staffId: id } })
+        await tx.staff.delete({ where: { id } })
+      } else {
+        await tx.shiftAssignment.deleteMany({ where: { staffId: { in: idList } } })
+        await tx.payGroupChange.deleteMany({ where: { staffPayrollInfo: { staffId: { in: idList } } } })
+        await tx.staffPayrollInfo.deleteMany({ where: { staffId: { in: idList } } })
+        await tx.user.deleteMany({ where: { staffId: { in: idList } } })
+        await tx.employmentPeriod.deleteMany({ where: { staffId: { in: idList } } })
+        await tx.staff.deleteMany({ where: { id: { in: idList } } })
+      }
+    })
+
+    return NextResponse.json({ success: true, count: idList.length })
   } catch (error) {
+    console.error('Failed to delete staff:', error)
     return NextResponse.json({ error: 'Failed to delete staff' }, { status: 500 })
   }
 }

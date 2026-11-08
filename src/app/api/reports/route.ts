@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, format, isAfter } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
+import { isEmployedOnDate } from '@/lib/employment'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -16,7 +17,8 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') || 'daily'
     const dateParam = searchParams.get('date')
     const monthParam = searchParams.get('month') // e.g., "2026-06"
-    
+    const systemStartDate = process.env.SYSTEM_START_DATE || null
+
     if (type === 'daily') {
       if (!dateParam) return NextResponse.json({ error: 'Date is required for daily report' }, { status: 400 })
       
@@ -37,7 +39,8 @@ export async function GET(request: Request) {
             include: {
               department: true,
               designation: true,
-              shift: true
+              shift: true,
+              employmentPeriods: true,
             }
           }
         }
@@ -48,7 +51,25 @@ export async function GET(request: Request) {
         a.staff.machineId.localeCompare(b.staff.machineId, undefined, { numeric: true })
       )
 
-      return NextResponse.json(records)
+      const formattedRecords = records.map((record) => {
+        const dateStr = format(record.date, 'yyyy-MM-dd')
+        const isEmployed = isEmployedOnDate(record.staff, dateStr)
+        const isPreSystem = Boolean(systemStartDate && dateStr < systemStartDate)
+
+        if (!isEmployed || isPreSystem) {
+          return {
+            ...record,
+            status: 'NOT_EMPLOYED',
+            checkIn: null,
+            checkOut: null,
+            lateMinutes: 0,
+            workMinutes: 0,
+          }
+        }
+        return record
+      })
+
+      return NextResponse.json(formattedRecords)
     } 
     else if (type === 'monthly') {
       if (!monthParam) return NextResponse.json({ error: 'Month is required for monthly report' }, { status: 400 })
@@ -75,7 +96,8 @@ export async function GET(request: Request) {
             include: {
               department: true,
               designation: true,
-              shift: true
+              shift: true,
+              employmentPeriods: true,
             }
           }
         }
@@ -102,21 +124,34 @@ export async function GET(request: Request) {
         
         // Add daily details
         const dateStr = format(record.date, 'yyyy-MM-dd');
-        stats.days[dateStr] = {
-          status: record.status,
-          checkIn: record.checkIn,
-          checkOut: record.checkOut,
-          lateMinutes: record.lateMinutes,
-          workMinutes: record.workMinutes
-        };
-        
-        const today = startOfDay(new Date());
-        if (record.status === 'PRESENT') stats.totalPresents++;
-        else if (record.status === 'ABSENT' && !isAfter(startOfDay(record.date), today)) stats.totalAbsents++;
-        else if (record.status === 'HALF_DAY') stats.totalHalfDays++;
-        
-        stats.totalLateMinutes += record.lateMinutes;
-        stats.totalWorkMinutes += record.workMinutes;
+        const isEmployed = isEmployedOnDate(record.staff, dateStr);
+        const isPreSystem = Boolean(systemStartDate && dateStr < systemStartDate);
+
+        if (!isEmployed || isPreSystem) {
+          stats.days[dateStr] = {
+            status: 'NOT_EMPLOYED',
+            checkIn: null,
+            checkOut: null,
+            lateMinutes: 0,
+            workMinutes: 0,
+          };
+        } else {
+          stats.days[dateStr] = {
+            status: record.status,
+            checkIn: record.checkIn,
+            checkOut: record.checkOut,
+            lateMinutes: record.lateMinutes,
+            workMinutes: record.workMinutes
+          };
+          
+          const today = startOfDay(new Date());
+          if (record.status === 'PRESENT') stats.totalPresents++;
+          else if (record.status === 'ABSENT' && !isAfter(startOfDay(record.date), today)) stats.totalAbsents++;
+          else if (record.status === 'HALF_DAY') stats.totalHalfDays++;
+          
+          stats.totalLateMinutes += record.lateMinutes;
+          stats.totalWorkMinutes += record.workMinutes;
+        }
       });
 
       // Convert map to array and sort by staff machineId
