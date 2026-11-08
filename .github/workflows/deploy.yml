@@ -23,8 +23,8 @@ jobs:
             cd /home/ubuntu/smartattendance
             
             echo "Pulling latest code..."
-            git reset --hard
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             
             echo "Installing dependencies..."
             npm install --prefer-offline --no-audit
@@ -41,3 +41,4 @@ jobs:
             pm2 reload websockets
             
             echo "Deployment Complete!"
+
