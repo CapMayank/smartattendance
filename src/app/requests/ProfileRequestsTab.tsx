@@ -32,8 +32,8 @@ export interface AdminProfileRequestItem {
   staffId: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   requestedData: string; // JSON string
-  currentData: string; // JSON string
-  reason: string;
+  currentData?: string | null; // JSON string
+  reason?: string | null;
   decisionRemarks?: string | null;
   decidedByUserId?: string | null;
   decidedAt?: string | null;
@@ -111,7 +111,7 @@ export function ProfileRequestsTab({
         const query = searchQuery.toLowerCase();
         const nameMatch = req.staff.name.toLowerCase().includes(query);
         const codeMatch = req.staff.employeeCode?.toLowerCase().includes(query) ?? false;
-        const reasonMatch = req.reason.toLowerCase().includes(query);
+        const reasonMatch = req.reason?.toLowerCase().includes(query) ?? false;
         if (!nameMatch && !codeMatch && !reasonMatch) return false;
       }
       return true;
@@ -293,7 +293,7 @@ export function ProfileRequestsTab({
             }
 
             try {
-              currentParsed = JSON.parse(req.currentData);
+              currentParsed = req.currentData ? JSON.parse(req.currentData) : {};
             } catch {
               currentParsed = {};
             }
@@ -306,7 +306,7 @@ export function ProfileRequestsTab({
                   {/* Staff Header & Status */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <Avatar name={req.staff.name} size="md" />
+                      <Avatar name={req.staff.name} size={38} />
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-semibold text-foreground">{req.staff.name}</span>
@@ -352,15 +352,17 @@ export function ProfileRequestsTab({
                   </div>
 
                   {/* Reason Callout */}
-                  <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-sm">
-                    <div className="flex items-start gap-2">
-                      <FileText size={15} className="mt-0.5 text-muted shrink-0" />
-                      <div>
-                        <span className="font-medium text-foreground">Employee Reason: </span>
-                        <span className="text-muted-foreground">{req.reason}</span>
+                  {req.reason && (
+                    <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-sm">
+                      <div className="flex items-start gap-2">
+                        <FileText size={15} className="mt-0.5 text-muted shrink-0" />
+                        <div>
+                          <span className="font-medium text-foreground">Employee Reason: </span>
+                          <span className="text-muted-foreground">{req.reason}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Changes Side-by-Side Diff Table */}
                   <div className="rounded-xl border border-border/80 overflow-hidden bg-card">
@@ -439,7 +441,7 @@ export function ProfileRequestsTab({
       {/* Decision Modal */}
       {activeModalRequest && modalAction && (
         <Modal
-          isOpen={true}
+          open={true}
           onClose={handleCloseModal}
           title={
             modalAction === "APPROVE"
@@ -487,7 +489,7 @@ export function ProfileRequestsTab({
             </Field>
 
             <div className="flex items-center justify-end gap-3 pt-3">
-              <Button variant="outline" onClick={handleCloseModal} disabled={isSubmitting}>
+              <Button variant="secondary" onClick={handleCloseModal} disabled={isSubmitting}>
                 Cancel
               </Button>
               <Button

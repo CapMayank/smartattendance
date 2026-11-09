@@ -154,7 +154,7 @@ export function RequestsHubClient({
               </div>
               <div className="mt-4 pt-3 border-t border-border/40">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   className="w-full justify-between"
                   onClick={() => handleTabChange("punches")}
@@ -183,7 +183,7 @@ export function RequestsHubClient({
               </div>
               <div className="mt-4 pt-3 border-t border-border/40">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   className="w-full justify-between"
                   onClick={() => handleTabChange("profile")}
