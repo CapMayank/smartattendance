@@ -171,44 +171,44 @@ export function AttendanceIndexSidebar({
 
       {/* Summary Metrics */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-line bg-card-hi/40 p-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted">
+        <div className="rounded-xl border border-line bg-card-hi/70 p-3 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
             <CheckCircle2 className="h-3.5 w-3.5 text-present" />
             <span>Present Days</span>
           </div>
           <div className="mt-1 num text-xl font-bold text-text">
             {summary.presentDays}
-            <span className="text-xs font-normal text-muted">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {" "}
               / {summary.elapsedWorkingDays}d
             </span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-line bg-card-hi/40 p-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted">
+        <div className="rounded-xl border border-line bg-card-hi/70 p-3 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
             <Clock className="h-3.5 w-3.5 text-late" />
             <span>Late Arrivals</span>
           </div>
           <div className="mt-1 num text-xl font-bold text-text">
             {summary.lateArrivalsCount}
-            <span className="text-xs font-normal text-muted"> days</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400"> days</span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-line bg-card-hi/40 p-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted">
+        <div className="rounded-xl border border-line bg-card-hi/70 p-3 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
             <CalendarCheck className="h-3.5 w-3.5 text-acc-1" />
             <span>Half Days</span>
           </div>
           <div className="mt-1 num text-xl font-bold text-text">
             {summary.halfDays}
-            <span className="text-xs font-normal text-muted"> days</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400"> days</span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-line bg-card-hi/40 p-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted">
+        <div className="rounded-xl border border-line bg-card-hi/70 p-3 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
             <Clock className="h-3.5 w-3.5 text-muted" />
             <span>Avg Daily Hours</span>
           </div>

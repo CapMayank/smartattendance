@@ -261,29 +261,29 @@ export function ToSchoolClient({
       )}
 
       {/* Color Legend */}
-      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card/60 p-3 text-xs text-muted">
-        <span className="font-semibold text-text uppercase tracking-wider text-[11px] mr-1">
+      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-line bg-card p-3.5 text-xs text-slate-700 dark:text-slate-300 shadow-2xs">
+        <span className="font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px] mr-1">
           Legend:
         </span>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-present" />
-          <span>Present</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-present ring-2 ring-emerald-200 dark:ring-emerald-900/60" />
+          <span className="font-medium">Present</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-late" />
-          <span>Half Day</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-late ring-2 ring-amber-200 dark:ring-amber-900/60" />
+          <span className="font-medium">Half Day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
-          <span>Branch Holiday</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400 ring-2 ring-indigo-200 dark:ring-indigo-900/60" />
+          <span className="font-medium">Branch Holiday</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-500 dark:bg-slate-400" />
-          <span>Sunday Off</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-400 dark:bg-slate-500 ring-2 ring-slate-200 dark:ring-slate-800" />
+          <span className="font-medium">Sunday Off</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-absent" />
-          <span>No Show / Missed Punch</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-600 dark:bg-rose-400 ring-2 ring-rose-200 dark:ring-rose-900/60" />
+          <span className="font-medium">No Show / Missed Punch</span>
         </div>
       </div>
 
@@ -292,11 +292,15 @@ export function ToSchoolClient({
         {/* Calendar Grid Container */}
         <div className="flex-1 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
           {/* Day of Week Headers */}
-          <div className="grid grid-cols-7 border-b border-line bg-card-hi/60 text-center text-xs font-semibold text-muted">
+          <div className="grid grid-cols-7 border-b border-line bg-slate-50/80 dark:bg-slate-900/60 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">
             {WEEKDAY_NAMES.map((name, i) => (
               <div
                 key={name}
-                className={`py-2.5 ${i === 6 ? "text-slate-700 dark:text-slate-400 font-bold" : ""}`}
+                className={`py-3 text-[11.5px] font-bold uppercase tracking-wider ${
+                  i === 6
+                    ? "text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/80"
+                    : "text-slate-700 dark:text-slate-300"
+                }`}
               >
                 {name}
               </div>
@@ -304,12 +308,12 @@ export function ToSchoolClient({
           </div>
 
           {/* Days Grid */}
-          <div className="grid grid-cols-7 divide-x divide-y divide-line/70">
+          <div className="grid grid-cols-7 divide-x divide-y divide-line">
             {/* Leading empty cells for days from previous month */}
             {Array.from({ length: leadingEmptyCount }).map((_, index) => (
               <div
                 key={`empty-${index}`}
-                className="min-h-[110px] bg-canvas/30 p-2 opacity-30 sm:min-h-[125px]"
+                className="min-h-[110px] bg-slate-50/40 p-2.5 dark:bg-slate-950/40 sm:min-h-[125px]"
               />
             ))}
 
@@ -321,23 +325,25 @@ export function ToSchoolClient({
               const isToday = day.isToday;
               const hasPending = day.hasPendingRequest;
 
-              let cellBg = "bg-card hover:bg-card-hi/40";
+              let cellBg = "bg-card hover:bg-slate-50/80 dark:hover:bg-slate-900/50";
               let borderAccent = "";
 
-              if (isNoShow) {
-                cellBg = "bg-rose-50/70 dark:bg-rose-950/20";
-                borderAccent = "ring-1 ring-rose-400/50 dark:ring-rose-500/50 border-rose-200 dark:border-rose-500/50";
-              } else if (isToday) {
-                cellBg = "bg-acc-2/10 hover:bg-acc-2/15";
-                borderAccent = "ring-1 ring-acc-2/60 border-acc-2/60";
-              } else if (day.status === "PRESENT") {
-                cellBg = "bg-card";
+              if (isToday) {
+                cellBg = "bg-indigo-50/30 hover:bg-indigo-50/60 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/35";
+                borderAccent = "ring-2 ring-indigo-600 dark:ring-indigo-400 z-10";
+              } else if (isNoShow) {
+                cellBg = "bg-rose-50/40 hover:bg-rose-50/70 dark:bg-rose-950/25 dark:hover:bg-rose-950/40";
+                borderAccent = "ring-1 ring-inset ring-rose-300/80 dark:ring-rose-800/60";
               } else if (day.status === "HALF_DAY") {
-                cellBg = "bg-amber-50/70 dark:bg-amber-950/10";
+                cellBg = "bg-amber-50/40 hover:bg-amber-50/70 dark:bg-amber-950/20 dark:hover:bg-amber-950/35";
+                borderAccent = "ring-1 ring-inset ring-amber-300/80 dark:ring-amber-800/60";
               } else if (isHoliday) {
-                cellBg = "bg-indigo-50/70 dark:bg-indigo-950/15";
+                cellBg = "bg-indigo-50/40 hover:bg-indigo-50/70 dark:bg-indigo-950/25 dark:hover:bg-indigo-950/40";
+                borderAccent = "ring-1 ring-inset ring-indigo-300/80 dark:ring-indigo-700/60";
               } else if (isSunday) {
-                cellBg = "bg-slate-100/60 dark:bg-slate-900/30";
+                cellBg = "bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/25 dark:hover:bg-slate-900/40";
+              } else if (day.status === "PRESENT") {
+                cellBg = "bg-card hover:bg-slate-50/80 dark:hover:bg-slate-900/50";
               }
 
               return (
@@ -347,28 +353,44 @@ export function ToSchoolClient({
                 >
                   {/* Top Row: Day Number + Duration Bracket Badge */}
                   <div className="flex items-start justify-between">
-                    <span
-                      className={`num text-sm font-bold tracking-tight ${
-                        isSunday
-                          ? "text-slate-600 dark:text-slate-400"
-                          : isNoShow
-                            ? "text-rose-600 dark:text-rose-400"
-                            : isToday
-                              ? "text-acc-1"
-                              : "text-text"
-                      }`}
-                    >
-                      {String(day.dayNumber).padStart(2, "0")}
-                    </span>
+                    {isToday ? (
+                      <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num">
+                        {String(day.dayNumber).padStart(2, "0")}
+                      </span>
+                    ) : (
+                      <span
+                        className={`num text-sm font-bold tracking-tight ${
+                          isSunday
+                            ? "text-slate-600 dark:text-slate-400"
+                            : isNoShow
+                              ? "text-rose-950 dark:text-rose-100"
+                              : isHoliday
+                                ? "text-indigo-950 dark:text-indigo-100"
+                                : day.status === "HALF_DAY"
+                                  ? "text-amber-950 dark:text-amber-100"
+                                  : "text-slate-900 dark:text-slate-100"
+                        }`}
+                      >
+                        {String(day.dayNumber).padStart(2, "0")}
+                      </span>
+                    )}
 
                     {/* Duration Bracket or Today Badge */}
                     {day.hoursBracket !== "—" ? (
-                      <span className="rounded border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                      <span className="rounded-md border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300">
                         {day.hoursBracket}
                       </span>
                     ) : isToday ? (
-                      <span className="rounded border border-acc-2/40 bg-acc-2/20 px-1.5 py-0.5 text-[10px] font-semibold text-acc-1">
+                      <span className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs dark:bg-indigo-500">
                         Today
+                      </span>
+                    ) : isHoliday ? (
+                      <span className="rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 shadow-2xs dark:border-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300">
+                        Holiday
+                      </span>
+                    ) : isSunday ? (
+                      <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 shadow-2xs dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                        Sunday
                       </span>
                     ) : null}
                   </div>
@@ -376,11 +398,12 @@ export function ToSchoolClient({
                   {/* Middle Row: Campus or Special Status */}
                   <div className="my-1.5 flex flex-col gap-1">
                     {isHoliday ? (
-                      <div className="inline-block truncate rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
-                        {day.holidayName || "School Holiday"}
+                      <div className="inline-flex items-center gap-1.5 truncate rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[11px] font-semibold text-indigo-950 shadow-xs dark:border-indigo-800/80 dark:bg-indigo-950/80 dark:text-indigo-100">
+                        <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
+                        <span className="truncate">{day.holidayName || "School Holiday"}</span>
                       </div>
                     ) : isSunday ? (
-                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                         Sunday Off
                       </span>
                     ) : !day.isEmployed ? (
@@ -389,29 +412,29 @@ export function ToSchoolClient({
                       </span>
                     ) : isToday ? (
                       <div className="flex items-center gap-1">
-                        <span className="inline-flex items-center gap-1 rounded border border-acc-2/30 bg-acc-2/15 px-1.5 py-0.5 text-[10px] font-medium text-acc-1">
-                          <Clock className="h-2.5 w-2.5" />
+                        <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 shadow-2xs dark:border-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300">
+                          <Clock className="h-2.5 w-2.5 text-indigo-600 dark:text-indigo-400" />
                           {day.checkIn ? "In Progress" : "Active Today"}
                         </span>
                       </div>
                     ) : isNoShow ? (
                       <div className="flex items-center gap-1">
-                        <span className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300">
-                          <AlertTriangle className="h-2.5 w-2.5" />
+                        <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-rose-700 shadow-2xs dark:border-rose-800 dark:bg-rose-950/80 dark:text-rose-300">
+                          <AlertTriangle className="h-2.5 w-2.5 text-rose-600 dark:text-rose-400" />
                           No Show
                         </span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 text-[11px] text-muted">
-                        <Building className="h-3 w-3 flex-none text-subtle" />
+                      <div className="flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                        <Building className="h-3 w-3 flex-none text-slate-400 dark:text-slate-500" />
                         <span className="truncate">Lakhnadon</span>
                       </div>
                     )}
 
                     {/* Pending Request Badge */}
                     {hasPending && (
-                      <span className="inline-flex items-center gap-1 rounded border border-late/40 bg-late/15 px-1.5 py-0.5 text-[10px] font-medium text-late">
-                        <Clock className="h-2.5 w-2.5" />
+                      <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
+                        <Clock className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
                         Request Pending
                       </span>
                     )}
@@ -423,52 +446,52 @@ export function ToSchoolClient({
                       <button
                         type="button"
                         onClick={() => openRegularizationModal(day)}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-acc-1 hover:text-acc-2 transition-colors"
+                        className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-2 py-1 text-[10.5px] font-bold text-rose-700 shadow-2xs hover:bg-rose-50 hover:border-rose-300 hover:text-rose-900 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-300 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
                       >
-                        <PlusCircle className="h-3 w-3" />
+                        <PlusCircle className="h-3 w-3 text-rose-600 dark:text-rose-400" />
                         Request Punch
                       </button>
                     ) : isToday ? (
                       <div className="flex items-center justify-between gap-1">
                         {day.checkIn ? (
-                          <div className="num text-[11px] text-muted">
+                          <div className="num text-[11px] font-medium text-slate-800 dark:text-slate-200">
                             <span>In: {day.checkIn}</span>
-                            <span className="mx-1 text-line">·</span>
+                            <span className="mx-1 text-slate-300 dark:text-slate-600">·</span>
                             <span>Out: {day.checkOut ?? "—"}</span>
                           </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => openRegularizationModal(day)}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-acc-1 hover:text-acc-2 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-white px-2 py-1 text-[10.5px] font-bold text-indigo-700 shadow-2xs hover:bg-indigo-50 hover:border-indigo-300 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-300 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
                           >
-                            <PlusCircle className="h-3 w-3" />
+                            <PlusCircle className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                             Request Punch
                           </button>
                         )}
                       </div>
                     ) : day.status === "HALF_DAY" ? (
                       <div className="flex flex-col gap-1">
-                        <div className="num text-[11px] text-muted">
+                        <div className="num text-[11px] font-medium text-slate-800 dark:text-slate-200">
                           {day.checkIn ? (
                             <span>In: {day.checkIn}</span>
                           ) : (
-                            <span className="font-medium text-amber-600 dark:text-amber-400">In: Missing</span>
+                            <span className="font-bold text-amber-700 dark:text-amber-400">In: Missing</span>
                           )}
-                          <span className="mx-1 text-line">·</span>
+                          <span className="mx-1 text-slate-300 dark:text-slate-600">·</span>
                           {day.checkOut ? (
                             <span>Out: {day.checkOut}</span>
                           ) : (
-                            <span className="font-medium text-amber-600 dark:text-amber-400">Out: Missing</span>
+                            <span className="font-bold text-amber-700 dark:text-amber-400">Out: Missing</span>
                           )}
                         </div>
                         {!hasPending && !day.isToday && (
                           <button
                             type="button"
                             onClick={() => openRegularizationModal(day)}
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-acc-1 hover:text-acc-2 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
                           >
-                            <PlusCircle className="h-2.5 w-2.5" />
+                            <PlusCircle className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
                             {day.checkIn && !day.checkOut
                               ? "Request Out Punch"
                               : !day.checkIn && day.checkOut
@@ -478,13 +501,13 @@ export function ToSchoolClient({
                         )}
                       </div>
                     ) : day.status === "PRESENT" ? (
-                      <div className="num text-[11px] text-muted">
+                      <div className="num text-[11px] font-medium text-slate-800 dark:text-slate-200">
                         <span>In: {day.checkIn ?? "—"}</span>
-                        <span className="mx-1 text-line">·</span>
+                        <span className="mx-1 text-slate-300 dark:text-slate-600">·</span>
                         <span>Out: {day.checkOut ?? "—"}</span>
                       </div>
                     ) : (
-                      <div className="text-[11px] text-subtle">—</div>
+                      <div className="text-[11px] text-slate-300 dark:text-slate-600 font-mono">—</div>
                     )}
                   </div>
                 </div>
