@@ -7,38 +7,79 @@ on:
       - master
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Deploy to Oracle Cloud via SSH
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+
+      - name: Build Next.js Application in CI
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+
+      - name: Archive Production Build Artifacts
+        run: |
+          tar --exclude='.next/cache' -czf next-build.tar.gz .next
+
+      - name: Upload Build Artifact to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "next-build.tar.gz"
+          target: "/home/ubuntu/smartattendance"
+          overwrite: true
+
+      - name: Deploy & Restart Services on Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 30m
+          command_timeout: 10m
           script: |
             set -e
             cd /home/ubuntu/smartattendance
-            
-            echo "Pulling latest code..."
+
+            echo "Syncing latest code..."
             git fetch origin main
             git reset --hard origin/main
-            
-            echo "Installing dependencies..."
+
+            echo "Installing production dependencies..."
             npm install --prefer-offline --no-audit
-            
+
             echo "Updating Database Schema..."
             npx prisma generate
             npx prisma db push
-            
-            echo "Building Next.js Application..."
-            NODE_OPTIONS="--max-old-space-size=2048" npm run build
-            
-            echo "Restarting Services..."
+
+            echo "Deploying fresh Next.js build..."
+            mkdir -p .next_incoming
+            tar -xzf next-build.tar.gz -C .next_incoming
+            rm -rf .next_old
+            [ -d .next ] && mv .next .next_old || true
+            mv .next_incoming/.next .next
+            rm -rf .next_incoming .next_old next-build.tar.gz
+
+            echo "Reloading PM2 Services..."
             pm2 reload nextjs
             pm2 reload websockets
-            
-            echo "Deployment Complete!"
 
+            echo "Deployment Complete!"
