@@ -21,6 +21,34 @@ describe("Navigation Configuration & Role Integration", () => {
   });
 
   describe("getNavForRole('ADMIN')", () => {
+    it("returns exactly 6 navigation groups with organized items", () => {
+      const adminNav = getNavForRole("ADMIN");
+      expect(adminNav.map((g) => g.group)).toEqual([
+        "Overview",
+        "Staff",
+        "Attendance",
+        "Payroll",
+        "Reports",
+        "System",
+      ]);
+
+      const staffGroup = adminNav.find((g) => g.group === "Staff");
+      expect(staffGroup?.items.map((i) => i.href)).toEqual([
+        "/staff",
+        "/departments",
+        "/designations",
+      ]);
+
+      const reportsGroup = adminNav.find((g) => g.group === "Reports");
+      expect(reportsGroup?.items.map((i) => i.href)).toEqual([
+        "/reports/staff",
+        "/reports",
+        "/reports/member-attendance",
+        "/reports/member-payroll",
+        "/reports/payroll-analytics",
+      ]);
+    });
+
     it("includes '/punches/requests' under Attendance group", () => {
       const adminNav = getNavForRole("ADMIN");
       const attendance = adminNav.find((g) => g.group === "Attendance");
@@ -42,10 +70,12 @@ describe("Navigation Configuration & Role Integration", () => {
       expect(punchRequestItem).toBeDefined();
       expect(punchRequestItem?.label).toBe("Punch requests");
 
-      const hrefs = attendance?.items.map((i) => i.href) ?? [];
-      expect(hrefs).not.toContain("/attendance/manual");
-      expect(hrefs).not.toContain("/punches/unmatched");
-      expect(hrefs).toContain("/punches/requests");
+      const allHrefs = approverNav.flatMap((g) => g.items.map((i) => i.href));
+      expect(allHrefs).not.toContain("/staff");
+      expect(allHrefs).not.toContain("/attendance/manual");
+      expect(allHrefs).not.toContain("/punches/unmatched");
+      expect(allHrefs).not.toContain("/reports/staff");
+      expect(allHrefs).toContain("/punches/requests");
     });
   });
 

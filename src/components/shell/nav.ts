@@ -13,18 +13,30 @@ export type NavItem = {
 };
 
 export type NavGroup = {
-  group: "Overview" | "Attendance" | "Payroll" | "System" | "My Portal";
+  group: "Overview" | "Staff" | "Attendance" | "Payroll" | "Reports" | "System" | "My Portal";
   items: NavItem[];
 };
 
-const APPROVER_HIDDEN_HREFS = new Set(["/staff", "/attendance/manual", "/punches/unmatched"]);
+const APPROVER_HIDDEN_HREFS = new Set([
+  "/staff",
+  "/attendance/manual",
+  "/punches/unmatched",
+  "/reports/staff",
+]);
 
 export const NAV: NavGroup[] = [
   {
     group: "Overview",
     items: [
       { label: "Dashboard", href: "/", icon: Home },
-      { label: "Staff & Access", href: "/staff", icon: Users },
+    ],
+  },
+  {
+    group: "Staff",
+    items: [
+      { label: "Staff Directory", href: "/staff", icon: Users },
+      { label: "Departments", href: "/departments", icon: Building2 },
+      { label: "Designations", href: "/designations", icon: IdCard },
     ],
   },
   {
@@ -35,8 +47,6 @@ export const NAV: NavGroup[] = [
       { label: "Punch requests", href: "/punches/requests", icon: CheckCircle2 },
       { label: "Manual punch", href: "/attendance/manual", icon: PlusCircle },
       { label: "Unmatched punches", href: "/punches/unmatched", icon: AlertCircle },
-      { label: "Reports", href: "/reports", icon: BarChart3 },
-      { label: "Member attendance", href: "/reports/member-attendance", icon: UserCheck },
     ],
   },
   {
@@ -44,15 +54,21 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "Monthly payroll", href: "/payroll/monthly", icon: Wallet },
       { label: "Salary setup", href: "/payroll/staff", icon: IndianRupee },
+    ],
+  },
+  {
+    group: "Reports",
+    items: [
+      { label: "Staff & Headcount", href: "/reports/staff", icon: Users },
+      { label: "Attendance reports", href: "/reports", icon: BarChart3 },
+      { label: "Member attendance", href: "/reports/member-attendance", icon: UserCheck },
       { label: "Member payroll", href: "/reports/member-payroll", icon: Wallet },
-      { label: "Analytics", href: "/reports/payroll-analytics", icon: PieChart },
+      { label: "Payroll analytics", href: "/reports/payroll-analytics", icon: PieChart },
     ],
   },
   {
     group: "System",
     items: [
-      { label: "Departments", href: "/departments", icon: Building2 },
-      { label: "Designations", href: "/designations", icon: IdCard },
       { label: "Devices", href: "/devices", icon: Server },
       { label: "Settings", href: "/settings", icon: Settings },
       { label: "Audit logs", href: "/audit-logs", icon: ScrollText },
@@ -76,10 +92,12 @@ export const EMPLOYEE_NAV: NavGroup[] = [
 export function getNavForRole(role?: string): NavGroup[] {
   if (role === "EMPLOYEE") return EMPLOYEE_NAV;
   if (role === "APPROVER") {
-    return NAV.filter((g) => g.group === "Overview" || g.group === "Attendance").map((g) => ({
-      ...g,
-      items: g.items.filter((item) => !APPROVER_HIDDEN_HREFS.has(item.href)),
-    }));
+    return NAV.filter((g) => g.group === "Overview" || g.group === "Attendance" || g.group === "Reports")
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((item) => !APPROVER_HIDDEN_HREFS.has(item.href)),
+      }))
+      .filter((g) => g.items.length > 0);
   }
   return NAV;
 }
