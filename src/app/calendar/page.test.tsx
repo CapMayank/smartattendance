@@ -2,6 +2,15 @@ import { describe, expect, it, vi } from "vitest"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
+const mockUseSession = vi.fn().mockReturnValue({
+  data: { user: { role: "ADMIN" } },
+  status: "authenticated",
+})
+
+vi.mock("next-auth/react", () => ({
+  useSession: () => mockUseSession(),
+}))
+
 // Mock global fetch for CalendarPage
 global.fetch = vi.fn().mockResolvedValue({
   ok: true,
@@ -38,5 +47,17 @@ describe("Admin Attendance Calendar Page", () => {
     expect(html).toContain("Mon")
     expect(html).toContain("Tue")
     expect(html).toContain("Sun")
+  })
+
+  it("renders read-only notice and hides Add Holiday button for APPROVER", () => {
+    mockUseSession.mockReturnValueOnce({
+      data: { user: { role: "APPROVER" } },
+      status: "authenticated",
+    })
+
+    const html = renderToStaticMarkup(<CalendarPage />)
+
+    expect(html).toContain("Read-only view. Only administrators")
+    expect(html).not.toContain("Add Holiday / Range")
   })
 })

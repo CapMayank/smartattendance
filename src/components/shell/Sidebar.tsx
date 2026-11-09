@@ -153,7 +153,9 @@ export function Sidebar({
                       {offline}
                     </span>
                   ) : null}
-                  {href === "/punches/requests" && typeof pendingRequests === "number" && pendingRequests > 0 ? (
+                  {(href === "/requests" || href === "/punches/requests" || href === "/punch-requests") &&
+                  typeof pendingRequests === "number" &&
+                  pendingRequests > 0 ? (
                     <span className="num ml-auto rounded-full bg-acc-1/15 px-[7px] text-[11px] font-semibold text-acc-1">
                       <span className="sr-only">Pending requests: </span>
                       {pendingRequests}

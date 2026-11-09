@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
 import {
   Calendar as CalendarIcon,
   Trash2,
@@ -12,6 +13,7 @@ import {
   CalendarCheck2,
   CalendarRange,
   Building,
+  Info,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -47,6 +49,9 @@ type Holiday = {
 const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function CalendarPage() {
+  const { data: session } = useSession()
+  const isApprover = session?.user?.role === 'APPROVER'
+
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -101,6 +106,7 @@ export default function CalendarPage() {
   }
 
   const openAddModal = (date?: Date) => {
+    if (isApprover) return
     const dStr = date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
     setSingleDate(dStr)
     setRangeStartDate(dStr)
@@ -112,6 +118,7 @@ export default function CalendarPage() {
   }
 
   const openRangeModal = () => {
+    if (isApprover) return
     const dStr = format(new Date(), 'yyyy-MM-dd')
     setRangeStartDate(dStr)
     setRangeEndDate(dStr)
@@ -304,15 +311,24 @@ export default function CalendarPage() {
             Today
           </Button>
 
-          <Button
-            onClick={() => openAddModal()}
-            className="h-9 gap-1.5"
-            icon={Plus}
-          >
-            Add Holiday / Range
-          </Button>
+          {!isApprover && (
+            <Button
+              onClick={() => openAddModal()}
+              className="h-9 gap-1.5"
+              icon={Plus}
+            >
+              Add Holiday / Range
+            </Button>
+          )}
         </div>
       </div>
+
+      {isApprover && (
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-line-soft bg-card-hi p-3.5 text-xs text-muted shadow-2xs">
+          <Info size={16} className="text-acc-2 flex-none" />
+          <span>Read-only view. Only administrators have permission to schedule or delete school holidays.</span>
+        </div>
+      )}
 
       {/* Color Legend (Modeled directly on ToSchool) */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-line bg-card p-3.5 text-xs text-text shadow-2xs">
@@ -443,18 +459,20 @@ export default function CalendarPage() {
                           <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
                           <span className="truncate">{holiday.name}</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(holiday.id, holiday.name)
-                          }}
-                          className="shrink-0 rounded p-1 text-indigo-800 hover:bg-rose-100 hover:text-rose-700 dark:text-indigo-300 dark:hover:bg-rose-950/60 dark:hover:text-rose-300 transition-colors cursor-pointer"
-                          title={`Delete holiday: ${holiday.name}`}
-                          aria-label={`Delete ${holiday.name}`}
-                        >
-                          <Trash2 size={13} aria-hidden="true" />
-                        </button>
+                        {!isApprover && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(holiday.id, holiday.name)
+                            }}
+                            className="shrink-0 rounded p-1 text-indigo-800 hover:bg-rose-100 hover:text-rose-700 dark:text-indigo-300 dark:hover:bg-rose-950/60 dark:hover:text-rose-300 transition-colors cursor-pointer"
+                            title={`Delete holiday: ${holiday.name}`}
+                            aria-label={`Delete ${holiday.name}`}
+                          >
+                            <Trash2 size={13} aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     ) : isSundayDate ? (
                       <span className="text-xs font-bold text-muted">
@@ -596,15 +614,17 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(h.id, h.name)}
-                        className="rounded-lg p-1.5 text-subtle hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                        title="Delete holiday"
-                        aria-label={`Delete ${h.name}`}
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                      </button>
+                      {!isApprover && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(h.id, h.name)}
+                          className="rounded-lg p-1.5 text-subtle hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                          title="Delete holiday"
+                          aria-label={`Delete ${h.name}`}
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
                   )
                 })}

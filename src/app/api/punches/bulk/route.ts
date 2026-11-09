@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
-import { startOfDay, endOfDay, parseISO, eachDayOfInterval } from 'date-fns'
+import { startOfDay, endOfDay, parseISO, eachDayOfInterval, format } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function POST(req: Request) {
@@ -33,11 +33,10 @@ export async function POST(req: Request) {
     }
 
     const days = eachDayOfInterval({ start, end })
-    const [hours, minutes] = time.split(':').map(Number)
 
     for (const day of days) {
-      const candidate = new Date(day)
-      candidate.setHours(hours, minutes, 0, 0)
+      const dayKey = format(day, 'yyyy-MM-dd')
+      const candidate = new Date(`${dayKey}T${time}:00+05:30`)
       if (candidate > now) {
         return NextResponse.json({ error: 'Cannot add punches for future dates or times' }, { status: 400 })
       }
@@ -72,11 +71,10 @@ export async function POST(req: Request) {
 
     let createdCount = 0
 
-    // To prevent overwhelming the database or recalculation, we'll process sequentially
+    // Process sequentially in explicit IST (+05:30)
     for (const day of days) {
-      // Set the specific time on the current day
-      const punchDate = new Date(day)
-      punchDate.setHours(hours, minutes, 0, 0)
+      const dayKey = format(day, 'yyyy-MM-dd')
+      const punchDate = new Date(`${dayKey}T${time}:00+05:30`)
       
       const punchData = staffIds.map(staffId => ({
         staffId,
@@ -92,8 +90,10 @@ export async function POST(req: Request) {
       createdCount += punchData.length
     }
 
-    // Recalculate daily records for the entire range at once
-    await recalculateAttendance(startOfDay(start), endOfDay(end))
+    // Recalculate daily records for the entire range at once using explicit IST boundaries
+    const startIst = new Date(`${format(start, 'yyyy-MM-dd')}T00:00:00+05:30`)
+    const endIst = new Date(`${format(end, 'yyyy-MM-dd')}T23:59:59+05:30`)
+    await recalculateAttendance(startIst, endIst)
 
     return NextResponse.json({ success: true, createdCount })
   } catch (error: unknown) {

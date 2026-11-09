@@ -1,8 +1,10 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { isDeviceOnline, istDateKey, istDayStart } from "@/lib/dashboard-calc";
 import { isEmployedOnDate } from "@/lib/employment";
+import { getApproverDepartmentIds } from "@/lib/rbac";
 
 export type ShellData = {
   userName: string;
@@ -12,6 +14,7 @@ export type ShellData = {
   staffCount: number;
   devices: { id: string; name: string; online: boolean; lastPing: string }[];
   recentPunches: { name: string; time: string; device: string | null }[];
+  pendingPunchRequestsCount?: number;
 };
 
 function formatRoleLabel(role?: string): string {
@@ -33,7 +36,30 @@ export async function getShellData(): Promise<ShellData | null> {
   const now = new Date();
   const todayKey = istDateKey(now);
   try {
-    const [allStaff, devices, logs, staffProfile] = await Promise.all([
+    let pendingPromise: Promise<number>;
+    if (roleCode === "ADMIN") {
+      pendingPromise = prisma.punchRequest.count({ where: { status: "PENDING" } });
+    } else if (roleCode === "APPROVER" && session.user?.id) {
+      pendingPromise = prisma.user
+        .findUnique({
+          where: { id: session.user.id },
+          include: { approverDepartments: { select: { departmentId: true } } },
+        })
+        .then((dbUser) => {
+          const allowedDeptIds = dbUser ? getApproverDepartmentIds(dbUser) : null;
+          const where: Prisma.PunchRequestWhereInput = { status: "PENDING" };
+          if (allowedDeptIds !== null) {
+            where.staff = { departmentId: { in: allowedDeptIds } };
+          }
+          return prisma.punchRequest.count({ where });
+        });
+    } else if (roleCode === "EMPLOYEE" && staffId) {
+      pendingPromise = prisma.punchRequest.count({ where: { staffId, status: "PENDING" } });
+    } else {
+      pendingPromise = Promise.resolve(0);
+    }
+
+    const [allStaff, devices, logs, staffProfile, pendingPunchRequestsCount] = await Promise.all([
       prisma.staff.findMany({
         select: {
           id: true,
@@ -53,6 +79,7 @@ export async function getShellData(): Promise<ShellData | null> {
             select: { employeeCode: true },
           })
         : Promise.resolve(null),
+      pendingPromise,
     ]);
 
     const staffCount = allStaff.filter((s) => isEmployedOnDate(s, todayKey)).length;
@@ -63,6 +90,7 @@ export async function getShellData(): Promise<ShellData | null> {
       roleCode,
       employeeCode: staffProfile?.employeeCode ?? null,
       staffCount,
+      pendingPunchRequestsCount,
       devices: devices.map((d) => ({
         id: d.id,
         name: d.name,
@@ -82,6 +110,7 @@ export async function getShellData(): Promise<ShellData | null> {
       staffCount: 0,
       devices: [],
       recentPunches: [],
+      pendingPunchRequestsCount: 0,
     };
   }
 }

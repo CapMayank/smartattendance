@@ -69,16 +69,19 @@ export default function ManualPunchPage() {
         })
       })
 
-      if (!res.ok) throw new Error('Failed to create punch')
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error || 'Failed to create punch')
+      }
       
       toast.success('Manual punch added successfully')
       // Reset form
       setSingleStaffId('')
       setSingleDate('')
       setSingleTime('')
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast.error('Error adding punch')
+      toast.error(error?.message || 'Error adding punch')
     } finally {
       setIsLoading(false)
     }

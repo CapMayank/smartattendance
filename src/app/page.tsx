@@ -60,28 +60,41 @@ export default async function Dashboard({
   const isApprover = session.user?.role === "APPROVER";
 
   // Employee Role: Render the personal "My" Portal instead of the school-wide admin dashboard
-  if (session.user?.role === "EMPLOYEE" && session.user?.staffId) {
-    const portalData = await getEmployeePortalData(session.user.staffId, now).catch((err) => {
-      console.error("[employee-portal] failed to load data:", err);
-      return null;
-    });
+  if (session.user?.role === "EMPLOYEE") {
+    if (session.user?.staffId) {
+      const portalData = await getEmployeePortalData(session.user.staffId, now).catch((err) => {
+        console.error("[employee-portal] failed to load data:", err);
+        return null;
+      });
 
-    if (portalData) {
-      const empSubtitle = [
-        formatDateLong(now),
-        formatTime(now),
-        portalData.profile.employeeCode ? `ID ${portalData.profile.employeeCode}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      if (portalData) {
+        const empSubtitle = [
+          formatDateLong(now),
+          formatTime(now),
+          portalData.profile.employeeCode ? `ID ${portalData.profile.employeeCode}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
-      return (
-        <>
-          <AutoRefresh />
-          <EmployeeMyDashboard title={title} subtitle={empSubtitle} data={portalData} />
-        </>
-      );
+        return (
+          <>
+            <AutoRefresh />
+            <EmployeeMyDashboard title={title} subtitle={empSubtitle} data={portalData} />
+          </>
+        );
+      }
     }
+
+    return (
+      <div className="flex flex-col gap-[22px]">
+        <PageHeader title={title} subtitle={`${formatDateLong(now)} · ${formatTime(now)}`} />
+        <Card className="p-8 text-center">
+          <p className="text-sm text-muted">
+            No linked staff profile found for your account. Please contact an administrator to link your profile.
+          </p>
+        </Card>
+      </div>
+    );
   }
 
   let data: DashboardData;

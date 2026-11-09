@@ -41,6 +41,10 @@ const ACTION_META: Record<
   PASSWORD_CHANGE: { label: 'Password Changed', tone: 'tone-accent' },
   UNMATCHED_PUNCH_ATTACHED: { label: 'Punch Attached', tone: 'tone-present' },
   UNMATCHED_PUNCH_DISMISSED: { label: 'Punch Dismissed', tone: 'tone-muted' },
+  PUNCH_REQUEST_APPROVED: { label: 'Punch Request Approved', tone: 'tone-present' },
+  PUNCH_REQUEST_REJECTED: { label: 'Punch Request Rejected', tone: 'tone-absent' },
+  PROFILE_CHANGE_APPROVED: { label: 'Profile Change Approved', tone: 'tone-present' },
+  PROFILE_CHANGE_REJECTED: { label: 'Profile Change Rejected', tone: 'tone-absent' },
   SETUP_COMPLETED: { label: 'Setup Completed', tone: 'tone-accent' },
 }
 
@@ -57,6 +61,14 @@ function summarizeDetails(row: AuditLogRow): string {
   if (typeof d.role === 'string') parts.push(`Role: ${d.role}`)
   if (typeof d.payGroup === 'string') parts.push(`Pay: ${d.payGroup}`)
   if (typeof d.staffName === 'string') parts.push(`Staff: ${d.staffName}`)
+  if (typeof d.date === 'string') parts.push(`Date: ${d.date}`)
+  if (typeof d.punchType === 'string') parts.push(`Punch: ${d.punchType}`)
+  if (typeof d.decisionRemarks === 'string') parts.push(`Remarks: ${d.decisionRemarks}`)
+  if (typeof d.reason === 'string') parts.push(`Reason: ${d.reason}`)
+  if (d.appliedChanges && typeof d.appliedChanges === 'object') {
+    const keys = Object.keys(d.appliedChanges)
+    if (keys.length > 0) parts.push(`Updated: ${keys.join(', ')}`)
+  }
   if (Array.isArray(d.deletedStaffIds)) parts.push(`Deleted ${d.deletedStaffIds.length} record(s)`)
   if (parts.length > 0) return parts.join(' · ')
   return row.details || '—'

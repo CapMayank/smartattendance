@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Plus, Trash2, Clock, Pencil, Lightbulb, RefreshCw, Check, X, AlertTriangle, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Skeleton } from '@/components/ui'
@@ -51,6 +52,9 @@ async function errorOf(res: Response, fallback: string): Promise<string> {
 }
 
 export default function ShiftsPage() {
+  const { data: session } = useSession()
+  const isApprover = session?.user?.role === 'APPROVER'
+
   const [shifts, setShifts] = useState<Shift[]>([])
   const [name, setName] = useState('')
   const [startTime, setStartTime] = useState('09:00')
@@ -278,10 +282,19 @@ export default function ShiftsPage() {
     <div className="space-y-5">
       <PageHeader title="Shifts" subtitle="Configure work schedules and timeframes" />
 
+      {isApprover && (
+        <div className="flex items-center gap-2 rounded-xl border border-line-soft bg-card-hi p-3.5 text-xs text-muted">
+          <Info size={16} className="text-acc-2 flex-none" />
+          <span>Read-only view. Only administrators have permission to create shifts or approve shift changes.</span>
+        </div>
+      )}
+
       <section aria-label="Suggestions" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <SectionLabel>Suggestions</SectionLabel>
-          <Button variant="secondary" size="sm" icon={RefreshCw} loading={checking} onClick={checkNow}>Check now</Button>
+          {!isApprover && (
+            <Button variant="secondary" size="sm" icon={RefreshCw} loading={checking} onClick={checkNow}>Check now</Button>
+          )}
         </div>
 
         {unrecalculated && (
@@ -328,20 +341,26 @@ export default function ShiftsPage() {
                     Proposed: <b>{proposedName}</b>{' '}
                     <span className="num">{sg.suggestedStart}–{sg.suggestedEnd}</span>
                   </p>
-                  <Field label="Starts on" htmlFor={`start-${sg.id}`}>
-                    <Input
-                      id={`start-${sg.id}`}
-                      type="date"
-                      className="num"
-                      min={ALWAYS_DAY}
-                      value={startDateOf(sg)}
-                      onChange={e => setStartDates(d => ({ ...d, [sg.id]: e.target.value }))}
-                    />
-                  </Field>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" icon={Check} loading={inFlight} disabled={inFlight} onClick={() => openReview(sg)}>Approve</Button>
-                    <Button size="sm" variant="secondary" icon={X} disabled={inFlight} onClick={() => dismiss(sg)}>Dismiss</Button>
-                  </div>
+                  {!isApprover ? (
+                    <>
+                      <Field label="Starts on" htmlFor={`start-${sg.id}`}>
+                        <Input
+                          id={`start-${sg.id}`}
+                          type="date"
+                          className="num"
+                          min={ALWAYS_DAY}
+                          value={startDateOf(sg)}
+                          onChange={e => setStartDates(d => ({ ...d, [sg.id]: e.target.value }))}
+                        />
+                      </Field>
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" icon={Check} loading={inFlight} disabled={inFlight} onClick={() => openReview(sg)}>Approve</Button>
+                        <Button size="sm" variant="secondary" icon={X} disabled={inFlight} onClick={() => dismiss(sg)}>Dismiss</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted italic">Administrator approval required to apply this suggestion.</p>
+                  )}
                 </Card>
               )
             })}
@@ -349,28 +368,30 @@ export default function ShiftsPage() {
         )}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="md:col-span-1 self-start">
-          <CardHeader title="Add shift" />
-          <form onSubmit={handleCreate} className="space-y-4">
-            <Field label="Shift name" htmlFor="new-name">
-              <Input id="new-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Morning Shift" required />
-            </Field>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Start time" htmlFor="new-start">
-                <Input id="new-start" type="time" className="num" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+      <div className={isApprover ? "grid grid-cols-1" : "grid grid-cols-1 gap-4 md:grid-cols-3"}>
+        {!isApprover && (
+          <Card className="md:col-span-1 self-start">
+            <CardHeader title="Add shift" />
+            <form onSubmit={handleCreate} className="space-y-4">
+              <Field label="Shift name" htmlFor="new-name">
+                <Input id="new-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Morning Shift" required />
               </Field>
-              <Field label="End time" htmlFor="new-end">
-                <Input id="new-end" type="time" className="num" value={endTime} onChange={e => setEndTime(e.target.value)} required />
-              </Field>
-            </div>
 
-            <Button type="submit" icon={Plus} className="w-full">Create Shift</Button>
-          </form>
-        </Card>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Start time" htmlFor="new-start">
+                  <Input id="new-start" type="time" className="num" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+                </Field>
+                <Field label="End time" htmlFor="new-end">
+                  <Input id="new-end" type="time" className="num" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+                </Field>
+              </div>
 
-        <Card className="overflow-hidden !p-0 md:col-span-2">
+              <Button type="submit" icon={Plus} className="w-full">Create Shift</Button>
+            </form>
+          </Card>
+        )}
+
+        <Card className={isApprover ? "overflow-hidden !p-0" : "overflow-hidden !p-0 md:col-span-2"}>
           {loading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-10" />
@@ -385,7 +406,7 @@ export default function ShiftsPage() {
                     <th>Shift</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th className="text-right">Actions</th>
+                    {!isApprover && <th className="text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -401,12 +422,14 @@ export default function ShiftsPage() {
                       </td>
                       <td className="num text-muted">{formatHHmm(shift.startTime)}</td>
                       <td className="num text-muted">{formatHHmm(shift.endTime)}</td>
-                      <td>
-                        <div className="flex items-center justify-end gap-2">
-                          <IconButton icon={Pencil} label="Edit" className="size-8" onClick={() => startEditing(shift)} />
-                          <IconButton icon={Trash2} label="Delete" className="size-8 hover:border-absent hover:text-absent" onClick={() => handleDelete(shift.id)} />
-                        </div>
-                      </td>
+                      {!isApprover && (
+                        <td>
+                          <div className="flex items-center justify-end gap-2">
+                            <IconButton icon={Pencil} label="Edit" className="size-8" onClick={() => startEditing(shift)} />
+                            <IconButton icon={Trash2} label="Delete" className="size-8 hover:border-absent hover:text-absent" onClick={() => handleDelete(shift.id)} />
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
