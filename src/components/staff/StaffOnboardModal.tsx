@@ -29,9 +29,9 @@ export type ExitedStaffItem = {
   machineId: string
   employeeCode?: string | null
   joiningDate?: string | null
-  department?: { id: string; name: string } | null
-  designation?: { id: string; name: string } | null
-  shift?: { id: string; name: string } | null
+  department?: { id?: string; name: string } | null
+  designation?: { id?: string; name: string } | null
+  shift?: { id?: string; name: string } | null
   payrollInfo?: { payGroup?: 'BANK_EPF' | 'CASH' } | null
   employmentPeriods?: {
     id: string
