@@ -212,4 +212,31 @@ describe("GET /api/payroll/[id]/pdf", () => {
     expect(res.headers.get("Content-Type")).toBe("application/pdf")
     expect(res.headers.get("Content-Disposition")).toContain('attachment; filename="Payslip_Aman_Sharma_3_2026.pdf"')
   })
-})
+  it("returns 400 when payroll record is in draft status (not finalized)", async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: "user-admin", role: "ADMIN" },
+    } as any)
+
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: "user-admin",
+      role: "ADMIN",
+      staffId: null,
+      disabledAt: null,
+      mustChangePassword: false,
+      staff: null,
+      approverDepartments: [],
+    } as any)
+
+    mockPrisma.monthlyPayroll.findUnique.mockResolvedValue({
+      ...mockPayroll1,
+      isLocked: false,
+    } as any)
+
+    const req = new Request("http://localhost:3000/api/payroll/payroll-1/pdf")
+    const res = await GET(req, { params: Promise.resolve({ id: "payroll-1" }) })
+
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toMatch(/draft/i)
+  })
+});

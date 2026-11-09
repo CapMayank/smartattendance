@@ -231,7 +231,7 @@ export function AttendanceIndexSidebar({
           <div className="space-y-1">
             <p className="font-medium text-text">Missed Punch Reconciliation</p>
             <p className="text-[11px] leading-relaxed text-muted">
-              Missed swipes must be regularized within <strong>3 working days</strong>. Regularizations are routed to your department head or school admin for verification.
+              Missed punches must be regularized within <strong>3 working days</strong>. Regularizations are routed to your department head or school admin for verification.
             </p>
           </div>
         </div>

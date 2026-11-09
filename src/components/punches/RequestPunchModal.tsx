@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/Button";
 export type PunchType = "IN" | "OUT" | "BOTH";
 
 export const PUNCH_REASONS = [
-  { value: "FORGOT_SWIPE", label: "Forgot to swipe card" },
-  { value: "DUTY_OUTSIDE", label: "Official outdoor school duty / sports event" },
-  { value: "DEVICE_OFFLINE", label: "Biometric device offline / card read error" },
-  { value: "POWER_FAILURE", label: "Campus power failure" },
-  { value: "OTHER", label: "Other reason" },
+  { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },
+  { value: "DUTY_OUTSIDE", label: "Official on-duty assignment / Off-campus school duty" },
+  { value: "DEVICE_OFFLINE", label: "Attendance terminal offline / Recognition error" },
+  { value: "POWER_FAILURE", label: "Campus power outage / Terminal unavailable" },
+  { value: "OTHER", label: "Other reason (specify details below)" },
 ] as const;
 
 export interface RequestPunchModalProps {
@@ -21,6 +21,8 @@ export interface RequestPunchModalProps {
   onClose: () => void;
   onSuccess: () => void;
   prefillDate?: string;
+  prefillPunchType?: PunchType;
+  prefillTime?: string;
 }
 
 export function RequestPunchModal({
@@ -28,12 +30,21 @@ export function RequestPunchModal({
   onClose,
   onSuccess,
   prefillDate,
+  prefillPunchType,
+  prefillTime,
 }: RequestPunchModalProps) {
-  const [date, setDate] = useState("");
-  const [punchType, setPunchType] = useState<PunchType>("BOTH");
-  const [requestedTime, setRequestedTime] = useState("09:00");
-  const [requestedInTime, setRequestedInTime] = useState("09:00");
-  const [requestedOutTime, setRequestedOutTime] = useState("16:30");
+  const initialType = prefillPunchType || "BOTH";
+  const [date, setDate] = useState(prefillDate || "");
+  const [punchType, setPunchType] = useState<PunchType>(initialType);
+  const [requestedTime, setRequestedTime] = useState(
+    prefillTime || (initialType === "OUT" ? "16:30" : "09:00")
+  );
+  const [requestedInTime, setRequestedInTime] = useState(
+    initialType === "IN" && prefillTime ? prefillTime : "09:00"
+  );
+  const [requestedOutTime, setRequestedOutTime] = useState(
+    initialType === "OUT" && prefillTime ? prefillTime : "16:30"
+  );
   const [reason, setReason] = useState<string>("FORGOT_SWIPE");
   const [explanation, setExplanation] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,15 +61,16 @@ export function RequestPunchModal({
   useEffect(() => {
     if (open) {
       setDate(prefillDate || "");
-      setPunchType("BOTH");
-      setRequestedTime("09:00");
-      setRequestedInTime("09:00");
-      setRequestedOutTime("16:30");
+      const resolvedType = prefillPunchType || "BOTH";
+      setPunchType(resolvedType);
+      setRequestedTime(prefillTime || (resolvedType === "OUT" ? "16:30" : "09:00"));
+      setRequestedInTime(resolvedType === "IN" && prefillTime ? prefillTime : "09:00");
+      setRequestedOutTime(resolvedType === "OUT" && prefillTime ? prefillTime : "16:30");
       setReason("FORGOT_SWIPE");
       setExplanation("");
       setErrorMessage(null);
     }
-  }, [open, prefillDate]);
+  }, [open, prefillDate, prefillPunchType, prefillTime]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

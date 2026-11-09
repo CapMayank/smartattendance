@@ -127,7 +127,7 @@ export default async function PayslipsPage({
   }
 
   const payslips = await prisma.monthlyPayroll.findMany({
-    where: { staffId: targetStaffId },
+    where: { staffId: targetStaffId, isLocked: true },
     include: {
       staff: {
         include: {

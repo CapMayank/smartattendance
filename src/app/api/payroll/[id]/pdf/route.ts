@@ -35,6 +35,13 @@ export async function GET(
       )
     }
 
+    if (!payroll.isLocked) {
+      return NextResponse.json(
+        { error: "Draft payslips cannot be downloaded. Payroll must be finalized first." },
+        { status: 400 }
+      )
+    }
+
     // Role-based record ownership check:
     // If the caller is an EMPLOYEE, they may only download their own payslip
     if (auth.user.role === "EMPLOYEE") {

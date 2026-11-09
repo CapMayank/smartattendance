@@ -1,10 +1,42 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, Trash2, Plus, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button, Card, Field, IconButton, Input, Modal, PageHeader } from '@/components/ui'
+import { useState, useEffect, useMemo } from 'react'
+import {
+  Calendar as CalendarIcon,
+  Trash2,
+  Plus,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  CalendarCheck2,
+  CalendarRange,
+  Building,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  Button,
+  Card,
+  Field,
+  Input,
+  Modal,
+} from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns'
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  format,
+  isSameMonth,
+  isSameDay,
+  addMonths,
+  subMonths,
+  isToday,
+  isSunday,
+  differenceInCalendarDays,
+} from 'date-fns'
 
 type Holiday = {
   id: string
@@ -12,16 +44,22 @@ type Holiday = {
   date: string
 }
 
+const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 export default function CalendarPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [newHolidayName, setNewHolidayName] = useState('')
-  const [message, setMessage] = useState('')
+  const [modalMode, setModalMode] = useState<'SINGLE' | 'RANGE'>('SINGLE')
+  const [singleDate, setSingleDate] = useState<string>('')
+  const [rangeStartDate, setRangeStartDate] = useState<string>('')
+  const [rangeEndDate, setRangeEndDate] = useState<string>('')
+  const [holidayName, setHolidayName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const fetchHolidays = async (start: Date, end: Date) => {
     setLoading(true)
@@ -42,9 +80,9 @@ export default function CalendarPage() {
   useEffect(() => {
     const monthStart = startOfMonth(currentMonth)
     const monthEnd = endOfMonth(monthStart)
-    const gridStart = startOfWeek(monthStart)
-    const gridEnd = endOfWeek(monthEnd)
-    
+    const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+
     fetchHolidays(gridStart, gridEnd)
   }, [currentMonth])
 
@@ -52,201 +90,637 @@ export default function CalendarPage() {
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
   const goToToday = () => setCurrentMonth(new Date())
 
-  const handleDayClick = (day: Date) => {
-    // Check if it's already a holiday
-    const existingHoliday = holidays.find(h => isSameDay(new Date(h.date), day))
-    if (existingHoliday) {
-      if (confirm(`Do you want to delete the holiday: ${existingHoliday.name}?`)) {
-        handleDelete(existingHoliday.id)
-      }
+  // Refresh current view
+  const refreshCurrentView = () => {
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(monthStart)
+    fetchHolidays(
+      startOfWeek(monthStart, { weekStartsOn: 1 }),
+      endOfWeek(monthEnd, { weekStartsOn: 1 })
+    )
+  }
+
+  const openAddModal = (date?: Date) => {
+    const dStr = date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+    setSingleDate(dStr)
+    setRangeStartDate(dStr)
+    setRangeEndDate(dStr)
+    setHolidayName('')
+    setModalMode('SINGLE')
+    setErrorMessage('')
+    setIsModalOpen(true)
+  }
+
+  const openRangeModal = () => {
+    const dStr = format(new Date(), 'yyyy-MM-dd')
+    setRangeStartDate(dStr)
+    setRangeEndDate(dStr)
+    setHolidayName('')
+    setModalMode('RANGE')
+    setErrorMessage('')
+    setIsModalOpen(true)
+  }
+
+  const handleSaveHoliday = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMessage('')
+
+    if (!holidayName.trim()) {
+      setErrorMessage('Holiday name is required')
       return
     }
 
-    setSelectedDate(day)
-    setNewHolidayName('')
-    setIsModalOpen(true)
-    setMessage('')
-  }
-
-  const handleAddHoliday = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setMessage('')
-    
-    if (!newHolidayName || !selectedDate) return
-
+    setIsSubmitting(true)
     try {
-      // Need to format date properly for API to interpret in local time correctly, or just send YYYY-MM-DD
-      const dateStr = format(selectedDate, 'yyyy-MM-dd')
+      let body: Record<string, string>
+
+      if (modalMode === 'RANGE') {
+        if (!rangeStartDate || !rangeEndDate) {
+          setErrorMessage('Please select both start and end dates')
+          setIsSubmitting(false)
+          return
+        }
+        if (rangeEndDate < rangeStartDate) {
+          setErrorMessage('End date cannot be earlier than start date')
+          setIsSubmitting(false)
+          return
+        }
+        body = {
+          name: holidayName.trim(),
+          startDate: rangeStartDate,
+          endDate: rangeEndDate,
+        }
+      } else {
+        if (!singleDate) {
+          setErrorMessage('Please select a date')
+          setIsSubmitting(false)
+          return
+        }
+        body = {
+          name: holidayName.trim(),
+          date: singleDate,
+        }
+      }
+
       const res = await fetch('/api/holidays', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newHolidayName, date: dateStr })
+        body: JSON.stringify(body),
       })
 
+      const data = await res.json()
+
       if (res.ok) {
-        setNewHolidayName('')
         setIsModalOpen(false)
-        const monthStart = startOfMonth(currentMonth)
-        const monthEnd = endOfMonth(monthStart)
-        fetchHolidays(startOfWeek(monthStart), endOfWeek(monthEnd))
+        setHolidayName('')
+        if (modalMode === 'RANGE') {
+          toast.success(`Successfully marked ${data.count || 'holiday'} days for ${body.name}`)
+        } else {
+          toast.success(`Marked holiday: ${body.name}`)
+        }
+        refreshCurrentView()
       } else {
-        setMessage('Failed to add holiday')
+        setErrorMessage(data.error || 'Failed to save holiday')
       }
-    } catch (e) {
-      setMessage('Error adding holiday')
+    } catch {
+      setErrorMessage('Network error occurred while saving holiday')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to remove the holiday "${name}"?`)) {
+      return
+    }
+
     try {
       const res = await fetch(`/api/holidays?id=${id}`, { method: 'DELETE' })
       if (res.ok) {
-        const monthStart = startOfMonth(currentMonth)
-        const monthEnd = endOfMonth(monthStart)
-        fetchHolidays(startOfWeek(monthStart), endOfWeek(monthEnd))
+        toast.success(`Removed holiday: ${name}`)
+        refreshCurrentView()
+      } else {
+        toast.error('Failed to delete holiday')
       }
     } catch (e) {
       console.error(e)
+      toast.error('Network error while deleting holiday')
     }
   }
 
-  // Generate calendar grid
+  // Calculate Month Boundaries & Days
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(monthStart)
-  const startDate = startOfWeek(monthStart)
-  const endDate = endOfWeek(monthEnd)
-  
-  const dateFormat = "d"
-  const days = eachDayOfInterval({
-    start: startDate,
-    end: endDate
-  })
-  
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
+
+  // Calculate month metrics
+  const monthDaysList = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const totalMonthDays = monthDaysList.length
+
+  const holidaysInThisMonth = useMemo(() => {
+    return holidays.filter((h) => isSameMonth(new Date(h.date), monthStart))
+  }, [holidays, monthStart])
+
+  const holidaysCount = holidaysInThisMonth.length
+
+  const sundaysCount = useMemo(() => {
+    return monthDaysList.filter((d) => isSunday(d)).length
+  }, [monthDaysList])
+
+  // Overlap: holidays that fall on a Sunday
+  const holidaysOnSundayCount = useMemo(() => {
+    return holidaysInThisMonth.filter((h) => isSunday(new Date(h.date))).length
+  }, [holidaysInThisMonth])
+
+  const netWorkingDays = Math.max(
+    0,
+    totalMonthDays - sundaysCount - (holidaysCount - holidaysOnSundayCount)
+  )
+
+  // Range duration calculation in modal
+  const rangeDurationDays = useMemo(() => {
+    if (!rangeStartDate || !rangeEndDate) return 0
+    try {
+      const diff = differenceInCalendarDays(new Date(rangeEndDate), new Date(rangeStartDate))
+      return diff >= 0 ? diff + 1 : 0
+    } catch {
+      return 0
+    }
+  }, [rangeStartDate, rangeEndDate])
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Holiday Calendar" subtitle="Manage public holidays and non-working days." />
-
-      <Card className="!p-0">
-        {/* Calendar Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-4">
-          <h2 className="flex items-center gap-2 text-[17px] font-medium text-text">
-            <CalendarDays size={18} className="text-acc-1" aria-hidden="true" />
-            <span className="num">{format(currentMonth, 'MMMM yyyy')}</span>
-          </h2>
+    <div className="mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
           <div className="flex items-center gap-2">
-            <IconButton icon={ChevronLeft} label="Previous month" className="size-9" onClick={prevMonth} />
-            <Button variant="secondary" onClick={goToToday}>Today</Button>
-            <IconButton icon={ChevronRight} label="Next month" className="size-9" onClick={nextMonth} />
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-acc-2/15 text-acc-2">
+              <CalendarIcon className="h-4 w-4" />
+            </span>
+            <h1 className="text-xl font-bold tracking-tight text-text sm:text-2xl">
+              Attendance &amp; Holiday Calendar
+            </h1>
           </div>
+          <p className="mt-1 text-xs text-muted">
+            Sarvodaya English Higher Secondary School, Lakhnadon · Manage school holidays, vacations, and academic off-days.
+          </p>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="p-3 sm:p-5">
-          <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2.5">
-            {weekDays.map(day => (
-              <div key={day} className="py-2 text-center text-xs uppercase tracking-wider text-subtle">
-                {day}
+        {/* Month Selector & Action Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={prevMonth}
+              disabled={loading}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-card hover:bg-card-hi transition-colors disabled:opacity-50"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4 text-text" />
+            </button>
+
+            <div className="flex items-center rounded-lg border border-line bg-card px-3.5 py-1.5 shadow-sm">
+              <CalendarDays className="mr-2 h-4 w-4 text-acc-2" />
+              <span className="num text-sm font-semibold tracking-tight text-text">
+                {format(currentMonth, 'MMMM yyyy')}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={nextMonth}
+              disabled={loading}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-card hover:bg-card-hi transition-colors disabled:opacity-50"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4 text-text" />
+            </button>
+          </div>
+
+          <Button variant="secondary" onClick={goToToday} className="h-9">
+            Today
+          </Button>
+
+          <Button
+            onClick={() => openAddModal()}
+            className="h-9 gap-1.5"
+            icon={Plus}
+          >
+            Add Holiday / Range
+          </Button>
+        </div>
+      </div>
+
+      {/* Color Legend (Modeled directly on ToSchool) */}
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card/60 p-3 text-xs text-muted">
+        <span className="font-semibold text-text uppercase tracking-wider text-[11px] mr-1">
+          Legend:
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-indigo-400" />
+          <span>School Holiday</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+          <span>Sunday Off</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-acc-2" />
+          <span>Today</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-text/40" />
+          <span>Working Day</span>
+        </div>
+      </div>
+
+      {/* Main Two-Column Layout */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        {/* Left Column: Calendar Grid */}
+        <div className="flex-1 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
+          {/* Weekday Headers */}
+          <div className="grid grid-cols-7 border-b border-line bg-card-hi/60 text-center text-xs font-semibold text-muted">
+            {WEEKDAY_NAMES.map((name, i) => (
+              <div
+                key={name}
+                className={`py-2.5 ${i === 6 ? 'text-slate-400' : ''}`}
+              >
+                {name}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5">
+          {/* Days Grid */}
+          <div className="grid grid-cols-7 divide-x divide-y divide-line/70">
             {days.map((day) => {
-              const holiday = holidays.find(h => isSameDay(new Date(h.date), day))
+              const holiday = holidays.find((h) => isSameDay(new Date(h.date), day))
               const isCurrentMonth = isSameMonth(day, monthStart)
               const isTodayDate = isToday(day)
+              const isSundayDate = isSunday(day)
+
+              let cellBg = 'bg-card hover:bg-card-hi/40'
+              let borderAccent = ''
+
+              if (!isCurrentMonth) {
+                cellBg = 'bg-canvas/30 opacity-40'
+              } else if (holiday) {
+                cellBg = 'bg-indigo-950/20 hover:bg-indigo-950/30'
+                borderAccent = 'ring-1 ring-indigo-500/50'
+              } else if (isTodayDate) {
+                cellBg = 'bg-acc-2/10 hover:bg-acc-2/15'
+                borderAccent = 'ring-1 ring-acc-2/60'
+              } else if (isSundayDate) {
+                cellBg = 'bg-slate-900/25'
+              }
 
               return (
                 <div
-                  key={day.toString()}
-                  onClick={() => handleDayClick(day)}
+                  key={day.toISOString()}
+                  onClick={() => {
+                    if (holiday) {
+                      handleDelete(holiday.id, holiday.name)
+                    } else if (isCurrentMonth) {
+                      openAddModal(day)
+                    }
+                  }}
                   className={cn(
-                    'group relative min-h-[72px] cursor-pointer rounded-xl border p-2 transition-colors duration-150 sm:min-h-[104px] sm:p-3',
-                    !isCurrentMonth ? 'border-transparent bg-transparent opacity-40' : 'border-line bg-ground hover:border-subtle',
-                    holiday && 'border-line bg-card-hi',
-                    isTodayDate && 'ring-2 ring-acc-2 ring-offset-0',
+                    'group relative flex min-h-[110px] flex-col justify-between p-2.5 transition-colors duration-150 sm:min-h-[125px] cursor-pointer',
+                    cellBg,
+                    borderAccent
                   )}
                 >
+                  {/* Top Row: Day Number + Status Badge */}
                   <div className="flex items-start justify-between">
-                    <span className={cn(
-                      'num flex size-7 items-center justify-center rounded-full text-sm',
-                      isTodayDate ? 'bg-acc-2 font-medium text-ground' : 'text-muted',
-                    )}>
-                      {format(day, dateFormat)}
+                    <span
+                      className={cn(
+                        'num text-sm font-bold tracking-tight',
+                        isTodayDate
+                          ? 'text-acc-1'
+                          : holiday
+                            ? 'text-indigo-300'
+                            : isSundayDate
+                              ? 'text-slate-400'
+                              : 'text-text'
+                      )}
+                    >
+                      {format(day, 'dd')}
                     </span>
-                    {holiday && (
-                      <button
-                        aria-label={`Remove holiday ${holiday.name}`}
-                        className="rounded-lg p-1 text-subtle opacity-0 transition-colors duration-150 hover:text-absent focus-visible:opacity-100 group-hover:opacity-100"
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                      </button>
-                    )}
+
+                    {/* Status Pill Badge */}
+                    {holiday ? (
+                      <span className="rounded border border-indigo-500/40 bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300">
+                        Holiday
+                      </span>
+                    ) : isTodayDate ? (
+                      <span className="rounded border border-acc-2/40 bg-acc-2/20 px-1.5 py-0.5 text-[10px] font-semibold text-acc-1">
+                        Today
+                      </span>
+                    ) : isSundayDate ? (
+                      <span className="rounded border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                        Sunday
+                      </span>
+                    ) : null}
                   </div>
 
-                  {holiday && (
-                    <div className="mt-2">
-                      <p className="line-clamp-2 text-xs leading-snug text-muted">
-                        {holiday.name}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Plus Icon On Hover (Empty Day) */}
-                  {!holiday && isCurrentMonth && (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                      <div className="rounded-full border border-line bg-card-hi p-2 text-muted">
-                        <Plus size={16} aria-hidden="true" />
+                  {/* Middle Content */}
+                  <div className="my-2 flex flex-col gap-1">
+                    {holiday ? (
+                      <div className="flex items-center justify-between gap-1 rounded border border-indigo-500/30 bg-indigo-500/15 px-2 py-1 text-xs font-semibold text-indigo-200 shadow-sm">
+                        <span className="truncate">{holiday.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(holiday.id, holiday.name)
+                          }}
+                          className="shrink-0 rounded p-1 text-indigo-300 opacity-80 hover:bg-rose-500/20 hover:text-rose-300 transition-colors"
+                          title={`Delete holiday: ${holiday.name}`}
+                          aria-label={`Delete ${holiday.name}`}
+                        >
+                          <Trash2 size={13} aria-hidden="true" />
+                        </button>
                       </div>
-                    </div>
-                  )}
+                    ) : isSundayDate ? (
+                      <span className="text-[11px] font-medium text-slate-400">
+                        Sunday Off
+                      </span>
+                    ) : isCurrentMonth ? (
+                      <div className="flex items-center gap-1 text-[11px] text-muted opacity-80 group-hover:opacity-100 transition-opacity">
+                        <Building className="h-3 w-3 flex-none text-subtle" />
+                        <span className="truncate">Working Day</span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Bottom Hover Action (when empty day) */}
+                  <div className="mt-auto pt-1">
+                    {!holiday && isCurrentMonth && (
+                      <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <span className="inline-flex items-center gap-1 rounded border border-line bg-card-hi px-2 py-0.5 text-[10.5px] font-medium text-text shadow-sm">
+                          <Plus size={11} aria-hidden="true" />
+                          Mark
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })}
           </div>
         </div>
-      </Card>
 
-      {/* Add Holiday Modal */}
-      <Modal
-        open={isModalOpen && !!selectedDate}
-        onClose={() => setIsModalOpen(false)}
-        title="Mark Holiday"
-      >
-        {selectedDate && (
-          <>
-            {message && (
-              <p role="alert" className="mb-4 rounded-[10px] border border-absent/30 bg-absent/10 px-3 py-2 text-sm text-absent">
-                {message}
-              </p>
-            )}
-
-            <div className="mb-4 flex items-center gap-3 rounded-[10px] border border-line bg-card-hi px-3 py-3 text-muted">
-              <CalendarIcon size={18} aria-hidden="true" />
-              <span className="num text-sm font-medium">{format(selectedDate, 'EEEE, MMMM do, yyyy')}</span>
+        {/* Right Column: Sidebar (Metrics & Holiday List) */}
+        <div className="flex w-full flex-col gap-5 lg:w-80">
+          {/* Monthly Overview Card */}
+          <Card className="rounded-2xl p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between border-b border-line-soft pb-3">
+              <div>
+                <h3 className="text-[15px] font-bold tracking-tight text-text">
+                  Monthly Overview
+                </h3>
+                <p className="text-xs text-muted">
+                  {format(currentMonth, 'MMMM yyyy')} academic days
+                </p>
+              </div>
+              <span className="rounded-lg bg-acc-2/10 p-2 text-acc-2">
+                <CalendarCheck2 className="h-4 w-4" />
+              </span>
             </div>
 
-            <form onSubmit={handleAddHoliday} className="space-y-4">
-              <Field label="Holiday name" htmlFor="holiday-name">
-                <Input
-                  id="holiday-name"
-                  type="text"
-                  required
-                  data-autofocus
-                  placeholder="e.g. Independence Day"
-                  value={newHolidayName}
-                  onChange={e => setNewHolidayName(e.target.value)}
-                />
-              </Field>
-              <div className="flex justify-end gap-2 border-t border-line-soft pt-4">
-                <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" icon={Plus}>Save Holiday</Button>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="rounded-xl border border-line bg-card-hi p-3">
+                <span className="text-[11px] font-medium text-subtle">Total Days</span>
+                <b className="num mt-1 block text-lg font-bold text-text">
+                  {totalMonthDays}
+                </b>
               </div>
-            </form>
-          </>
-        )}
+
+              <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3">
+                <span className="text-[11px] font-medium text-indigo-300">School Holidays</span>
+                <b className="num mt-1 block text-lg font-bold text-indigo-300">
+                  {holidaysCount}
+                </b>
+              </div>
+
+              <div className="rounded-xl border border-line bg-card-hi p-3">
+                <span className="text-[11px] font-medium text-subtle">Sundays</span>
+                <b className="num mt-1 block text-lg font-bold text-slate-400">
+                  {sundaysCount}
+                </b>
+              </div>
+
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                <span className="text-[11px] font-medium text-emerald-400">Net Working Days</span>
+                <b className="num mt-1 block text-lg font-bold text-emerald-400">
+                  {netWorkingDays}
+                </b>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-line-soft pt-3">
+              <Button
+                variant="secondary"
+                onClick={openRangeModal}
+                className="w-full gap-2 text-xs"
+                icon={CalendarRange}
+              >
+                Mark Holiday Range
+              </Button>
+            </div>
+          </Card>
+
+          {/* This Month's Holidays List Card */}
+          <Card className="rounded-2xl p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between border-b border-line-soft pb-3">
+              <h3 className="text-[15px] font-bold tracking-tight text-text">
+                Holidays in {format(currentMonth, 'MMMM')}
+              </h3>
+              <span className="rounded-full border border-line bg-card-hi px-2 py-0.5 text-xs font-semibold text-text">
+                {holidaysCount}
+              </span>
+            </div>
+
+            {holidaysInThisMonth.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted">
+                <Sparkles className="mx-auto mb-2 h-6 w-6 text-subtle" />
+                No holidays recorded for this month.
+                <button
+                  type="button"
+                  onClick={() => openAddModal()}
+                  className="mt-2 block w-full text-xs font-medium text-acc-2 hover:underline"
+                >
+                  + Add first holiday
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-line-soft max-h-[380px] overflow-y-auto pr-1">
+                {holidaysInThisMonth.map((h) => {
+                  const d = new Date(h.date)
+                  return (
+                    <div
+                      key={h.id}
+                      className="flex items-center justify-between py-2.5 transition-colors hover:bg-canvas/30 px-1 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex size-9 flex-none flex-col items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300">
+                          <span className="num text-xs font-bold leading-none">
+                            {format(d, 'dd')}
+                          </span>
+                          <span className="text-[9px] uppercase font-semibold leading-tight">
+                            {format(d, 'MMM')}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="truncate text-xs font-semibold text-text">
+                            {h.name}
+                          </h4>
+                          <p className="text-[11px] text-muted">
+                            {format(d, 'EEEE')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(h.id, h.name)}
+                        className="rounded-lg p-1.5 text-subtle hover:bg-rose-500/15 hover:text-rose-400 transition-colors"
+                        title="Delete holiday"
+                        aria-label={`Delete ${h.name}`}
+                      >
+                        <Trash2 size={14} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* Add Holiday / Range Modal */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={modalMode === 'RANGE' ? 'Mark Holiday Range' : 'Mark School Holiday'}
+      >
+        <form onSubmit={handleSaveHoliday} className="space-y-4">
+          {errorMessage && (
+            <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+              {errorMessage}
+            </div>
+          )}
+
+          {/* Mode Switcher */}
+          <div className="grid grid-cols-2 rounded-xl border border-line bg-card p-1 text-xs font-medium text-muted">
+            <button
+              type="button"
+              onClick={() => setModalMode('SINGLE')}
+              className={cn(
+                'flex items-center justify-center gap-1.5 rounded-lg py-2 transition-colors',
+                modalMode === 'SINGLE'
+                  ? 'bg-card-hi font-semibold text-text shadow-sm'
+                  : 'hover:text-text'
+              )}
+            >
+              <CalendarIcon size={14} aria-hidden="true" />
+              Single Day
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalMode('RANGE')}
+              className={cn(
+                'flex items-center justify-center gap-1.5 rounded-lg py-2 transition-colors',
+                modalMode === 'RANGE'
+                  ? 'bg-card-hi font-semibold text-text shadow-sm'
+                  : 'hover:text-text'
+              )}
+            >
+              <CalendarRange size={14} aria-hidden="true" />
+              Date Range (Vacation)
+            </button>
+          </div>
+
+          <Field label="Holiday Name / Occasion" htmlFor="holiday-name">
+            <Input
+              id="holiday-name"
+              type="text"
+              required
+              data-autofocus
+              placeholder={
+                modalMode === 'RANGE'
+                  ? 'e.g. Diwali Vacation, Winter Break'
+                  : 'e.g. Republic Day, Ambedkar Jayanti'
+              }
+              value={holidayName}
+              onChange={(e) => setHolidayName(e.target.value)}
+            />
+          </Field>
+
+          {modalMode === 'SINGLE' ? (
+            <Field label="Holiday Date" htmlFor="single-date">
+              <Input
+                id="single-date"
+                type="date"
+                required
+                value={singleDate}
+                onChange={(e) => setSingleDate(e.target.value)}
+              />
+            </Field>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Start Date" htmlFor="range-start">
+                  <Input
+                    id="range-start"
+                    type="date"
+                    required
+                    value={rangeStartDate}
+                    onChange={(e) => setRangeStartDate(e.target.value)}
+                  />
+                </Field>
+
+                <Field label="End Date" htmlFor="range-end">
+                  <Input
+                    id="range-end"
+                    type="date"
+                    required
+                    value={rangeEndDate}
+                    onChange={(e) => setRangeEndDate(e.target.value)}
+                  />
+                </Field>
+              </div>
+
+              {rangeDurationDays > 0 && (
+                <div className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-2 text-xs text-indigo-300">
+                  <span>Selected Range Duration:</span>
+                  <b className="num font-bold">{rangeDurationDays} Days</b>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 border-t border-line-soft pt-4">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              icon={Plus}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : modalMode === 'RANGE' ? 'Save Holiday Range' : 'Save Holiday'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   )

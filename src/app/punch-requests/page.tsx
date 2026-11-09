@@ -58,10 +58,15 @@ export default async function PunchRequestsPage({
     );
   }
 
+  const requestedMonth = typeof sp.month === 'string' ? parseInt(sp.month, 10) : undefined;
+  const requestedYear = typeof sp.year === 'string' ? parseInt(sp.year, 10) : undefined;
+
   return (
     <PunchRequestsClient
       userRole={auth.user.role}
       staffId={targetStaffId}
+      initialMonth={Number.isFinite(requestedMonth) ? requestedMonth : undefined}
+      initialYear={Number.isFinite(requestedYear) ? requestedYear : undefined}
     />
   );
 }

@@ -105,5 +105,10 @@ describe("getEmployeePortalData", () => {
     });
     expect(res?.payslips).toHaveLength(1);
     expect(res?.payslips[0].netPayment).toBe(26200);
+    expect(mockPrisma.monthlyPayroll.findMany).toHaveBeenCalledWith({
+      where: { staffId: "staff-1", isLocked: true },
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+      take: 12,
+    });
   });
 });

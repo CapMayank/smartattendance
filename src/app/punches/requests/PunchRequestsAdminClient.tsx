@@ -68,11 +68,11 @@ export interface PunchRequestsAdminClientProps {
 }
 
 const REASON_LABELS: Record<string, string> = {
-  FORGOT_SWIPE: "Forgot to swipe card",
-  DUTY_OUTSIDE: "Official outdoor school duty / sports event",
-  DEVICE_OFFLINE: "Biometric device offline / card read error",
-  POWER_FAILURE: "Campus power failure",
-  OTHER: "Other reason",
+  FORGOT_SWIPE: "Forgot to mark attendance / Missed terminal check",
+  DUTY_OUTSIDE: "Official on-duty assignment / Off-campus school duty",
+  DEVICE_OFFLINE: "Attendance terminal offline / Recognition error",
+  POWER_FAILURE: "Campus power outage / Terminal unavailable",
+  OTHER: "Other reason (specify details below)",
 };
 
 interface BiometricPunchLog {

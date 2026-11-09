@@ -116,7 +116,7 @@ export async function getEmployeePortalData(
       orderBy: { date: "desc" },
     }),
     prisma.monthlyPayroll.findMany({
-      where: { staffId },
+      where: { staffId, isLocked: true },
       orderBy: [{ year: "desc" }, { month: "desc" }],
       take: 12,
     }),

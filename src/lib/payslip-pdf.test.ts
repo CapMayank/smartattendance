@@ -1,6 +1,41 @@
 import { describe, expect, it } from "vitest"
 import { generatePayslipPdf } from "./payslip-pdf"
 import { PDFDocument } from "pdf-lib"
+import * as zlib from "zlib"
+
+function extractPdfText(pdfBytes: Uint8Array): string {
+  const buf = Buffer.from(pdfBytes)
+  let text = ""
+  let idx = 0
+  while ((idx = buf.indexOf("stream", idx)) !== -1) {
+    let start = idx + 6
+    if (buf[start] === 0x0d && buf[start + 1] === 0x0a) start += 2
+    else if (buf[start] === 0x0a || buf[start] === 0x0d) start += 1
+    const end = buf.indexOf("endstream", start)
+    if (end !== -1) {
+      const streamData = buf.subarray(start, end)
+      let streamStr = ""
+      try {
+        const decompressed = zlib.inflateSync(streamData)
+        streamStr = decompressed.toString("latin1")
+      } catch {
+        streamStr = streamData.toString("latin1")
+      }
+      const decoded = streamStr.replace(/<([0-9a-fA-F]+)>/g, (_, hex) => {
+        try {
+          return Buffer.from(hex, "hex").toString("utf-8")
+        } catch {
+          return ""
+        }
+      })
+      text += decoded + "\n"
+      idx = end + 9
+    } else {
+      break
+    }
+  }
+  return text
+}
 
 const mockPayrollBankEpf = {
   id: "payroll-1",
@@ -157,5 +192,38 @@ describe("generatePayslipPdf", () => {
     const pdfBytes = await generatePayslipPdf(minimalPayroll as any)
     const doc = await PDFDocument.load(pdfBytes)
     expect(doc.getPageCount()).toBe(1)
+  })
+
+  it("does not include internal fields like Machine ID and Pay Group", async () => {
+    const pdfBytes = await generatePayslipPdf(mockPayrollBankEpf as any)
+    const text = extractPdfText(pdfBytes)
+    expect(text).toContain("Employee Name:")
+    expect(text).toContain("Employee Code:")
+    expect(text).not.toContain("Machine ID:")
+    expect(text).not.toContain("Pay Group:")
+  })
+
+  it("omits bonus details when bonusDays and bonusAmount are 0", async () => {
+    const zeroBonusPayroll = {
+      ...mockPayrollBankEpf,
+      bonusDays: 0,
+      bonusAmount: 0,
+    }
+    const pdfBytes = await generatePayslipPdf(zeroBonusPayroll as any)
+    const text = extractPdfText(pdfBytes)
+    expect(text).not.toContain("Bonus Days")
+    expect(text).not.toContain("Bonus / Allowances")
+  })
+
+  it("includes bonus details when bonus is given (> 0)", async () => {
+    const bonusPayroll = {
+      ...mockPayrollBankEpf,
+      bonusDays: 3,
+      bonusAmount: 5000,
+    }
+    const pdfBytes = await generatePayslipPdf(bonusPayroll as any)
+    const text = extractPdfText(pdfBytes)
+    expect(text).toContain("Bonus Days")
+    expect(text).toContain("Bonus / Allowances")
   })
 })

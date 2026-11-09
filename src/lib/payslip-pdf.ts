@@ -191,14 +191,8 @@ export async function generatePayslipPdf(payroll: MonthlyPayrollWithDetails): Pr
       cleanAscii(staff.department?.name) || "-",
     ],
     [
-      "Machine ID:",
-      cleanAscii(staff.machineId),
       "Date of Joining:",
       cleanAscii(joiningDateStr),
-    ],
-    [
-      "Pay Group:",
-      payGroupDisplay,
       "Bank A/C & IFSC:",
       cleanAscii(bankDisplay),
     ],
@@ -241,12 +235,14 @@ export async function generatePayslipPdf(payroll: MonthlyPayrollWithDetails): Pr
   // ==========================================
   // 3. ATTENDANCE STRIP
   // ==========================================
-  const attMetrics = [
+  const attMetrics: { label: string; value: string }[] = [
     { label: "Days in Month", value: String(payroll.totalDays) },
     { label: "Paid / Present Days", value: String(payroll.presentDays) },
     { label: "LOP / NCP Days", value: String(payroll.ncpDays) },
-    { label: "Bonus Days", value: String(payroll.bonusDays ?? 0) },
   ]
+  if ((payroll.bonusDays ?? 0) > 0) {
+    attMetrics.push({ label: "Bonus Days", value: String(payroll.bonusDays) })
+  }
 
   const attStripH = 34
   page.drawRectangle({
@@ -259,7 +255,7 @@ export async function generatePayslipPdf(payroll: MonthlyPayrollWithDetails): Pr
     borderWidth: 1,
   })
 
-  const attColW = contentWidth / 4
+  const attColW = contentWidth / attMetrics.length
   attMetrics.forEach((m, idx) => {
     const colCenterX = margin + idx * attColW + attColW / 2
     drawTextCenter(m.label, colCenterX, curY - 13, regularFont, 8, mutedSlate)
@@ -288,8 +284,10 @@ export async function generatePayslipPdf(payroll: MonthlyPayrollWithDetails): Pr
 
   const earningsRows = [
     { label: "Basic Wage", amount: formatMoney(payroll.basicWage) },
-    { label: "Bonus / Allowances", amount: formatMoney(payroll.bonusAmount) },
   ]
+  if ((payroll.bonusAmount ?? 0) > 0) {
+    earningsRows.push({ label: "Bonus / Allowances", amount: formatMoney(payroll.bonusAmount) })
+  }
 
   const totalDeductions = payroll.employeeEpf + payroll.refundOfAdvance
   const deductionsRows = [

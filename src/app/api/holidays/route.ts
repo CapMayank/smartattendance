@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
-import { startOfDay } from 'date-fns'
+import { startOfDay, eachDayOfInterval } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
 
 export async function GET(request: Request) {
@@ -58,9 +58,60 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const { name, date } = data
+    const { name, date, startDate, endDate } = data
     
-    if (!name || !date) {
+    if (!name) {
+      return NextResponse.json({ error: 'Holiday name is required' }, { status: 400 })
+    }
+
+    if (startDate || endDate) {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { error: 'Both start date and end date are required for a holiday range' },
+          { status: 400 }
+        )
+      }
+
+      const start = startOfDay(new Date(startDate))
+      const end = startOfDay(new Date(endDate))
+
+      if (end < start) {
+        return NextResponse.json(
+          { error: 'End date cannot be before start date' },
+          { status: 400 }
+        )
+      }
+
+      const days = eachDayOfInterval({ start, end })
+      const createdHolidays = []
+
+      for (const day of days) {
+        const targetDate = startOfDay(day)
+        const h = await prisma.holiday.upsert({
+          where: { date: targetDate },
+          update: { name },
+          create: {
+            name,
+            date: targetDate,
+          },
+        })
+        createdHolidays.push(h)
+      }
+
+      try {
+        await recalculateAttendance(start, end)
+      } catch (recalcErr) {
+        console.error('Holiday recalculation error:', recalcErr)
+      }
+
+      return NextResponse.json({
+        success: true,
+        count: createdHolidays.length,
+        holidays: createdHolidays,
+      })
+    }
+
+    if (!date) {
       return NextResponse.json({ error: 'Name and Date are required' }, { status: 400 })
     }
 
@@ -71,8 +122,8 @@ export async function POST(request: Request) {
       update: { name },
       create: {
         name,
-        date: targetDate
-      }
+        date: targetDate,
+      },
     })
 
     try {
@@ -106,7 +157,7 @@ export async function DELETE(request: Request) {
       : null
 
     await prisma.holiday.delete({
-      where: { id }
+      where: { id },
     })
 
     if (existing?.date) {

@@ -179,7 +179,7 @@ describe("Payslips Page & Salary Slip Viewer", () => {
       });
 
       expect(mockPrisma.monthlyPayroll.findMany).toHaveBeenCalledWith({
-        where: { staffId: "staff-1" },
+        where: { staffId: "staff-1", isLocked: true },
         include: {
           staff: {
             include: {
@@ -241,7 +241,7 @@ describe("Payslips Page & Salary Slip Viewer", () => {
       });
 
       expect(mockPrisma.monthlyPayroll.findMany).toHaveBeenCalledWith({
-        where: { staffId: "staff-2" },
+        where: { staffId: "staff-2", isLocked: true },
         include: {
           staff: {
             include: {

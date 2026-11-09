@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Calendar,
   ChevronLeft,
@@ -11,6 +12,7 @@ import {
   Building,
   CalendarDays,
   Loader2,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ToSchoolData, ToSchoolDay } from "@/lib/to-school";
@@ -19,11 +21,11 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 
 const REASONS = [
-  { value: "FORGOT_SWIPE", label: "Forgot to swipe biometric card" },
-  { value: "DUTY_OUTSIDE", label: "Assigned to official outdoor school duty / sports event" },
-  { value: "DEVICE_OFFLINE", label: "Biometric machine offline / network issue" },
-  { value: "POWER_FAILURE", label: "Power failure at campus entrance" },
-  { value: "OTHER", label: "Other (specify below in explanation)" },
+  { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },
+  { value: "DUTY_OUTSIDE", label: "Official on-duty assignment / Off-campus school duty" },
+  { value: "DEVICE_OFFLINE", label: "Attendance terminal offline / Recognition error" },
+  { value: "POWER_FAILURE", label: "Campus power outage / Terminal unavailable" },
+  { value: "OTHER", label: "Other reason (specify details below)" },
 ];
 
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -39,6 +41,17 @@ export function ToSchoolClient({
   const [selectedYear, setSelectedYear] = useState<number>(initialData.year);
   const [selectedMonth, setSelectedMonth] = useState<number>(initialData.month);
   const [isLoading, setIsLoading] = useState(false);
+
+  const discrepancyDays = data.days.filter(
+    (d) =>
+      d.isEmployed &&
+      !d.isSunday &&
+      !d.isHoliday &&
+      !d.isToday &&
+      !d.hasPendingRequest &&
+      ((d.checkIn && !d.checkOut) || (!d.checkIn && d.checkOut) || d.isNoShow)
+  );
+  const discrepancyCount = discrepancyDays.length;
 
   // Punch Request Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -217,8 +230,35 @@ export function ToSchoolClient({
           >
             <ChevronRight className="h-4 w-4 text-text" />
           </button>
+
+          <Link
+            href={`/punch-requests?month=${selectedMonth}&year=${selectedYear}`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-card px-3 text-xs font-medium text-text hover:bg-card-hi transition-colors ml-1"
+          >
+            <FileText className="h-3.5 w-3.5 text-acc-2" />
+            <span>Regularization Hub</span>
+          </Link>
         </div>
       </div>
+
+      {/* Discrepancy Banner */}
+      {discrepancyCount > 0 && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs">
+          <div className="flex items-center gap-2.5 text-amber-200">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+            <span>
+              You have <strong>{discrepancyCount}</strong> attendance {discrepancyCount === 1 ? "discrepancy" : "discrepancies"} needing regularization for {data.monthLabel} (missed terminal check-in, check-out, or no attendance recorded).
+            </span>
+          </div>
+          <Link
+            href={`/punch-requests?month=${selectedMonth}&year=${selectedYear}`}
+            className="inline-flex items-center gap-1 rounded-lg bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-200 hover:bg-amber-500/30 transition-colors"
+          >
+            <span>Review in Regularization Center</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Color Legend */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card/60 p-3 text-xs text-muted">
@@ -243,7 +283,7 @@ export function ToSchoolClient({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-absent" />
-          <span>No Show / Missed Swipe</span>
+          <span>No Show / Missed Punch</span>
         </div>
       </div>
 
@@ -407,7 +447,37 @@ export function ToSchoolClient({
                           </button>
                         )}
                       </div>
-                    ) : day.status === "PRESENT" || day.status === "HALF_DAY" ? (
+                    ) : day.status === "HALF_DAY" ? (
+                      <div className="flex flex-col gap-1">
+                        <div className="num text-[11px] text-muted">
+                          {day.checkIn ? (
+                            <span>In: {day.checkIn}</span>
+                          ) : (
+                            <span className="font-medium text-amber-400">In: Missing</span>
+                          )}
+                          <span className="mx-1 text-line">·</span>
+                          {day.checkOut ? (
+                            <span>Out: {day.checkOut}</span>
+                          ) : (
+                            <span className="font-medium text-amber-400">Out: Missing</span>
+                          )}
+                        </div>
+                        {!hasPending && !day.isToday && (
+                          <button
+                            type="button"
+                            onClick={() => openRegularizationModal(day)}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-acc-1 hover:text-acc-2 transition-colors"
+                          >
+                            <PlusCircle className="h-2.5 w-2.5" />
+                            {day.checkIn && !day.checkOut
+                              ? "Request Out Punch"
+                              : !day.checkIn && day.checkOut
+                                ? "Request In Punch"
+                                : "Request Punch"}
+                          </button>
+                        )}
+                      </div>
+                    ) : day.status === "PRESENT" ? (
                       <div className="num text-[11px] text-muted">
                         <span>In: {day.checkIn ?? "—"}</span>
                         <span className="mx-1 text-line">·</span>
@@ -438,7 +508,7 @@ export function ToSchoolClient({
       >
         <form onSubmit={handleSubmitPunchRequest} className="space-y-4">
           <p className="text-xs text-muted">
-            Raise a missed swipe regularization request for administrative review.
+            Raise a missed punch regularization request for administrative review.
           </p>
 
           {/* Date */}
@@ -566,7 +636,7 @@ export function ToSchoolClient({
               rows={3}
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Provide additional details regarding this missed swipe..."
+              placeholder="Provide additional details regarding this missed punch..."
               className="w-full rounded-lg border border-line bg-card px-3 py-2 text-xs text-text outline-none focus:border-acc-2 placeholder:text-muted/60"
             />
           </div>

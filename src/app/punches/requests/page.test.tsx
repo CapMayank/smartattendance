@@ -358,12 +358,12 @@ describe("Task 8: Admin & Approver Punch Requests Review Inbox (/punches/request
       expect(html).toContain("9:00 am");
 
       // Reason & explanation
-      expect(html).toContain("Forgot to swipe card");
+      expect(html).toContain("Forgot to mark attendance / Missed terminal check");
       expect(html).toContain("Card reader didn&#x27;t beep when I tapped in the morning.");
 
       // Card for Both
       expect(html).toContain("Anjali Gupta");
-      expect(html).toContain("Official outdoor school duty / sports event");
+      expect(html).toContain("Official on-duty assignment / Off-campus school duty");
       expect(html).toContain("Escorted students to the inter-school tournament.");
       expect(html).toContain("Verified with Sports in-charge");
     });
