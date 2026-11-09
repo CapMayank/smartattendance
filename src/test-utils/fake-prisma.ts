@@ -143,6 +143,7 @@ export function createFakePrisma(fixtures: Fixtures): {
   /** Live assignment rows (fixture rows plus any created or upserted). */
   assignments: AssignmentRow[]
   staffUpdates: StaffUpdate[]
+  staffRows: Fixtures['staff']
   /** Live shift rows (fixture shifts plus any created). */
   shiftRows: { id: string; name: string; startTime: string; endTime: string }[]
   /** Live suggestion rows. */
@@ -255,8 +256,10 @@ const resolvePunchRequest = (
             machineId: s.machineId,
             departmentId: s.departmentId ?? null,
             profilePhotoId: s.profilePhotoId ?? null,
-            department: s.departmentId ? deptRows.find((d) => d.id === s.departmentId) ?? null : null,
-            designation: s.designationId ? desigRows.find((d) => d.id === s.designationId) ?? null : null,
+            department: (s as any).department ?? null,
+            designation: (s as any).designation ?? null,
+            payrollInfo: (s as any).payrollInfo ?? null,
+            user: (s as any).user ?? null,
           }
         : null,
     }
@@ -282,9 +285,7 @@ const resolvePunchRequest = (
     staffUpdates.push(arg)
     const row = staffRows.find((s) => s.id === arg.where.id)
     if (!row) throw new Error(`staff ${arg.where.id} not found`)
-    if (arg.data.shiftId !== undefined) row.shiftId = arg.data.shiftId
-    if (arg.data.profilePhotoId !== undefined) row.profilePhotoId = arg.data.profilePhotoId
-    if (arg.data.profilePhotoPinned !== undefined) row.profilePhotoPinned = arg.data.profilePhotoPinned
+    Object.assign(row, arg.data)
     return row
   }
 
@@ -367,7 +368,24 @@ const resolvePunchRequest = (
           approverDepartments: [],
         }
       },
-      findFirst: async () => null,
+      findFirst: async (args?: { where?: { staffId?: string; email?: string } }) => {
+        if (!fixtures.users) return null
+        const u = fixtures.users.find(
+          (usr) =>
+            (!args?.where?.staffId || usr.staffId === args.where.staffId) &&
+            (!args?.where?.email || usr.email === args.where.email)
+        )
+        return u ? { ...u } : null
+      },
+      update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+        if (!fixtures.users) return { id: where.id, ...data }
+        const u = fixtures.users.find((usr) => usr.id === where.id)
+        if (u) {
+          Object.assign(u, data)
+          return { ...u }
+        }
+        return { id: where.id, ...data }
+      },
       findMany: async () => [],
       count: async () => 1,
     },
@@ -490,6 +508,28 @@ const resolvePunchRequest = (
     holiday: {
       findMany: async (args?: { where?: { date?: TimeFilter } }) =>
         fixtures.holidays.filter((h) => inRange(h.date, args?.where?.date)),
+    },
+    staffPayrollInfo: {
+      findUnique: async (args: { where: { staffId: string } }) => {
+        const staff = staffRows.find((s) => s.id === args.where.staffId)
+        return (staff as any)?.payrollInfo ?? null
+      },
+      upsert: async ({ where, create, update }: { where: { staffId: string }; create: Record<string, unknown>; update: Record<string, unknown> }) => {
+        const staff = staffRows.find((s) => s.id === where.staffId)
+        if (staff) {
+          (staff as any).payrollInfo = { ...((staff as any).payrollInfo ?? {}), ...update }
+          return (staff as any).payrollInfo
+        }
+        return { staffId: where.staffId, ...create, ...update }
+      },
+      update: async ({ where, data }: { where: { staffId: string }; data: Record<string, unknown> }) => {
+        const staff = staffRows.find((s) => s.id === where.staffId)
+        if (staff) {
+          (staff as any).payrollInfo = { ...((staff as any).payrollInfo ?? {}), ...data }
+          return (staff as any).payrollInfo
+        }
+        return { staffId: where.staffId, ...data }
+      },
     },
     monthlyPayroll: {
       findUnique: async (args: { where: { staffId_month_year?: { staffId: string; month: number; year: number }; id?: string }; include?: Record<string, unknown> }) => {
@@ -820,6 +860,9 @@ const resolvePunchRequest = (
         get attendanceLog() {
           return client.attendanceLog
         },
+        get staffPayrollInfo() {
+          return client.staffPayrollInfo
+        },
         get monthlyPayroll() {
           return client.monthlyPayroll
         },
@@ -831,5 +874,5 @@ const resolvePunchRequest = (
         },
       })
 
-  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests, profileChangeRequests, auditLogs, dailyRecordRows }
+  return { client, created, deleteCalls, assignments, staffUpdates, staffRows, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests, profileChangeRequests, auditLogs, dailyRecordRows }
 }
