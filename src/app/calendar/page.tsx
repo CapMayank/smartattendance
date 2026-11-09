@@ -356,155 +356,147 @@ export default function CalendarPage() {
       {/* Main Two-Column Layout */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Left Column: Calendar Grid */}
-        <div className="flex-1 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 border-b border-line bg-card-hi/80 text-center text-xs font-bold text-text">
-            {WEEKDAY_NAMES.map((name, i) => (
-              <div
-                key={name}
-                className={`py-3 text-[11.5px] uppercase tracking-wider ${
-                  i === 6
-                    ? 'text-muted font-bold'
-                    : 'text-text font-bold'
-                }`}
-              >
-                {name}
-              </div>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 divide-x divide-y divide-line">
-            {days.map((day) => {
-              const holiday = holidays.find((h) => isSameDay(new Date(h.date), day))
-              const isCurrentMonth = isSameMonth(day, monthStart)
-              const isTodayDate = isToday(day)
-              const isSundayDate = isSunday(day)
-
-              let cellBg = 'bg-card hover:bg-card-hi/40'
-              let borderAccent = ''
-
-              if (!isCurrentMonth) {
-                cellBg = 'bg-canvas/50'
-              } else if (isTodayDate) {
-                cellBg = 'bg-indigo-50/40 hover:bg-indigo-50/60 dark:bg-indigo-950/25'
-                borderAccent = 'ring-2 ring-indigo-600 dark:ring-indigo-400 z-10'
-              } else if (holiday) {
-                cellBg = 'bg-indigo-50/50 hover:bg-indigo-100/50 dark:bg-indigo-950/30'
-                borderAccent = 'ring-1 ring-inset ring-indigo-300 dark:ring-indigo-700/60'
-              } else if (isSundayDate) {
-                cellBg = 'bg-card-hi/30 hover:bg-card-hi/50'
-              }
-
-              return (
+        <div className="flex-1 overflow-x-auto rounded-2xl border border-line bg-card shadow-sm">
+          <div className="min-w-[620px] sm:min-w-[680px]">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 border-b border-line bg-card-hi/80 text-center text-xs font-bold text-text">
+              {WEEKDAY_NAMES.map((name, i) => (
                 <div
-                  key={day.toISOString()}
-                  onClick={() => {
-                    if (holiday) {
-                      handleDelete(holiday.id, holiday.name)
-                    } else if (isCurrentMonth) {
-                      openAddModal(day)
-                    }
-                  }}
-                  className={cn(
-                    'group relative flex min-h-[110px] flex-col justify-between p-2.5 transition-colors duration-150 sm:min-h-[125px] cursor-pointer',
-                    cellBg,
-                    borderAccent
-                  )}
+                  key={name}
+                  className={`py-3 text-[11.5px] uppercase tracking-wider ${
+                    i === 6
+                      ? 'text-muted font-bold'
+                      : 'text-text font-bold'
+                  }`}
                 >
-                  {/* Top Row: Day Number + Status Badge */}
-                  <div className="flex items-start justify-between">
-                    {isTodayDate ? (
-                      <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num">
-                        {format(day, 'dd')}
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          'num text-sm font-black tracking-tight',
-                          !isCurrentMonth
-                            ? 'text-subtle/50'
-                            : holiday
-                              ? 'text-indigo-950 dark:text-indigo-200'
-                              : isSundayDate
-                                ? 'text-text/75 font-bold'
-                                : 'text-text font-black'
-                        )}
-                      >
-                        {format(day, 'dd')}
-                      </span>
-                    )}
-
-                    {/* Status Pill Badge */}
-                    {holiday ? (
-                      <span className="rounded-md border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-900 shadow-2xs dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
-                        Holiday
-                      </span>
-                    ) : isTodayDate ? (
-                      <span className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs dark:bg-indigo-500">
-                        Today
-                      </span>
-                    ) : isSundayDate && isCurrentMonth ? (
-                      <span className="rounded-md border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-bold text-muted shadow-2xs">
-                        Sunday
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {/* Middle Content */}
-                  <div className="my-2 flex flex-col gap-1">
-                    {holiday ? (
-                      <div className="flex items-center justify-between gap-1.5 rounded-lg border border-indigo-200 bg-indigo-100/80 px-2.5 py-1.5 text-xs font-bold text-indigo-950 shadow-xs dark:border-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-100">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
-                          <span className="truncate">{holiday.name}</span>
-                        </div>
-                        {!isApprover && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDelete(holiday.id, holiday.name)
-                            }}
-                            className="shrink-0 rounded p-1 text-indigo-800 hover:bg-rose-100 hover:text-rose-700 dark:text-indigo-300 dark:hover:bg-rose-950/60 dark:hover:text-rose-300 transition-colors cursor-pointer"
-                            title={`Delete holiday: ${holiday.name}`}
-                            aria-label={`Delete ${holiday.name}`}
-                          >
-                            <Trash2 size={13} aria-hidden="true" />
-                          </button>
-                        )}
-                      </div>
-                    ) : isSundayDate ? (
-                      <span className="text-xs font-bold text-muted">
-                        Sunday Off
-                      </span>
-                    ) : isCurrentMonth ? (
-                      <div className="flex items-center gap-1 text-xs font-semibold text-text/80">
-                        <Building className="h-3.5 w-3.5 flex-none text-muted" />
-                        <span className="truncate">Working Day</span>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Bottom Hover Action (when empty day) */}
-                  <div className="mt-auto pt-1">
-                    {!holiday && isCurrentMonth && (
-                      <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-line bg-card-hi px-2 py-0.5 text-[10.5px] font-bold text-text shadow-2xs hover:bg-card">
-                          <Plus size={11} aria-hidden="true" />
-                          Mark
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  {name}
                 </div>
-              )
-            })}
+              ))}
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 divide-x divide-y divide-line">
+              {days.map((day) => {
+                const holiday = holidays.find((h) => isSameDay(new Date(h.date), day))
+                const isCurrentMonth = isSameMonth(day, monthStart)
+                const isTodayDate = isToday(day)
+                const isSundayDate = isSunday(day)
+
+                let cellBg = 'bg-card hover:bg-card-hi/40'
+                let borderAccent = ''
+
+                if (!isCurrentMonth) {
+                  cellBg = 'bg-canvas/50'
+                } else if (isTodayDate) {
+                  cellBg = 'bg-indigo-50/40 hover:bg-indigo-50/60 dark:bg-indigo-950/25'
+                  borderAccent = 'ring-2 ring-indigo-600 dark:ring-indigo-400 z-10'
+                } else if (holiday) {
+                  cellBg = 'bg-indigo-50/50 hover:bg-indigo-100/50 dark:bg-indigo-950/30'
+                  borderAccent = 'ring-1 ring-inset ring-indigo-300 dark:ring-indigo-700/60'
+                } else if (isSundayDate) {
+                  cellBg = 'bg-card-hi/30 hover:bg-card-hi/50'
+                }
+
+                return (
+                  <div
+                    key={day.toISOString()}
+                    onClick={() => {
+                      if (holiday) {
+                        handleDelete(holiday.id, holiday.name)
+                      } else if (isCurrentMonth) {
+                        openAddModal(day)
+                      }
+                    }}
+                    className={cn(
+                      'group relative flex min-h-[116px] sm:min-h-[126px] flex-col justify-between p-2 sm:p-2.5 transition-colors duration-150 cursor-pointer',
+                      cellBg,
+                      borderAccent
+                    )}
+                  >
+                    {/* Top Row: Day Number + Status Badge */}
+                    <div className="flex items-start justify-between gap-1">
+                      {isTodayDate ? (
+                        <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num flex-none">
+                          {format(day, 'dd')}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'num text-sm font-black tracking-tight',
+                            !isCurrentMonth
+                              ? 'text-subtle/40'
+                              : holiday
+                                ? 'text-indigo-950 dark:text-indigo-200'
+                                : isSundayDate
+                                  ? 'text-subtle font-bold'
+                                  : 'text-text font-black'
+                          )}
+                        >
+                          {format(day, 'dd')}
+                        </span>
+                      )}
+
+                      {/* Status Pill Badge */}
+                      {isTodayDate ? (
+                        <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[9.5px] font-bold text-white shadow-xs dark:bg-indigo-500 whitespace-nowrap">
+                          Today
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Middle Content */}
+                    <div className="my-1 flex flex-col gap-1 min-w-0">
+                      {holiday ? (
+                        <div
+                          title={holiday.name}
+                          className="group/pill flex items-center justify-between gap-1 rounded-md border border-indigo-200/90 bg-indigo-100/90 px-1.5 py-0.5 text-[10.5px] font-bold text-indigo-950 shadow-2xs dark:border-indigo-800/80 dark:bg-indigo-950/70 dark:text-indigo-200 min-w-0"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
+                            <span className="truncate">{holiday.name}</span>
+                          </div>
+                          {!isApprover && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(holiday.id, holiday.name)
+                              }}
+                              className="opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0 rounded p-0.5 text-indigo-800 hover:bg-rose-100 hover:text-rose-700 dark:text-indigo-300 dark:hover:bg-rose-950/60 dark:hover:text-rose-300 transition-opacity cursor-pointer"
+                              title={`Delete holiday: ${holiday.name}`}
+                              aria-label={`Delete ${holiday.name}`}
+                            >
+                              <Trash2 size={12} aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      ) : isSundayDate && isCurrentMonth ? (
+                        <span className="text-[11px] font-medium text-subtle">
+                          Sunday Off
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Bottom Hover Action (when empty day) */}
+                    <div className="mt-auto pt-1 min-w-0">
+                      {!holiday && isCurrentMonth && !isApprover && (
+                        <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                          <span className="inline-flex items-center gap-1 rounded border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-text shadow-2xs hover:bg-card whitespace-nowrap">
+                            <Plus size={10} aria-hidden="true" />
+                            Mark
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
         {/* Right Column: Sidebar (Metrics & Holiday List) */}
-        <div className="flex w-full flex-col gap-5 lg:w-80">
+        <div className="flex w-full flex-col gap-5 lg:w-72 xl:w-80 flex-none">
           {/* Monthly Overview Card */}
           <Card className="rounded-2xl p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-line-soft pb-3">

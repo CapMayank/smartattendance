@@ -20,6 +20,7 @@ import { AttendanceIndexSidebar } from "@/components/calendar/AttendanceIndexSid
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { formatDate, formatHHmm } from "@/lib/format";
+import { cn } from "@/lib/cn";
 
 const REASONS = [
   { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },
@@ -291,229 +292,228 @@ export function ToSchoolClient({
       {/* Main Two-Column Layout */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Calendar Grid Container */}
-        <div className="flex-1 overflow-hidden rounded-2xl border border-line bg-card shadow-sm">
-          {/* Day of Week Headers */}
-          <div className="grid grid-cols-7 border-b border-line bg-card-hi/80 text-center text-xs font-bold text-text">
-            {WEEKDAY_NAMES.map((name, i) => (
-              <div
-                key={name}
-                className={`py-3 text-[11.5px] uppercase tracking-wider ${
-                  i === 6
-                    ? "text-muted font-bold"
-                    : "text-text font-bold"
-                }`}
-              >
-                {name}
-              </div>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 divide-x divide-y divide-line">
-            {/* Leading empty cells for days from previous month */}
-            {Array.from({ length: leadingEmptyCount }).map((_, index) => (
-              <div
-                key={`empty-${index}`}
-                className="min-h-[110px] bg-canvas/40 p-2.5 sm:min-h-[125px]"
-              />
-            ))}
-
-            {/* Days in Month */}
-            {data.days.map((day) => {
-              const isSunday = day.isSunday;
-              const isHoliday = day.isHoliday;
-              const isNoShow = day.isNoShow;
-              const isToday = day.isToday;
-              const hasPending = day.hasPendingRequest;
-
-              let cellBg = "bg-card hover:bg-card-hi/40";
-              let borderAccent = "";
-
-              if (isToday) {
-                cellBg = "bg-indigo-50/40 hover:bg-indigo-50/60 dark:bg-indigo-950/25";
-                borderAccent = "ring-2 ring-indigo-600 dark:ring-indigo-400 z-10";
-              } else if (isNoShow) {
-                cellBg = "bg-rose-50/50 hover:bg-rose-50/70 dark:bg-rose-950/25";
-                borderAccent = "ring-1 ring-inset ring-rose-300 dark:ring-rose-800/60";
-              } else if (day.status === "HALF_DAY") {
-                cellBg = "bg-amber-50/50 hover:bg-amber-50/70 dark:bg-amber-950/25";
-                borderAccent = "ring-1 ring-inset ring-amber-300 dark:ring-amber-800/60";
-              } else if (isHoliday) {
-                cellBg = "bg-indigo-50/50 hover:bg-indigo-50/70 dark:bg-indigo-950/25";
-                borderAccent = "ring-1 ring-inset ring-indigo-300 dark:ring-indigo-700/60";
-              } else if (isSunday) {
-                cellBg = "bg-card-hi/30 hover:bg-card-hi/50";
-              } else if (day.status === "PRESENT") {
-                cellBg = "bg-card hover:bg-card-hi/40";
-              }
-
-              return (
+        <div className="flex-1 overflow-x-auto rounded-2xl border border-line bg-card shadow-sm">
+          <div className="min-w-[620px] sm:min-w-[680px]">
+            {/* Day of Week Headers */}
+            <div className="grid grid-cols-7 border-b border-line bg-card-hi/80 text-center text-xs font-bold text-text">
+              {WEEKDAY_NAMES.map((name, i) => (
                 <div
-                  key={day.dateKey}
-                  className={`relative flex min-h-[110px] flex-col justify-between p-2.5 transition-colors sm:min-h-[125px] ${cellBg} ${borderAccent}`}
+                  key={name}
+                  className={`py-3 text-[11.5px] uppercase tracking-wider ${
+                    i === 6
+                      ? "text-muted font-bold"
+                      : "text-text font-bold"
+                  }`}
                 >
-                  {/* Top Row: Day Number + Duration Bracket Badge */}
-                  <div className="flex items-start justify-between">
-                    {isToday ? (
-                      <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num">
-                        {String(day.dayNumber).padStart(2, "0")}
-                      </span>
-                    ) : (
-                      <span
-                        className={`num text-sm font-black tracking-tight ${
-                          isSunday
-                            ? "text-text/75 font-bold"
-                            : isNoShow
-                              ? "text-rose-950 dark:text-rose-200 font-black"
-                              : isHoliday
-                                ? "text-indigo-950 dark:text-indigo-200 font-black"
-                                : day.status === "HALF_DAY"
-                                  ? "text-amber-950 dark:text-amber-200 font-black"
-                                  : "text-text font-black"
-                        }`}
-                      >
-                        {String(day.dayNumber).padStart(2, "0")}
-                      </span>
+                  {name}
+                </div>
+              ))}
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 divide-x divide-y divide-line">
+              {/* Leading empty cells for days from previous month */}
+              {Array.from({ length: leadingEmptyCount }).map((_, index) => (
+                <div
+                  key={`empty-${index}`}
+                  className="min-h-[110px] bg-canvas/40 p-2 sm:min-h-[125px]"
+                />
+              ))}
+
+              {/* Days in Month */}
+              {data.days.map((day) => {
+                const isSunday = day.isSunday;
+                const isHoliday = day.isHoliday;
+                const isNoShow = day.isNoShow;
+                const isToday = day.isToday;
+                const hasPending = day.hasPendingRequest;
+
+                let cellBg = "bg-card hover:bg-card-hi/40";
+                let borderAccent = "";
+
+                if (isToday) {
+                  cellBg = "bg-indigo-50/40 hover:bg-indigo-50/60 dark:bg-indigo-950/25";
+                  borderAccent = "ring-2 ring-indigo-600 dark:ring-indigo-400 z-10";
+                } else if (isNoShow) {
+                  cellBg = "bg-rose-50/50 hover:bg-rose-50/70 dark:bg-rose-950/25";
+                  borderAccent = "ring-1 ring-inset ring-rose-300 dark:ring-rose-800/60";
+                } else if (day.status === "HALF_DAY") {
+                  cellBg = "bg-amber-50/50 hover:bg-amber-50/70 dark:bg-amber-950/25";
+                  borderAccent = "ring-1 ring-inset ring-amber-300 dark:ring-amber-800/60";
+                } else if (isHoliday) {
+                  cellBg = "bg-indigo-50/50 hover:bg-indigo-50/70 dark:bg-indigo-950/25";
+                  borderAccent = "ring-1 ring-inset ring-indigo-300 dark:ring-indigo-700/60";
+                } else if (isSunday) {
+                  cellBg = "bg-card-hi/30 hover:bg-card-hi/50";
+                } else if (day.status === "PRESENT") {
+                  cellBg = "bg-card hover:bg-card-hi/40";
+                }
+
+                return (
+                  <div
+                    key={day.dateKey}
+                    className={cn(
+                      "relative flex min-h-[116px] sm:min-h-[126px] flex-col justify-between p-2 sm:p-2.5 transition-colors",
+                      cellBg,
+                      borderAccent
                     )}
-
-                    {/* Duration Bracket or Today Badge */}
-                    {day.hoursBracket !== "—" ? (
-                      <span className="rounded-md border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-bold text-text">
-                        {day.hoursBracket}
-                      </span>
-                    ) : isToday ? (
-                      <span className="rounded-md bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs dark:bg-indigo-500">
-                        Today
-                      </span>
-                    ) : isHoliday ? (
-                      <span className="rounded-md border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-900 shadow-2xs dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
-                        Holiday
-                      </span>
-                    ) : isSunday ? (
-                      <span className="rounded-md border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-bold text-muted shadow-2xs">
-                        Sunday
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {/* Middle Row: Campus or Special Status */}
-                  <div className="my-1.5 flex flex-col gap-1">
-                    {isHoliday ? (
-                      <div className="inline-flex items-center gap-1.5 truncate rounded-lg border border-indigo-200 bg-indigo-100/80 px-2.5 py-1 text-xs font-bold text-indigo-950 shadow-xs dark:border-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-100">
-                        <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
-                        <span className="truncate">{day.holidayName || "School Holiday"}</span>
-                      </div>
-                    ) : isSunday ? (
-                      <span className="text-xs font-bold text-muted">
-                        Sunday Off
-                      </span>
-                    ) : !day.isEmployed ? (
-                      <span className="text-xs font-semibold text-muted">
-                        Not Employed
-                      </span>
-                    ) : isToday ? (
-                      <div className="flex items-center gap-1">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
-                          <Clock className="h-2.5 w-2.5 text-indigo-700 dark:text-indigo-400" />
-                          {day.checkIn ? "In Progress" : "Active Today"}
+                  >
+                    {/* Top Row: Day Number + Duration Bracket Badge */}
+                    <div className="flex items-start justify-between gap-1">
+                      {isToday ? (
+                        <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num flex-none">
+                          {String(day.dayNumber).padStart(2, "0")}
                         </span>
-                      </div>
-                    ) : isNoShow ? (
-                      <div className="flex items-center gap-1">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-100 px-2 py-0.5 text-[10.5px] font-bold text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200">
-                          <AlertTriangle className="h-3 w-3 text-rose-700 dark:text-rose-400" />
-                          No Show
+                      ) : (
+                        <span
+                          className={cn(
+                            "num text-sm font-black tracking-tight",
+                            isSunday
+                              ? "text-subtle font-bold"
+                              : isNoShow
+                                ? "text-rose-600 dark:text-rose-400 font-black"
+                                : isHoliday
+                                  ? "text-indigo-900 dark:text-indigo-200 font-black"
+                                  : day.status === "HALF_DAY"
+                                    ? "text-amber-800 dark:text-amber-300 font-black"
+                                    : "text-text font-black"
+                          )}
+                        >
+                          {String(day.dayNumber).padStart(2, "0")}
                         </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-xs font-semibold text-text/80">
-                        <Building className="h-3.5 w-3.5 flex-none text-muted" />
-                        <span className="truncate">Lakhnadon</span>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Pending Request Badge */}
-                    {hasPending && (
-                      <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 shadow-2xs dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
-                        <Clock className="h-2.5 w-2.5 text-amber-700 dark:text-amber-400" />
-                        Request Pending
-                      </span>
-                    )}
-                  </div>
+                      {/* Duration Bracket or Today Badge */}
+                      {day.hoursBracket !== "—" ? (
+                        <span className="rounded border border-line bg-card-hi px-1 py-0.5 text-[9.5px] font-bold text-text whitespace-nowrap">
+                          {day.hoursBracket}
+                        </span>
+                      ) : isToday ? (
+                        <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[9.5px] font-bold text-white shadow-xs dark:bg-indigo-500 whitespace-nowrap">
+                          Today
+                        </span>
+                      ) : null}
+                    </div>
 
-                  {/* Bottom Row: In/Out Times or Regularize Link */}
-                  <div className="mt-auto pt-1">
-                    {isNoShow ? (
-                      <button
-                        type="button"
-                        onClick={() => openRegularizationModal(day)}
-                        className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-900 shadow-2xs hover:bg-rose-100 hover:border-rose-400 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-200 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
-                      >
-                        <PlusCircle className="h-3 w-3 text-rose-700 dark:text-rose-400" />
-                        Request Punch
-                      </button>
-                    ) : isToday ? (
-                      <div className="flex items-center justify-between gap-1">
-                        {day.checkIn ? (
-                          <div className="num text-[11.5px] font-bold text-text">
-                            <span>In: {formatHHmm(day.checkIn)}</span>
-                            <span className="mx-1 text-line">·</span>
-                            <span>Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}</span>
+                    {/* Middle Row: Campus or Special Status */}
+                    <div className="my-1 flex flex-col gap-1 min-w-0">
+                      {isHoliday ? (
+                        <div
+                          title={day.holidayName || "School Holiday"}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200/90 bg-indigo-100/90 px-1.5 py-0.5 text-[10.5px] font-bold text-indigo-950 shadow-2xs dark:border-indigo-800/80 dark:bg-indigo-950/70 dark:text-indigo-200 min-w-0"
+                        >
+                          <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
+                          <span className="truncate">{day.holidayName || "Holiday"}</span>
+                        </div>
+                      ) : isSunday ? (
+                        <span className="text-[11px] font-medium text-subtle">
+                          Sunday Off
+                        </span>
+                      ) : !day.isEmployed ? (
+                        <span className="text-[11px] font-medium text-subtle">
+                          Not Employed
+                        </span>
+                      ) : isNoShow ? (
+                        <div className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-100/80 px-1.5 py-0.5 text-[10px] font-bold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/60 dark:text-rose-300 w-fit">
+                          <AlertTriangle className="size-2.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                          <span>No Show</span>
+                        </div>
+                      ) : null}
+
+                      {/* Pending Request Badge */}
+                      {hasPending && (
+                        <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[9.5px] font-bold text-amber-900 shadow-2xs dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-300 w-fit">
+                          <Clock className="size-2.5 text-amber-700 dark:text-amber-400 shrink-0" />
+                          <span>Request Pending</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: In/Out Times or Regularize Link */}
+                    <div className="mt-auto pt-1 min-w-0">
+                      {isNoShow ? (
+                        <button
+                          type="button"
+                          onClick={() => openRegularizationModal(day)}
+                          className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-1.5 py-1 text-[10.5px] font-bold text-rose-900 shadow-2xs hover:bg-rose-100 hover:border-rose-400 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-200 dark:hover:bg-rose-900/50 transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          <PlusCircle className="size-3 text-rose-700 dark:text-rose-400 shrink-0" />
+                          <span className="truncate">Request Punch</span>
+                        </button>
+                      ) : isToday ? (
+                        day.checkIn ? (
+                          <div className="flex flex-col gap-0.5 text-[10.5px] leading-tight">
+                            <span className="num font-medium text-text whitespace-nowrap">
+                              In: {formatHHmm(day.checkIn)}
+                            </span>
+                            <span className="num font-medium text-muted whitespace-nowrap">
+                              Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}
+                            </span>
                           </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => openRegularizationModal(day)}
-                            className="inline-flex items-center gap-1 rounded-md border border-indigo-300 bg-indigo-50 px-2 py-1 text-[11px] font-bold text-indigo-900 shadow-2xs hover:bg-indigo-100 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-200 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+                            className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-indigo-300 bg-indigo-50 px-1.5 py-1 text-[10.5px] font-bold text-indigo-900 shadow-2xs hover:bg-indigo-100 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-200 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer whitespace-nowrap"
                           >
-                            <PlusCircle className="h-3 w-3 text-indigo-700 dark:text-indigo-400" />
-                            Request Punch
+                            <PlusCircle className="size-3 text-indigo-700 dark:text-indigo-400 shrink-0" />
+                            <span className="truncate">Request Punch</span>
                           </button>
-                        )}
-                      </div>
-                    ) : day.status === "HALF_DAY" ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="num text-[11.5px] font-bold text-text">
-                          {day.checkIn ? (
-                            <span>In: {formatHHmm(day.checkIn)}</span>
-                          ) : (
-                            <span className="font-extrabold text-amber-700 dark:text-amber-400">In: Missing</span>
-                          )}
-                          <span className="mx-1 text-line">·</span>
-                          {day.checkOut ? (
-                            <span>Out: {formatHHmm(day.checkOut)}</span>
-                          ) : (
-                            <span className="font-extrabold text-amber-700 dark:text-amber-400">Out: Missing</span>
+                        )
+                      ) : day.status === "HALF_DAY" ? (
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex flex-col gap-0.5 text-[10.5px] leading-tight">
+                            {day.checkIn ? (
+                              <span className="num font-medium text-text whitespace-nowrap">
+                                In: {formatHHmm(day.checkIn)}
+                              </span>
+                            ) : (
+                              <span className="whitespace-nowrap font-bold text-amber-700 dark:text-amber-400">
+                                In: Missing
+                              </span>
+                            )}
+                            {day.checkOut ? (
+                              <span className="num font-medium text-text whitespace-nowrap">
+                                Out: {formatHHmm(day.checkOut)}
+                              </span>
+                            ) : (
+                              <span className="whitespace-nowrap font-bold text-amber-700 dark:text-amber-400">
+                                Out: Missing
+                              </span>
+                            )}
+                          </div>
+                          {!hasPending && !day.isToday && (
+                            <button
+                              type="button"
+                              onClick={() => openRegularizationModal(day)}
+                              className="w-full inline-flex items-center justify-center gap-1 rounded border border-amber-300 bg-amber-50 px-1 py-0.5 text-[10px] font-bold text-amber-900 shadow-2xs hover:bg-amber-100 hover:border-amber-400 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors cursor-pointer whitespace-nowrap"
+                            >
+                              <PlusCircle className="size-2.5 text-amber-700 dark:text-amber-400 shrink-0" />
+                              <span className="truncate">
+                                {day.checkIn && !day.checkOut
+                                  ? "Request Out Punch"
+                                  : !day.checkIn && day.checkOut
+                                    ? "Request In Punch"
+                                    : "Request Punch"}
+                              </span>
+                            </button>
                           )}
                         </div>
-                        {!hasPending && !day.isToday && (
-                          <button
-                            type="button"
-                            onClick={() => openRegularizationModal(day)}
-                            className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-900 shadow-2xs hover:bg-amber-100 hover:border-amber-400 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
-                          >
-                            <PlusCircle className="h-2.5 w-2.5 text-amber-700 dark:text-amber-400" />
-                            {day.checkIn && !day.checkOut
-                              ? "Request Out Punch"
-                              : !day.checkIn && day.checkOut
-                                ? "Request In Punch"
-                                : "Request Punch"}
-                          </button>
-                        )}
-                      </div>
-                    ) : day.status === "PRESENT" ? (
-                      <div className="num text-[11.5px] font-bold text-text">
-                        <span>In: {day.checkIn ? formatHHmm(day.checkIn) : "—"}</span>
-                        <span className="mx-1 text-line">·</span>
-                        <span>Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}</span>
-                      </div>
-                    ) : (
-                      <div className="text-[11px] text-muted/60 font-mono">—</div>
-                    )}
+                      ) : day.status === "PRESENT" || day.checkIn ? (
+                        <div className="flex flex-col gap-0.5 text-[10.5px] leading-tight">
+                          <span className="num font-medium text-text whitespace-nowrap">
+                            In: {day.checkIn ? formatHHmm(day.checkIn) : "—"}
+                          </span>
+                          <span className="num font-medium text-muted whitespace-nowrap">
+                            Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 

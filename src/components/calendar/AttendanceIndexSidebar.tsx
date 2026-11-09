@@ -105,7 +105,7 @@ export function AttendanceIndexSidebar({
         : "bg-absent";
 
   return (
-    <aside className="flex flex-col gap-5 rounded-2xl border border-line bg-card p-5 lg:w-80 xl:w-96">
+    <aside className="flex flex-col gap-5 rounded-2xl border border-line bg-card p-5 lg:w-72 xl:w-80 flex-none">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-line pb-4">
         <div className="flex items-center gap-2">
