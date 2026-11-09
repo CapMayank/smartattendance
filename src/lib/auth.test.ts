@@ -355,5 +355,11 @@ describe("authOptions credentials authorize & callbacks", () => {
         mustChangePassword: true,
       })
     })
+
+    it("redirect callback returns relative URL directly without prefixing server IP baseUrl", async () => {
+      const redirectCallback = authOptions.callbacks!.redirect!
+      const result = await redirectCallback({ url: "/login", baseUrl: "http://132.145.12.34:3000" })
+      expect(result).toBe("/login")
+    })
   })
 })

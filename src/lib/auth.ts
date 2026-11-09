@@ -187,6 +187,17 @@ export const authOptions: AuthOptions = {
       }
       return token
     },
+    async redirect({ url, baseUrl }) {
+      // Allows relative URLs without prepending baseUrl (prevents IP address redirection)
+      if (url.startsWith("/")) return url
+      try {
+        const parsed = new URL(url)
+        if (parsed.origin === baseUrl) return `${parsed.pathname}${parsed.search}` || "/"
+        return url
+      } catch {
+        return "/login"
+      }
+    },
   },
   pages: {
     signIn: "/login",

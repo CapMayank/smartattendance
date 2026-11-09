@@ -154,7 +154,16 @@ export default function ChangePasswordPage() {
                   Back to dashboard
                 </Button>
               ) : (
-                <Button type="button" variant="secondary" icon={LogOut} onClick={() => signOut({ callbackUrl: "/login" })} className="w-full">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  icon={LogOut}
+                  onClick={async () => {
+                    await signOut({ redirect: false })
+                    window.location.href = "/login"
+                  }}
+                  className="w-full"
+                >
                   Sign out
                 </Button>
               )}

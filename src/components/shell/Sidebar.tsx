@@ -99,7 +99,10 @@ export function Sidebar({
             </button>
             <button
               type="button"
-              onClick={() => signOut()}
+              onClick={async () => {
+                await signOut({ redirect: false });
+                window.location.href = "/login";
+              }}
               className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-muted transition-colors duration-150 hover:bg-card hover:text-absent"
             >
               <LogOut size={16} aria-hidden="true" />
