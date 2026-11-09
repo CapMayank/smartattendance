@@ -455,9 +455,9 @@ export function PunchRequestsClient({
 
                       <p className="text-xs text-subtle">
                         {isMissingOut
-                          ? `Recorded Check-In at ${d.checkIn}. No campus exit registered at facial recognition / attendance terminal.`
+                          ? `Recorded Check-In at ${formatHHmm(d.checkIn || "")}. No campus exit registered at facial recognition / attendance terminal.`
                           : isMissingIn
-                          ? `Recorded Check-Out at ${d.checkOut}. No morning arrival registered at attendance terminal.`
+                          ? `Recorded Check-Out at ${formatHHmm(d.checkOut || "")}. No morning arrival registered at attendance terminal.`
                           : "No terminal punches registered on this scheduled working day."}
                       </p>
                     </div>
@@ -509,7 +509,7 @@ export function PunchRequestsClient({
                     >
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-text">{d.dateKey}</span>
-                        <span>· In: {d.checkIn ?? "Missing"} · Out: {d.checkOut ?? "Missing"}</span>
+                        <span>· In: {d.checkIn ? formatHHmm(d.checkIn) : "Missing"} · Out: {d.checkOut ? formatHHmm(d.checkOut) : "Missing"}</span>
                       </div>
                       <span className="inline-flex items-center gap-1 rounded-full border border-late/30 bg-late/10 px-2 py-0.5 text-[11px] font-medium text-late">
                         <Clock size={11} />
@@ -620,7 +620,7 @@ export function PunchRequestsClient({
                         <td className="py-2.5 pr-4">{statusBadge}</td>
                         <td className="num py-2.5 pr-4">
                           {day.checkIn ? (
-                            <span className="font-medium text-text">{day.checkIn}</span>
+                            <span className="font-medium text-text">{formatHHmm(day.checkIn)}</span>
                           ) : isMissingIn ? (
                             <span className="font-semibold text-amber-600 dark:text-amber-400">Missing</span>
                           ) : (
@@ -629,7 +629,7 @@ export function PunchRequestsClient({
                         </td>
                         <td className="num py-2.5 pr-4">
                           {day.checkOut ? (
-                            <span className="font-medium text-text">{day.checkOut}</span>
+                            <span className="font-medium text-text">{formatHHmm(day.checkOut)}</span>
                           ) : isMissingOut ? (
                             <span className="font-semibold text-amber-600 dark:text-amber-400">Missing</span>
                           ) : (

@@ -133,7 +133,7 @@ export default async function Dashboard({
     formatDateLong(now),
     formatTime(now),
     shift ? `Shift ${formatHHmm(shift.start)}–${formatHHmm(shift.end)}` : null,
-    data.graceLabel ? `Grace till ${data.graceLabel}` : null,
+    data.graceLabel ? `Grace till ${formatHHmm(data.graceLabel)}` : null,
     workingDay ? null : `${data.offDayName} · no attendance expected`,
   ]
     .filter(Boolean)

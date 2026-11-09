@@ -147,7 +147,7 @@ describe("ToSchoolClient Calendar Upgrades", () => {
 
   it("renders contextual Request Out Punch action for half day with missing check-out", () => {
     const html = renderToStaticMarkup(<ToSchoolClient initialData={sampleData} />);
-    expect(html).toContain("In: 09:12");
+    expect(html).toContain("In: 9:12 am");
     expect(html).toContain("Out: Missing");
     expect(html).toContain("Request Out Punch");
   });
@@ -155,7 +155,7 @@ describe("ToSchoolClient Calendar Upgrades", () => {
   it("renders contextual Request In Punch action for half day with missing check-in", () => {
     const html = renderToStaticMarkup(<ToSchoolClient initialData={sampleData} />);
     expect(html).toContain("In: Missing");
-    expect(html).toContain("Out: 16:40");
+    expect(html).toContain("Out: 4:40 pm");
     expect(html).toContain("Request In Punch");
   });
 

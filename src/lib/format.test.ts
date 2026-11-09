@@ -26,13 +26,16 @@ describe("format helpers", () => {
     expect(formatTimeSeconds(new Date("2026-11-06T18:30:00Z"))).toBe("12:00:00 am");
     expect(formatTimeSeconds(new Date("2026-11-06T06:30:00Z"))).toBe("12:00:00 pm");
   });
-  it("formatTimeOpt handles empty and invalid", () => {
+  it("formatTimeOpt handles empty, invalid, and 24h strings", () => {
     expect(formatTimeOpt(null)).toBe("-");
     expect(formatTimeOpt("garbage")).toBe("-");
     expect(formatTimeOpt("2026-11-06T04:00:00Z")).toBe("9:30 am");
+    expect(formatTimeOpt("09:05")).toBe("9:05 am");
+    expect(formatTimeOpt("17:30")).toBe("5:30 pm");
   });
-  it("formats stored HH:mm and dates", () => {
+  it("formats stored HH:mm, HH:mm:ss, and dates", () => {
     expect(formatHHmm("09:55")).toBe("9:55 am");
+    expect(formatHHmm("09:55:00")).toBe("9:55 am");
     expect(formatHHmm("17:00")).toBe("5:00 pm");
     expect(formatHHmm("00:05")).toBe("12:05 am");
     expect(formatDate(new Date("2026-11-05T19:00:00Z"))).toBe("06 Nov 2026");

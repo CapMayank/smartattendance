@@ -332,14 +332,14 @@ export default function ShiftsPage() {
                 <Card key={sg.id} className="space-y-3">
                   <CardHeader title={sg.staffName} />
                   <p className="text-[13px] text-muted">
-                    Usually arrives about <span className="num text-text">{sg.medianIn}</span>{' '}
+                    Usually arrives about <span className="num text-text">{formatHHmm(sg.medianIn)}</span>{' '}
                     (<span className="num">{sg.daysWithinTolerance} of {sg.daysObserved}</span> days within 15 minutes),
                     shift is <span className="num text-text">{fromShift ? `${formatHHmm(fromShift.startTime)}–${formatHHmm(fromShift.endTime)}` : (sg.fromShiftName ?? 'not set')}</span>,
                     late on <span className="num text-text">{sg.lateDays}</span> of <span className="num text-text">{sg.daysObserved}</span> days.
                   </p>
                   <p className="text-[13px] text-text">
                     Proposed: <b>{proposedName}</b>{' '}
-                    <span className="num">{sg.suggestedStart}–{sg.suggestedEnd}</span>
+                    <span className="num">{formatHHmm(sg.suggestedStart)}–{formatHHmm(sg.suggestedEnd)}</span>
                   </p>
                   {!isApprover ? (
                     <>
@@ -460,7 +460,7 @@ export default function ShiftsPage() {
           <div className="max-h-[60vh] space-y-3 overflow-y-auto text-[13px]">
             <p className="text-muted">
               Starts on <span className="num text-text">{review.startDate}</span> with{' '}
-              <span className="num text-text">{review.suggestion.suggestedStart}–{review.suggestion.suggestedEnd}</span>.
+              <span className="num text-text">{formatHHmm(review.suggestion.suggestedStart)}–{formatHHmm(review.suggestion.suggestedEnd)}</span>.
             </p>
             {review.status === 'loading' && <Skeleton className="h-16" />}
             {review.status === 'error' && (

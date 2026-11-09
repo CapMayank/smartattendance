@@ -19,6 +19,7 @@ import type { ToSchoolData, ToSchoolDay } from "@/lib/to-school";
 import { AttendanceIndexSidebar } from "@/components/calendar/AttendanceIndexSidebar";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { formatHHmm } from "@/lib/format";
 
 const REASONS = [
   { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },
@@ -455,9 +456,9 @@ export function ToSchoolClient({
                       <div className="flex items-center justify-between gap-1">
                         {day.checkIn ? (
                           <div className="num text-[11.5px] font-bold text-text">
-                            <span>In: {day.checkIn}</span>
+                            <span>In: {formatHHmm(day.checkIn)}</span>
                             <span className="mx-1 text-line">·</span>
-                            <span>Out: {day.checkOut ?? "—"}</span>
+                            <span>Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}</span>
                           </div>
                         ) : (
                           <button
@@ -474,13 +475,13 @@ export function ToSchoolClient({
                       <div className="flex flex-col gap-1">
                         <div className="num text-[11.5px] font-bold text-text">
                           {day.checkIn ? (
-                            <span>In: {day.checkIn}</span>
+                            <span>In: {formatHHmm(day.checkIn)}</span>
                           ) : (
                             <span className="font-extrabold text-amber-700 dark:text-amber-400">In: Missing</span>
                           )}
                           <span className="mx-1 text-line">·</span>
                           {day.checkOut ? (
-                            <span>Out: {day.checkOut}</span>
+                            <span>Out: {formatHHmm(day.checkOut)}</span>
                           ) : (
                             <span className="font-extrabold text-amber-700 dark:text-amber-400">Out: Missing</span>
                           )}
@@ -502,9 +503,9 @@ export function ToSchoolClient({
                       </div>
                     ) : day.status === "PRESENT" ? (
                       <div className="num text-[11.5px] font-bold text-text">
-                        <span>In: {day.checkIn ?? "—"}</span>
+                        <span>In: {day.checkIn ? formatHHmm(day.checkIn) : "—"}</span>
                         <span className="mx-1 text-line">·</span>
-                        <span>Out: {day.checkOut ?? "—"}</span>
+                        <span>Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}</span>
                       </div>
                     ) : (
                       <div className="text-[11px] text-muted/60 font-mono">—</div>
@@ -594,7 +595,7 @@ export function ToSchoolClient({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-text mb-1">
-                  Expected In Time (HH:MM)
+                  Expected In Time
                 </label>
                 <input
                   type="time"
@@ -606,7 +607,7 @@ export function ToSchoolClient({
               </div>
               <div>
                 <label className="block text-xs font-medium text-text mb-1">
-                  Expected Out Time (HH:MM)
+                  Expected Out Time
                 </label>
                 <input
                   type="time"
@@ -620,7 +621,7 @@ export function ToSchoolClient({
           ) : (
             <div>
               <label className="block text-xs font-medium text-text mb-1">
-                Requested Time (HH:MM)
+                Requested Time
               </label>
               <input
                 type="time"

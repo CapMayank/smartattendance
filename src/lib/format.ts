@@ -2,7 +2,7 @@ export const SCHOOL_TZ = "Asia/Kolkata";
 
 /**
  * en-IN rupees. Default: whole rupees. `paise`: always 2 decimals.
- * `exact`: 0–3 decimals, for unrounded values (matches the old `toLocaleString()` digits).
+ * `exact`: 0-3 decimals, for unrounded values (matches the old `toLocaleString()` digits).
  */
 export function formatINR(amount: number, opts: { paise?: boolean; exact?: boolean } = {}): string {
   const digits = opts.paise ? 2 : 0;
@@ -54,9 +54,20 @@ export function formatTimeSeconds(d: Date): string {
   return to12h(timeSecondsFmt, d);
 }
 
-/** formatTime for an ISO string / Date that may be missing; "-" when empty or invalid. */
+/** Stored 24h "HH:mm" (shift times) or "HH:mm:ss" -> "9:55 am". Returns the input unchanged if it isn't HH:mm. */
+export function formatHHmm(s: string): string {
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s ?? "");
+  if (!m) return s;
+  const h = Number(m[1]);
+  return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h < 12 ? "am" : "pm"}`;
+}
+
+/** formatTime for an ISO string / Date / 24h time string that may be missing; "-" when empty or invalid. */
 export function formatTimeOpt(v?: string | Date | null): string {
   if (!v) return "-";
+  if (typeof v === "string" && /^\d{1,2}:\d{2}(?::\d{2})?$/.test(v)) {
+    return formatHHmm(v);
+  }
   const d = v instanceof Date ? v : new Date(v);
   return Number.isNaN(d.getTime()) ? "-" : formatTime(d);
 }
@@ -66,14 +77,6 @@ const dateShortFmt = new Intl.DateTimeFormat("en-GB", { timeZone: SCHOOL_TZ, day
 /** "06 Nov 2026" in IST */
 export function formatDate(d: Date): string {
   return dateShortFmt.format(d);
-}
-
-/** Stored 24h "HH:mm" (shift times) -> "9:55 am". Returns the input unchanged if it isn't HH:mm. */
-export function formatHHmm(s: string): string {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(s ?? "");
-  if (!m) return s;
-  const h = Number(m[1]);
-  return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h < 12 ? "am" : "pm"}`;
 }
 
 /** "Friday, 6 November 2026" in IST */
