@@ -76,6 +76,8 @@ export function StaffBulkImportModal({ open, onClose, onSuccess }: StaffBulkImpo
       open={open}
       onClose={onClose}
       title="Bulk CSV Onboarding"
+      subtitle="Import multiple staff members with CSV schema validation"
+      size="2xl"
       footer={
         <div className="flex w-full justify-end">
           <Button variant="secondary" onClick={onClose} disabled={uploading}>

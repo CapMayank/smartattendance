@@ -5,16 +5,36 @@ import { X } from "lucide-react";
 import { IconButton } from "./IconButton";
 import { isOwnDialogEvent } from "./dialog-events";
 
+export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
+
+const SIZE_CLASSES: Record<ModalSize, string> = {
+  sm: "w-[min(26rem,calc(100vw-2rem))]",
+  md: "w-[min(34rem,calc(100vw-2rem))]",
+  lg: "w-[min(44rem,calc(100vw-2rem))]",
+  xl: "w-[min(56rem,calc(100vw-2.5rem))]",
+  "2xl": "w-[min(68rem,calc(100vw-3rem))]",
+  "3xl": "w-[min(78rem,calc(100vw-3rem))]",
+  full: "w-[calc(100vw-2rem)] max-w-7xl",
+};
+
 export function Modal({
   open,
   onClose,
   title,
+  subtitle,
+  size = "md",
+  maxHeight = "max-h-[85vh]",
+  headerAction,
   children,
   footer,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
+  size?: ModalSize;
+  maxHeight?: string;
+  headerAction?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }) {
@@ -42,6 +62,8 @@ export function Modal({
     }
   }, [open]);
 
+  const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.md;
+
   return (
     <dialog
       ref={ref}
@@ -64,17 +86,25 @@ export function Modal({
         downOnBackdrop.current = false;
         upOnBackdrop.current = false;
       }}
-      className="ui-dialog m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-card-hi p-0 text-text shadow-overlay"
+      className={`ui-dialog m-auto ${sizeClass} rounded-2xl border border-line bg-card p-0 text-text shadow-overlay transition-all`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-4">
-        <h2 id={titleId} className="text-[15px] font-medium">
-          {title}
-        </h2>
-        <IconButton icon={X} label="Close" className="size-8" onClick={() => ref.current?.close()} />
+      <div className="flex items-center justify-between gap-3 border-b border-line-soft px-6 py-4.5">
+        <div className="min-w-0 flex-1">
+          <h2 id={titleId} className="text-[17px] font-semibold tracking-tight text-text">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {headerAction}
+          <IconButton icon={X} label="Close" className="size-8" onClick={() => ref.current?.close()} />
+        </div>
       </div>
-      <div ref={bodyRef} className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
+      <div ref={bodyRef} className={`overflow-y-auto px-6 py-5 ${maxHeight}`}>{children}</div>
       {footer ? (
-        <div className="flex flex-wrap justify-end gap-2 border-t border-line-soft px-5 py-3">{footer}</div>
+        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-line-soft px-6 py-4">{footer}</div>
       ) : null}
     </dialog>
   );

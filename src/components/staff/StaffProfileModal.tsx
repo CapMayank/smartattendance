@@ -455,6 +455,8 @@ export function StaffProfileModal({
         open={open}
         onClose={onClose}
         title="Teacher &amp; Staff Profile"
+        subtitle={staff ? `${staff.name} · ${staff.employeeCode ? `ID ${staff.employeeCode}` : `Machine #${staff.machineId}`}` : undefined}
+        size="2xl"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
             <Button variant="secondary" onClick={onClose} disabled={saving}>

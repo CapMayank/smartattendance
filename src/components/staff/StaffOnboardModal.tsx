@@ -260,6 +260,8 @@ export function StaffOnboardModal({
       open={open}
       onClose={onClose}
       title="Onboard Staff Member"
+      subtitle="Register new personnel or reactivate a returning teacher"
+      size="xl"
       footer={
         <div className="flex w-full items-center justify-between gap-3">
           <Button variant="secondary" onClick={onClose} disabled={submitting}>

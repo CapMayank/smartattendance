@@ -144,6 +144,8 @@ export function RequestPunchModal({
       open={open}
       onClose={onClose}
       title="Request Missed Punch"
+      subtitle="Submit biometric attendance regularization for administrative review"
+      size="lg"
       footer={
         <div className="flex w-full items-center justify-end gap-3">
           <Button

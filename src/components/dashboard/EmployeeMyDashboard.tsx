@@ -356,6 +356,7 @@ export function EmployeeMyDashboard({
 
       <Modal
         open={selectedSlip !== null}
+        size="lg"
         onClose={() => setSelectedSlip(null)}
         title={
           selectedSlip
