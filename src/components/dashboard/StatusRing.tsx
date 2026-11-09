@@ -1,19 +1,20 @@
 "use client";
 
 import { Cell, Pie, PieChart, Tooltip } from "recharts";
-import { chartTheme, STATUS_HEX } from "@/lib/chart-theme";
+import { useChartTheme } from "@/lib/chart-theme";
 import { turnoutPercent } from "@/lib/dashboard-calc";
 import { cn } from "@/lib/cn";
 
 const SIZE = 168;
 
 export function StatusRing({ onTime, late, absent }: { onTime: number; late: number; absent: number }) {
+  const { chartTheme, statusHex } = useChartTheme();
   const total = onTime + late + absent;
   const pct = turnoutPercent(onTime + late, total);
   const segments = [
-    { key: "present", name: "On time", value: onTime, color: STATUS_HEX.present, tone: "tone-present" },
-    { key: "late", name: "Late", value: late, color: STATUS_HEX.late, tone: "tone-late" },
-    { key: "absent", name: "Absent", value: absent, color: STATUS_HEX.absent, tone: "tone-absent" },
+    { key: "present", name: "On time", value: onTime, color: statusHex.present, tone: "tone-present" },
+    { key: "late", name: "Late", value: late, color: statusHex.late, tone: "tone-late" },
+    { key: "absent", name: "Absent", value: absent, color: statusHex.absent, tone: "tone-absent" },
   ];
   const drawn = segments.filter((s) => s.value > 0);
   const summary =

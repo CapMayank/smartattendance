@@ -1,7 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { barGradient, chartTheme, STATUS_HEX } from "@/lib/chart-theme";
+import { useChartTheme } from "@/lib/chart-theme";
 import { parseHHMM } from "@/lib/dashboard-calc";
 import { formatHHmm } from "@/lib/format";
 
@@ -49,6 +49,7 @@ function slotText(b: Bin | undefined, label: string) {
 }
 
 export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; graceLabel: string | null }) {
+  const { chartTheme, statusHex, barGradient } = useChartTheme();
   const onTime = arrivals.reduce((n, b) => n + b.onTime, 0);
   const late = arrivals.reduce((n, b) => n + b.late, 0);
   const anchor = graceAnchor(arrivals, graceLabel);
@@ -78,10 +79,10 @@ export function ArrivalsChart({ arrivals, graceLabel }: { arrivals: Bin[]; grace
             <ReferenceLine
               x={anchor.x}
               position={anchor.position}
-              stroke={STATUS_HEX.late}
+              stroke={statusHex.late}
               strokeWidth={1.5}
               strokeDasharray="4 4"
-              label={{ value: `Grace ends ${disp(String(graceLabel))}`, position: "insideTopLeft", fill: STATUS_HEX.late, fontSize: 11, offset: 6, dy: -16 }}
+              label={{ value: `Grace ends ${disp(String(graceLabel))}`, position: "insideTopLeft", fill: statusHex.late, fontSize: 11, offset: 6, dy: -16 }}
             />
           ) : null}
         </BarChart>

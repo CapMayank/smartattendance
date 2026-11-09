@@ -1,7 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { barGradient, chartTheme, STATUS_HEX } from "@/lib/chart-theme";
+import { useChartTheme } from "@/lib/chart-theme";
 
 export type TrendDay = {
   date: string;
@@ -13,6 +13,7 @@ export type TrendDay = {
 };
 
 export function TrendChart({ trend, total }: { trend: TrendDay[]; total: number }) {
+  const { chartTheme, statusHex, barGradient } = useChartTheme();
   const byDate = new Map(trend.map((d) => [d.date, d]));
   const avg = trend.length ? Math.round(trend.reduce((n, d) => n + d.onTime + d.late, 0) / trend.length) : 0;
   const summary = `Staff present per working day over the last ${trend.length} working days, average ${avg} of ${total}`;
@@ -44,7 +45,7 @@ export function TrendChart({ trend, total }: { trend: TrendDay[]; total: number 
               <Cell key={d.date} fillOpacity={d.saturday ? 0.45 : 1} />
             ))}
           </Bar>
-          <Bar isAnimationActive={false} dataKey="late" name="Late" stackId="t" fill={STATUS_HEX.late} radius={[5, 5, 0, 0]} maxBarSize={44}>
+          <Bar isAnimationActive={false} dataKey="late" name="Late" stackId="t" fill={statusHex.late} radius={[5, 5, 0, 0]} maxBarSize={44}>
             {trend.map((d) => (
               <Cell key={d.date} fillOpacity={d.saturday ? 0.45 : 0.9} />
             ))}
