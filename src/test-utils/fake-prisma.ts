@@ -23,6 +23,7 @@ export type Fixtures = {
   suggestions?: SuggestionRow[]
   /** Optional; stored punch requests. */
   punchRequests?: PunchRequestRow[]
+  profileChangeRequests?: ProfileChangeRequestRow[]
   /** Optional; stored users. */
   users?: UserRow[]
   /** Optional; stored system settings. */
@@ -112,6 +113,29 @@ export type PunchPhotoRow = {
   createdAt?: Date
 }
 
+export type ProfileChangeRequestRow = {
+  id: string
+  staffId: string
+  status: string
+  requestedData: string
+  currentData?: string | null
+  reason?: string | null
+  decidedByUserId?: string | null
+  decidedAt?: Date | null
+  decisionRemarks?: string | null
+  createdAt?: Date
+  updatedAt?: Date
+  staff?: {
+    id: string
+    name: string
+    employeeCode?: string | null
+    machineId?: string
+    departmentId?: string | null
+    department?: { id: string; name: string } | null
+    designation?: { id: string; name: string } | null
+  } | null
+}
+
 export function createFakePrisma(fixtures: Fixtures): {
   client: unknown
   created: Record<string, unknown>[]
@@ -128,6 +152,7 @@ export function createFakePrisma(fixtures: Fixtures): {
   /** Live punch photo rows (push to seed). */
   punchPhotos: PunchPhotoRow[]
   punchRequests: PunchRequestRow[]
+  profileChangeRequests: ProfileChangeRequestRow[]
   auditLogs: Record<string, unknown>[]
   dailyRecordRows: Record<string, unknown>[]
 } {
@@ -146,6 +171,8 @@ export function createFakePrisma(fixtures: Fixtures): {
   let suggestionSeq = 0
   const punchRequests: PunchRequestRow[] = (fixtures.punchRequests ?? []).map((r) => ({ ...r }))
   let punchRequestSeq = 0
+  const profileChangeRequests: ProfileChangeRequestRow[] = (fixtures.profileChangeRequests ?? []).map((r) => ({ ...r }))
+  let profileChangeRequestSeq = 0
   const dailyRecordRows: Array<{ id?: string; staffId: string; date: Date; status: string; lateMinutes?: number; workMinutes?: number; checkIn?: Date | null; checkOut?: Date | null; overtimeMinutes?: number }> = (fixtures.dailyRecords ?? []).map((r) => ({ ...r }))
   const auditLogs: Record<string, unknown>[] = []
   const shiftRows: { id: string; name: string; startTime: string; endTime: string }[] = (() => {
@@ -209,6 +236,29 @@ const resolvePunchRequest = (
     return {
       ...r,
       staff: s ? { ...s } : null,
+    }
+  }
+
+  const resolveProfileChangeRequest = (
+    r: ProfileChangeRequestRow,
+    include?: { staff?: boolean | { include?: Record<string, boolean>; select?: Record<string, boolean> } }
+  ) => {
+    if (!include?.staff) return { ...r }
+    const s = staffRows.find((x) => x.id === r.staffId)
+    return {
+      ...r,
+      staff: s
+        ? {
+            id: s.id,
+            name: s.name,
+            employeeCode: s.employeeCode ?? null,
+            machineId: s.machineId,
+            departmentId: s.departmentId ?? null,
+            profilePhotoId: s.profilePhotoId ?? null,
+            department: s.departmentId ? deptRows.find((d) => d.id === s.departmentId) ?? null : null,
+            designation: s.designationId ? desigRows.find((d) => d.id === s.designationId) ?? null : null,
+          }
+        : null,
     }
   }
 
@@ -562,6 +612,90 @@ const resolvePunchRequest = (
         return { count: doomed.length }
       },
     },
+    profileChangeRequest: {
+      findMany: async (args?: {
+        where?: Record<string, unknown>
+        orderBy?: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[]
+        include?: { staff?: boolean | Record<string, unknown> }
+        take?: number
+        skip?: number
+      }) => {
+        let rows = profileChangeRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where))
+        if (args?.orderBy) {
+          const order = Array.isArray(args.orderBy) ? args.orderBy[0] : args.orderBy
+          rows = sortBy(rows, order)
+        }
+        if (args?.skip) rows = rows.slice(args.skip)
+        if (args?.take) rows = rows.slice(0, args.take)
+        return rows.map((r) => resolveProfileChangeRequest(r, args?.include))
+      },
+      findUnique: async (args: { where: { id: string }; include?: { staff?: boolean | Record<string, unknown> } }) => {
+        const row = profileChangeRequests.find((r) => r.id === args.where.id)
+        return row ? resolveProfileChangeRequest(row, args?.include) : null
+      },
+      findFirst: async (args?: {
+        where?: Record<string, unknown>
+        orderBy?: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[]
+        include?: { staff?: boolean | Record<string, unknown> }
+      }) => {
+        let rows = profileChangeRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where))
+        if (args?.orderBy) {
+          const order = Array.isArray(args.orderBy) ? args.orderBy[0] : args.orderBy
+          rows = sortBy(rows, order)
+        }
+        const row = rows[0] ?? null
+        return row ? resolveProfileChangeRequest(row, args?.include) : null
+      },
+      count: async (args?: { where?: Record<string, unknown> }) =>
+        profileChangeRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, args?.where)).length,
+      create: async ({
+        data,
+        include,
+      }: {
+        data: Omit<ProfileChangeRequestRow, 'id' | 'status'> & { id?: string; status?: string }
+        include?: { staff?: boolean | Record<string, unknown> }
+      }) => {
+        const now = new Date()
+        const row: ProfileChangeRequestRow = {
+          id: data.id ?? `pcr-${++profileChangeRequestSeq}`,
+          createdAt: now,
+          updatedAt: now,
+          status: data.status ?? 'PENDING',
+          currentData: null,
+          reason: null,
+          decidedByUserId: null,
+          decidedAt: null,
+          decisionRemarks: null,
+          ...data,
+        }
+        profileChangeRequests.push(row)
+        return resolveProfileChangeRequest(row, include)
+      },
+      update: async ({
+        where,
+        data,
+        include,
+      }: {
+        where: { id: string }
+        data: Partial<ProfileChangeRequestRow>
+        include?: { staff?: boolean | Record<string, unknown> }
+      }) => {
+        const row = profileChangeRequests.find((r) => r.id === where.id)
+        if (!row) throw new Error(`profileChangeRequest ${where.id} not found`)
+        Object.assign(row, data, { updatedAt: new Date() })
+        return resolveProfileChangeRequest(row, include)
+      },
+      delete: async ({ where }: { where: { id: string } }) => {
+        const i = profileChangeRequests.findIndex((r) => r.id === where.id)
+        if (i < 0) throw new Error(`profileChangeRequest ${where.id} not found`)
+        return profileChangeRequests.splice(i, 1)[0]
+      },
+      deleteMany: async ({ where }: { where: Record<string, unknown> }) => {
+        const doomed = profileChangeRequests.filter((r) => matchesWhere(r as unknown as Record<string, unknown>, where))
+        for (const r of doomed) profileChangeRequests.splice(profileChangeRequests.indexOf(r), 1)
+        return { count: doomed.length }
+      },
+    },
     systemSetting: {
       findUnique: async (args: { where: { key: string } }) => {
         const st = (fixtures.systemSettings ?? []).find((x) => x.key === args.where.key)
@@ -680,6 +814,9 @@ const resolvePunchRequest = (
         get punchRequest() {
           return client.punchRequest
         },
+        get profileChangeRequest() {
+          return client.profileChangeRequest
+        },
         get attendanceLog() {
           return client.attendanceLog
         },
@@ -694,5 +831,5 @@ const resolvePunchRequest = (
         },
       })
 
-  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests, auditLogs, dailyRecordRows }
+  return { client, created, deleteCalls, assignments, staffUpdates, shiftRows, suggestions, policyWrites, punchPhotos, punchRequests, profileChangeRequests, auditLogs, dailyRecordRows }
 }

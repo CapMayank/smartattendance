@@ -204,6 +204,7 @@ model Staff {
   shiftSuggestions ShiftSuggestion[]
   punchPhotos      PunchPhoto[]      @relation("PunchPhotoOwner")
   punchRequests    PunchRequest[]
+  profileChangeRequests ProfileChangeRequest[]
 }
 
 model AttendanceLog {
@@ -441,4 +442,24 @@ model PunchRequest {
   @@index([staffId, status])
   @@index([date])
   @@index([status])
+}
+
+model ProfileChangeRequest {
+  id              String    @id @default(cuid())
+  staffId         String
+  status          String    @default("PENDING")
+  requestedData   String
+  currentData     String?
+  reason          String?
+  decidedByUserId String?
+  decidedAt       DateTime?
+  decisionRemarks String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  @@index([staffId, status])
+  @@index([status])
+  @@index([createdAt])
 }
