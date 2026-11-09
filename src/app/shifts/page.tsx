@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { Button, Card, CardHeader, EmptyState, Field, IconButton, Input, Modal, PageHeader, SectionLabel, Skeleton } from '@/components/ui'
 import { previewHeadline, transitionRows } from '@/lib/shift-preview-text'
 import type { PreviewSummary } from '@/lib/shift-change'
-import { formatHHmm } from '@/lib/format'
+import { formatDate, formatHHmm } from '@/lib/format'
 
 type Shift = {
   id: string
@@ -459,7 +459,7 @@ export default function ShiftsPage() {
         {review && (
           <div className="max-h-[60vh] space-y-3 overflow-y-auto text-[13px]">
             <p className="text-muted">
-              Starts on <span className="num text-text">{review.startDate}</span> with{' '}
+              Starts on <span className="num text-text">{formatDate(review.startDate)}</span> with{' '}
               <span className="num text-text">{formatHHmm(review.suggestion.suggestedStart)}–{formatHHmm(review.suggestion.suggestedEnd)}</span>.
             </p>
             {review.status === 'loading' && <Skeleton className="h-16" />}

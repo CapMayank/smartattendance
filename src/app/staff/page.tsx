@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { istDateKey } from '@/lib/dashboard-calc'
+import { formatDate } from '@/lib/format'
 import { triggerPhotoCleanup } from '@/lib/photo-cleanup-client'
 import { staffPhotoUrl } from '@/lib/photo-url'
 import {
@@ -558,7 +559,7 @@ export default function StaffPage() {
                               <span className="text-xs text-subtle">{staff.user.email}</span>
                             ) : (
                               <span className="text-xs text-subtle">
-                                {staff.joiningDate ? `Joined ${toInputDate(staff.joiningDate)}` : 'No joining date set'}
+                                {staff.joiningDate ? `Joined ${formatDate(staff.joiningDate)}` : 'No joining date set'}
                               </span>
                             )}
                           </div>

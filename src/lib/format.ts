@@ -72,11 +72,30 @@ export function formatTimeOpt(v?: string | Date | null): string {
   return Number.isNaN(d.getTime()) ? "-" : formatTime(d);
 }
 
-const dateShortFmt = new Intl.DateTimeFormat("en-GB", { timeZone: SCHOOL_TZ, day: "2-digit", month: "short", year: "numeric" });
+const dateShortFmt = new Intl.DateTimeFormat("en-GB", {
+  timeZone: SCHOOL_TZ,
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
 
-/** "06 Nov 2026" in IST */
-export function formatDate(d: Date): string {
-  return dateShortFmt.format(d);
+/** "DD-MM-YYYY" in IST (e.g. "06-11-2026") */
+export function formatDate(d: Date | string | null | undefined): string {
+  if (!d || d === "-") return "-";
+  if (typeof d === "string") {
+    const trimmed = d.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, day] = trimmed.split("-");
+      return `${day}-${m}-${y}`;
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+      return trimmed;
+    }
+  }
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(dateObj.getTime())) return "-";
+  const p = Object.fromEntries(dateShortFmt.formatToParts(dateObj).map((x) => [x.type, x.value]));
+  return `${p.day}-${p.month}-${p.year}`;
 }
 
 /** "Friday, 6 November 2026" in IST */

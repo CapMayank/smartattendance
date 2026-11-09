@@ -342,7 +342,7 @@ export default function MemberAttendancePage() {
                 dailyRecords.map((record) => {
                   const dateObj = new Date(record.date);
                   const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                  const dateStr = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                  const dateStr = formatDate(record.date);
                   const isWeekend = dayName === 'Sun' || dayName === 'Sat';
 
                   return (

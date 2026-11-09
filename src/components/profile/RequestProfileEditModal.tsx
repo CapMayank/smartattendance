@@ -22,6 +22,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDate } from "@/lib/format";
 
 export type ProfileData = {
   id?: string;
@@ -680,19 +681,12 @@ export function RequestProfileEditModal({
                                 : "Request Rejected"}
                           </span>
                           <span className="text-xs text-muted">
-                            Submitted on {new Date(req.createdAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
+                            Submitted on {formatDate(req.createdAt)}
                           </span>
                         </div>
                         {req.decidedAt && (
                           <span className="text-[11px] text-subtle">
-                            Decided {new Date(req.decidedAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                            })}
+                            Decided {formatDate(req.decidedAt)}
                           </span>
                         )}
                       </div>

@@ -38,7 +38,11 @@ describe("format helpers", () => {
     expect(formatHHmm("09:55:00")).toBe("9:55 am");
     expect(formatHHmm("17:00")).toBe("5:00 pm");
     expect(formatHHmm("00:05")).toBe("12:05 am");
-    expect(formatDate(new Date("2026-11-05T19:00:00Z"))).toBe("06 Nov 2026");
+    expect(formatDate(new Date("2026-11-05T19:00:00Z"))).toBe("06-11-2026");
+    expect(formatDate("2026-11-06")).toBe("06-11-2026");
+    expect(formatDate("06-11-2026")).toBe("06-11-2026");
+    expect(formatDate(null)).toBe("-");
+    expect(formatDate("invalid")).toBe("-");
   });
   it("formats long date in IST", () => {
     expect(formatDateLong(new Date("2026-11-05T19:00:00Z"))).toBe("Friday, 6 November 2026");

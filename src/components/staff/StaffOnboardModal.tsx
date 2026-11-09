@@ -20,6 +20,7 @@ import {
   IdCard,
 } from 'lucide-react'
 import { istDateKey } from '@/lib/dashboard-calc'
+import { formatDate } from '@/lib/format'
 import { toast } from 'sonner'
 import { staffPhotoUrl } from '@/lib/photo-url'
 
@@ -155,7 +156,7 @@ export function StaffOnboardModal({
     }
 
     if (lastPeriod?.endDate && rejoinDate <= lastPeriod.endDate) {
-      toast.error(`Rejoining date must be strictly after their exit date (${lastPeriod.endDate})`)
+      toast.error(`Rejoining date must be strictly after their exit date (${formatDate(lastPeriod.endDate)})`)
       return
     }
 
@@ -371,7 +372,7 @@ export function StaffOnboardModal({
                           </span>
                           {s.employmentPeriods?.[0]?.endDate && (
                             <span className="block text-[11px] text-subtle">
-                              Exited {s.employmentPeriods[0].endDate}
+                              Exited {formatDate(s.employmentPeriods[0].endDate)}
                             </span>
                           )}
                         </div>
@@ -402,7 +403,7 @@ export function StaffOnboardModal({
                 {lastPeriod && (
                   <div className="rounded-lg bg-canvas p-2.5 text-xs text-muted">
                     <span className="font-medium text-text">Previous Exit Details:</span> Exited on{' '}
-                    <span className="num font-semibold text-text">{lastPeriod.endDate}</span> ({lastPeriod.exitReason})
+                    <span className="num font-semibold text-text">{formatDate(lastPeriod.endDate)}</span> ({lastPeriod.exitReason})
                     {lastPeriod.notes && <span className="text-subtle"> — {lastPeriod.notes}</span>}
                   </div>
                 )}
@@ -424,7 +425,7 @@ export function StaffOnboardModal({
                   <Field
                     label="New Joining Date"
                     htmlFor="rejoin-date"
-                    helper={`Must be strictly after ${lastPeriod?.endDate ?? 'last exit'}`}
+                    helper={`Must be strictly after ${lastPeriod?.endDate ? formatDate(lastPeriod.endDate) : 'last exit'}`}
                   >
                     <Input
                       id="rejoin-date"

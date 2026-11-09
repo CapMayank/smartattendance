@@ -19,7 +19,7 @@ import type { ToSchoolData, ToSchoolDay } from "@/lib/to-school";
 import { AttendanceIndexSidebar } from "@/components/calendar/AttendanceIndexSidebar";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { formatHHmm } from "@/lib/format";
+import { formatDate, formatHHmm } from "@/lib/format";
 
 const REASONS = [
   { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },
@@ -543,7 +543,7 @@ export function ToSchoolClient({
             <input
               type="text"
               readOnly
-              value={modalDate}
+              value={formatDate(modalDate)}
               className="w-full rounded-lg border border-line bg-card-hi px-3 py-2 text-xs text-text outline-none opacity-80"
             />
           </div>

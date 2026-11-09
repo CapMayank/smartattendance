@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib"
 import type { Prisma } from "@prisma/client"
 import { amountInWords } from "./amount-in-words"
+import { formatDate } from "./format"
 
 export type MonthlyPayrollWithDetails = Prisma.MonthlyPayrollGetPayload<{
   include: {
@@ -192,7 +193,7 @@ export async function generatePayslipPdf(payroll: MonthlyPayrollWithDetails): Pr
     ],
     [
       "Date of Joining:",
-      cleanAscii(joiningDateStr),
+      cleanAscii(formatDate(joiningDateStr)),
       "Bank A/C & IFSC:",
       cleanAscii(bankDisplay),
     ],

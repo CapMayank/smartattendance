@@ -234,7 +234,7 @@ function MonthlyMobileCard({
             <div className="mt-3 rounded-xl border border-line bg-ground p-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-text">
-                  {new Date(`${selectedStr}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
+                  {new Date(`${selectedStr}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long' })}, {formatDate(selectedStr)}
                 </p>
                 <span className={cn('rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-wider', dayKindStyle[selectedKind].cell)}>
                   {dayKindStyle[selectedKind].label ? `${dayKindStyle[selectedKind].label} · ` : ''}{dayKindStyle[selectedKind].name}

@@ -17,7 +17,7 @@ import {
   Modal,
   PageHeader,
 } from "@/components/ui";
-import { formatINR } from "@/lib/format";
+import { formatDate, formatINR } from "@/lib/format";
 import { amountInWords } from "@/lib/amount-in-words";
 import type { MonthlyPayrollWithDetails } from "@/lib/payslip-pdf";
 
@@ -125,7 +125,7 @@ export function SalarySlipModal({ slip, open, onClose }: SalarySlipModalProps) {
           </div>
           <div className="flex justify-between sm:justify-start sm:gap-2">
             <span className="text-subtle">Date of Joining:</span>
-            <span className="num font-semibold text-text">{joiningDateStr}</span>
+            <span className="num font-semibold text-text">{formatDate(joiningDateStr)}</span>
           </div>
           <div className="flex justify-between sm:justify-start sm:gap-2">
             <span className="text-subtle">Pay Group:</span>

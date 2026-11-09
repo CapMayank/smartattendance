@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import Papa from 'papaparse'
 import { istDateKey } from '@/lib/dashboard-calc'
+import { formatDate } from '@/lib/format'
 import { toast } from 'sonner'
 
 type MemberRow = {
@@ -223,7 +224,7 @@ export default function StaffReportsPage() {
         'Department': m.department,
         'Role': m.designation,
         'Pay Group': m.payGroup,
-        'Joining Date': m.joiningDate || '-',
+        'Joining Date': m.joiningDate ? formatDate(m.joiningDate) : '-',
         'Email': m.email || '-',
         'Mobile': m.mobileNumber || '-',
       }))
@@ -232,8 +233,8 @@ export default function StaffReportsPage() {
         'Employee ID': e.employeeCode || '-',
         'Name': e.name,
         'Department': e.department,
-        'Stint Start Date': e.startDate,
-        'Last Working Day': e.endDate,
+        'Stint Start Date': formatDate(e.startDate),
+        'Last Working Day': formatDate(e.endDate),
         'Tenure': formatTenure(e.tenureDays),
         'Exit Reason': e.exitReason,
         'Notes': e.notes || '-',
@@ -241,7 +242,7 @@ export default function StaffReportsPage() {
     } else if (activeTab === 'joinings') {
       csvRows = filteredJoinings.map((j) => ({
         'Year': j.year,
-        'Joining Date': j.date,
+        'Joining Date': formatDate(j.date),
         'Employee ID': j.employeeCode || '-',
         'Name': j.name,
         'Department': j.department,
@@ -443,7 +444,7 @@ export default function StaffReportsPage() {
                           </span>
                         </td>
                         <td>
-                          <span className="num text-xs text-text">{m.joiningDate || '-'}</span>
+                          <span className="num text-xs text-text">{m.joiningDate ? formatDate(m.joiningDate) : '-'}</span>
                         </td>
                         <td>
                           <div className="flex flex-col text-[11px] text-subtle">
@@ -523,7 +524,7 @@ export default function StaffReportsPage() {
                         </td>
                         <td>
                           <span className="num text-xs text-muted">
-                            {e.startDate} → {e.endDate}
+                            {formatDate(e.startDate)} → {formatDate(e.endDate)}
                           </span>
                         </td>
                         <td>
@@ -628,7 +629,7 @@ export default function StaffReportsPage() {
                     filteredJoinings.map((j) => (
                       <tr key={j.id}>
                         <td>
-                          <span className="num font-medium text-text">{j.date}</span>
+                          <span className="num font-medium text-text">{formatDate(j.date)}</span>
                         </td>
                         <td>
                           <span className="num text-xs font-semibold text-acc-1">

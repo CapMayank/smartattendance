@@ -411,12 +411,10 @@ export function PunchRequestsClient({
                 const isNoShow = d.isNoShow;
 
                 const dateObj = new Date(`${d.dateKey}T12:00:00Z`);
-                const formattedDate = dateObj.toLocaleDateString("en-US", {
+                const weekday = dateObj.toLocaleDateString("en-US", {
                   weekday: "short",
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
                 });
+                const formattedDate = `${weekday}, ${formatDate(d.dateKey)}`;
 
                 return (
                   <div
@@ -508,7 +506,7 @@ export function PunchRequestsClient({
                       className="flex items-center justify-between rounded-xl border border-line bg-card/60 p-3 text-xs text-muted"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-text">{d.dateKey}</span>
+                        <span className="font-medium text-text">{formatDate(d.dateKey)}</span>
                         <span>· In: {d.checkIn ? formatHHmm(d.checkIn) : "Missing"} · Out: {d.checkOut ? formatHHmm(d.checkOut) : "Missing"}</span>
                       </div>
                       <span className="inline-flex items-center gap-1 rounded-full border border-late/30 bg-late/10 px-2 py-0.5 text-[11px] font-medium text-late">
@@ -615,7 +613,7 @@ export function PunchRequestsClient({
                     return (
                       <tr key={day.dateKey} className="transition-colors hover:bg-card-hi/40">
                         <td className="py-2.5 pr-4 font-medium text-text">
-                          {day.dateKey}
+                          {formatDate(day.dateKey)}
                         </td>
                         <td className="py-2.5 pr-4">{statusBadge}</td>
                         <td className="num py-2.5 pr-4">
@@ -889,7 +887,7 @@ export function PunchRequestsClient({
                           {formatDate(new Date(p.timestamp))}
                         </td>
                         <td className="py-2.5 pr-4 text-xs text-muted">
-                          {p.dateKey}
+                          {formatDate(p.dateKey)}
                         </td>
                         <td className="num py-2.5 pr-4 text-xs font-semibold text-text">
                           {p.timeStr}

@@ -26,6 +26,7 @@ import {
   Avatar,
   EmptyState,
 } from "@/components/ui";
+import { formatDate } from "@/lib/format";
 
 export interface AdminProfileRequestItem {
   id: string;
@@ -323,11 +324,7 @@ export function ProfileRequestsTab({
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Clock size={12} />
-                            {new Date(req.createdAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
+                            {formatDate(req.createdAt)}
                           </span>
                         </div>
                       </div>

@@ -25,7 +25,7 @@ import {
   SectionLabel,
 } from "@/components/ui";
 import type { EmployeePortalData } from "@/lib/employee-portal";
-import { formatHHmm, formatTime } from "@/lib/format";
+import { formatDate, formatHHmm, formatTime } from "@/lib/format";
 import { amountInWords } from "@/lib/amount-in-words";
 import { staffPhotoUrl } from "@/lib/photo-url";
 import { RequestProfileEditModal } from "@/components/profile/RequestProfileEditModal";
@@ -138,7 +138,7 @@ export function EmployeeMyDashboard({
             </div>
             <div className="rounded-xl border border-line-soft bg-canvas p-3">
               <span className="text-xs text-subtle">Date of Joining</span>
-              <p className="num mt-1 text-[13.5px] font-medium text-text">{profile.joiningDate || "—"}</p>
+              <p className="num mt-1 text-[13.5px] font-medium text-text">{profile.joiningDate ? formatDate(profile.joiningDate) : "—"}</p>
             </div>
             <div className="rounded-xl border border-line-soft bg-canvas p-3">
               <span className="text-xs text-subtle">Registered Email</span>
@@ -150,7 +150,7 @@ export function EmployeeMyDashboard({
         <Card className="min-[1024px]:col-span-5">
           <CardHeader
             title="My Attendance Today"
-            caption={`Date: ${today.dateKey}`}
+            caption={`Date: ${formatDate(today.dateKey)}`}
             action={
               <span
                 className={
@@ -277,7 +277,7 @@ export function EmployeeMyDashboard({
                 <tbody>
                   {monthRecords.map((r) => (
                     <tr key={r.id}>
-                      <td className="num font-medium text-text">{r.dateKey}</td>
+                      <td className="num font-medium text-text">{formatDate(r.dateKey)}</td>
                       <td>
                         <span
                           className={

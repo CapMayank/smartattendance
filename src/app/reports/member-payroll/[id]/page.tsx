@@ -7,7 +7,7 @@ import { Button, EmptyState, IconButton, StatusBadge } from '@/components/ui'
 import { IntimeMark } from '@/components/brand/Brand'
 import { APP_NAME, APP_TAGLINE, SCHOOL_NAME, SCHOOL_PLACE, SCHOOL_SHORT } from '@/lib/brand'
 import { amountInWords } from '@/lib/amount-in-words'
-import { formatINR, SCHOOL_TZ } from '@/lib/format'
+import { formatDate, formatINR, SCHOOL_TZ } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
 type PayrollDetail = {
@@ -101,7 +101,7 @@ export default function PayslipPage() {
   const monthKey = `${payroll.year}-${String(payroll.month).padStart(2, '0')}`
   const isMismatch = systemPresentDays !== payroll.presentDays
   const totalDeductions = (isCash ? 0 : payroll.employeeEpf || 0) + (payroll.refundOfAdvance || 0)
-  const generatedOn = new Intl.DateTimeFormat('en-GB', { timeZone: SCHOOL_TZ, day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
+  const generatedOn = formatDate(new Date())
 
   return (
     <div className="mx-auto max-w-[920px] space-y-4">

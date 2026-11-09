@@ -28,6 +28,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { istDateKey } from '@/lib/dashboard-calc'
+import { formatDate } from '@/lib/format'
 import { previewHeadline, transitionRows } from '@/lib/shift-preview-text'
 import type { PreviewSummary } from '@/lib/shift-change'
 import { staffPhotoUrl } from '@/lib/photo-url'
@@ -900,7 +901,7 @@ export function StaffProfileModal({
                       >
                         <div>
                           <span className="font-medium text-text">
-                            Tenure #{periods.length - idx}: {p.startDate} → {p.endDate ?? 'Present (Active)'}
+                            Tenure #{periods.length - idx}: {formatDate(p.startDate)} → {p.endDate ? formatDate(p.endDate) : 'Present (Active)'}
                           </span>
                           {p.exitReason && (
                             <p className="text-subtle">

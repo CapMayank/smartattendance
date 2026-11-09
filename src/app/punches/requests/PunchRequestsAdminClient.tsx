@@ -30,7 +30,7 @@ import {
   PageHeader,
   EmptyState,
 } from "@/components/ui";
-import { formatHHmm, formatTime } from "@/lib/format";
+import { formatDate, formatHHmm, formatTime } from "@/lib/format";
 
 export interface AdminPunchRequestItem {
   id: string;
@@ -546,7 +546,7 @@ export function PunchRequestsAdminClient({
                       </div>
                       <div className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-text">
                         <CalendarIcon size={14} className="text-muted" />
-                        {req.date}
+                        {formatDate(req.date)}
                       </div>
                     </div>
 
@@ -594,7 +594,7 @@ export function PunchRequestsAdminClient({
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-acc-2 hover:underline"
                     >
                       <Eye size={13} aria-hidden="true" />
-                      <span>Check Biometric Logs for {req.date}</span>
+                      <span>Check Biometric Logs for {formatDate(req.date)}</span>
                       {bioState?.expanded ? (
                         <ChevronUp size={13} aria-hidden="true" />
                       ) : (
@@ -610,7 +610,7 @@ export function PunchRequestsAdminClient({
                           <div className="text-absent">{bioState.error}</div>
                         ) : !bioState.punches || bioState.punches.length === 0 ? (
                           <div className="text-muted">
-                            No biometric punches recorded for this staff on {req.date}.
+                            No biometric punches recorded for this staff on {formatDate(req.date)}.
                           </div>
                         ) : (
                           <div>

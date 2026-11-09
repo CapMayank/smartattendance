@@ -333,7 +333,7 @@ describe("Payslips Page & Salary Slip Viewer", () => {
       expect(html).toContain("101");
       expect(html).toContain("Senior Teacher");
       expect(html).toContain("Mathematics");
-      expect(html).toContain("2024-06-15");
+      expect(html).toContain("15-06-2024");
       expect(html).toContain("Bank / EPF");
       expect(html).toContain("101234567890"); // UAN
       expect(html).toContain("ABCDE1234F"); // PAN
