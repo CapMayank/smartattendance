@@ -320,11 +320,11 @@ export default function CalendarPage() {
           Legend:
         </span>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
           <span>School Holiday</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-500 dark:bg-slate-400" />
           <span>Sunday Off</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -332,7 +332,7 @@ export default function CalendarPage() {
           <span>Today</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-text/40" />
+          <span className="h-2.5 w-2.5 rounded-full bg-muted" />
           <span>Working Day</span>
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function CalendarPage() {
             {WEEKDAY_NAMES.map((name, i) => (
               <div
                 key={name}
-                className={`py-2.5 ${i === 6 ? 'text-slate-400' : ''}`}
+                className={`py-2.5 ${i === 6 ? 'text-slate-700 dark:text-slate-400 font-bold' : ''}`}
               >
                 {name}
               </div>
@@ -367,13 +367,13 @@ export default function CalendarPage() {
               if (!isCurrentMonth) {
                 cellBg = 'bg-canvas/30 opacity-40'
               } else if (holiday) {
-                cellBg = 'bg-indigo-950/20 hover:bg-indigo-950/30'
-                borderAccent = 'ring-1 ring-indigo-500/50'
+                cellBg = 'bg-indigo-50/70 hover:bg-indigo-100/60 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/30'
+                borderAccent = 'ring-1 ring-indigo-400/50 dark:ring-indigo-500/50'
               } else if (isTodayDate) {
                 cellBg = 'bg-acc-2/10 hover:bg-acc-2/15'
                 borderAccent = 'ring-1 ring-acc-2/60'
               } else if (isSundayDate) {
-                cellBg = 'bg-slate-900/25'
+                cellBg = 'bg-slate-100/60 dark:bg-slate-900/25'
               }
 
               return (
@@ -400,9 +400,9 @@ export default function CalendarPage() {
                         isTodayDate
                           ? 'text-acc-1'
                           : holiday
-                            ? 'text-indigo-300'
+                            ? 'text-indigo-800 dark:text-indigo-300'
                             : isSundayDate
-                              ? 'text-slate-400'
+                              ? 'text-slate-700 dark:text-slate-400 font-semibold'
                               : 'text-text'
                       )}
                     >
@@ -411,7 +411,7 @@ export default function CalendarPage() {
 
                     {/* Status Pill Badge */}
                     {holiday ? (
-                      <span className="rounded border border-indigo-500/40 bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300">
+                      <span className="rounded border border-indigo-200 bg-indigo-100/80 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/20 dark:text-indigo-300">
                         Holiday
                       </span>
                     ) : isTodayDate ? (
@@ -419,7 +419,7 @@ export default function CalendarPage() {
                         Today
                       </span>
                     ) : isSundayDate ? (
-                      <span className="rounded border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                      <span className="rounded border border-line bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                         Sunday
                       </span>
                     ) : null}
@@ -428,7 +428,7 @@ export default function CalendarPage() {
                   {/* Middle Content */}
                   <div className="my-2 flex flex-col gap-1">
                     {holiday ? (
-                      <div className="flex items-center justify-between gap-1 rounded border border-indigo-500/30 bg-indigo-500/15 px-2 py-1 text-xs font-semibold text-indigo-200 shadow-sm">
+                      <div className="flex items-center justify-between gap-1 rounded border border-indigo-200 bg-indigo-100/90 px-2 py-1 text-xs font-semibold text-indigo-900 shadow-sm dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-200">
                         <span className="truncate">{holiday.name}</span>
                         <button
                           type="button"
@@ -436,7 +436,7 @@ export default function CalendarPage() {
                             e.stopPropagation()
                             handleDelete(holiday.id, holiday.name)
                           }}
-                          className="shrink-0 rounded p-1 text-indigo-300 opacity-80 hover:bg-rose-500/20 hover:text-rose-300 transition-colors"
+                          className="shrink-0 rounded p-1 text-indigo-700 opacity-80 hover:bg-rose-500/20 hover:text-rose-600 dark:text-indigo-300 dark:hover:text-rose-300 transition-colors"
                           title={`Delete holiday: ${holiday.name}`}
                           aria-label={`Delete ${holiday.name}`}
                         >
@@ -444,7 +444,7 @@ export default function CalendarPage() {
                         </button>
                       </div>
                     ) : isSundayDate ? (
-                      <span className="text-[11px] font-medium text-slate-400">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
                         Sunday Off
                       </span>
                     ) : isCurrentMonth ? (
@@ -498,23 +498,23 @@ export default function CalendarPage() {
                 </b>
               </div>
 
-              <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3">
-                <span className="text-[11px] font-medium text-indigo-300">School Holidays</span>
-                <b className="num mt-1 block text-lg font-bold text-indigo-300">
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+                <span className="text-[11px] font-medium text-indigo-800 dark:text-indigo-300">School Holidays</span>
+                <b className="num mt-1 block text-lg font-bold text-indigo-700 dark:text-indigo-300">
                   {holidaysCount}
                 </b>
               </div>
 
               <div className="rounded-xl border border-line bg-card-hi p-3">
                 <span className="text-[11px] font-medium text-subtle">Sundays</span>
-                <b className="num mt-1 block text-lg font-bold text-slate-400">
+                <b className="num mt-1 block text-lg font-bold text-slate-700 dark:text-slate-400">
                   {sundaysCount}
                 </b>
               </div>
 
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-                <span className="text-[11px] font-medium text-emerald-400">Net Working Days</span>
-                <b className="num mt-1 block text-lg font-bold text-emerald-400">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                <span className="text-[11px] font-medium text-emerald-800 dark:text-emerald-400">Net Working Days</span>
+                <b className="num mt-1 block text-lg font-bold text-emerald-700 dark:text-emerald-400">
                   {netWorkingDays}
                 </b>
               </div>
@@ -565,7 +565,7 @@ export default function CalendarPage() {
                       className="flex items-center justify-between py-2.5 transition-colors hover:bg-canvas/30 px-1 rounded-lg"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-9 flex-none flex-col items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300">
+                        <div className="flex size-9 flex-none flex-col items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
                           <span className="num text-xs font-bold leading-none">
                             {format(d, 'dd')}
                           </span>
@@ -586,7 +586,7 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         onClick={() => handleDelete(h.id, h.name)}
-                        className="rounded-lg p-1.5 text-subtle hover:bg-rose-500/15 hover:text-rose-400 transition-colors"
+                        className="rounded-lg p-1.5 text-subtle hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                         title="Delete holiday"
                         aria-label={`Delete ${h.name}`}
                       >
@@ -609,7 +609,7 @@ export default function CalendarPage() {
       >
         <form onSubmit={handleSaveHoliday} className="space-y-4">
           {errorMessage && (
-            <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
               {errorMessage}
             </div>
           )}
@@ -695,7 +695,7 @@ export default function CalendarPage() {
               </div>
 
               {rangeDurationDays > 0 && (
-                <div className="flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-2 text-xs text-indigo-300">
+                <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
                   <span>Selected Range Duration:</span>
                   <b className="num font-bold">{rangeDurationDays} Days</b>
                 </div>

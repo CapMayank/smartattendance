@@ -53,7 +53,7 @@ export default async function PayslipsPage({
                 subtitle="Monthly salary statements and detailed breakdown."
               />
               <Card className="mt-6 p-8 text-center">
-                <p className="text-sm font-medium text-rose-400">
+                <p className="text-sm font-medium text-rose-600 dark:text-rose-400">
                   Forbidden: You do not have permission to view salary slips for staff members outside your assigned departments.
                 </p>
                 <div className="mt-4">

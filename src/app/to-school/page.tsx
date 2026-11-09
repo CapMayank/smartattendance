@@ -52,7 +52,7 @@ export default async function ToSchoolPage({
                 subtitle="View monthly attendance calendar and compliance index."
               />
               <Card className="mt-6 p-8 text-center">
-                <p className="text-sm font-medium text-rose-400">
+                <p className="text-sm font-medium text-rose-600 dark:text-rose-400">
                   Forbidden: You do not have permission to view attendance records for staff members outside your assigned departments.
                 </p>
                 <div className="mt-4">

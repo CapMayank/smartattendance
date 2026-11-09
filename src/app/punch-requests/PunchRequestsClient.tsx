@@ -377,14 +377,14 @@ export function PunchRequestsClient({
       {activeTab === "action-needed" && (
         <div className="space-y-4">
           {actionNeededDiscrepancies.length > 0 && (
-            <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200">
-              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
-                <p className="font-semibold text-amber-100">
+                <p className="font-semibold text-amber-950 dark:text-amber-100">
                   {actionNeededDiscrepancies.length} attendance{" "}
                   {actionNeededDiscrepancies.length === 1 ? "discrepancy" : "discrepancies"} detected for {monthLabel}
                 </p>
-                <p className="mt-0.5 text-amber-200/90 text-[12px]">
+                <p className="mt-0.5 text-amber-900/90 dark:text-amber-200/90 text-[12px]">
                   Missing check-ins or check-outs impact your recorded duration and penalize attendance as a Half Day or Absent. Submit a regularization request below to fix them.
                 </p>
               </div>
@@ -429,17 +429,17 @@ export function PunchRequestsClient({
                           {formattedDate}
                         </span>
                         {isMissingOut ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300">
                             <LogOut size={12} />
                             Missing Check-Out
                           </span>
                         ) : isMissingIn ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300">
                             <LogIn size={12} />
                             Missing Check-In
                           </span>
                         ) : isNoShow ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-rose-300">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300">
                             <AlertCircle size={12} />
                             No Attendance Recorded
                           </span>
@@ -447,7 +447,7 @@ export function PunchRequestsClient({
 
                         <span className="text-[11px] text-muted">
                           Impact:{" "}
-                          <strong className={isNoShow ? "text-rose-400" : "text-amber-400"}>
+                          <strong className={isNoShow ? "text-rose-600 dark:text-rose-400" : "text-amber-700 dark:text-amber-400"}>
                             {d.status === "HALF_DAY" ? "Recorded as Half Day" : "Recorded as Absent"}
                           </strong>
                         </span>
@@ -600,13 +600,13 @@ export function PunchRequestsClient({
                       );
                     } else if (isHoliday) {
                       statusBadge = (
-                        <span className="inline-flex rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[11px] font-medium text-indigo-300">
+                        <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
                           {day.holidayName || "Holiday"}
                         </span>
                       );
                     } else if (isSunday) {
                       statusBadge = (
-                        <span className="inline-flex rounded-md border border-line bg-card-hi px-2 py-0.5 text-[11px] text-slate-400">
+                        <span className="inline-flex rounded-md border border-line bg-card-hi px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-400">
                           Sunday Off
                         </span>
                       );
@@ -622,7 +622,7 @@ export function PunchRequestsClient({
                           {day.checkIn ? (
                             <span className="font-medium text-text">{day.checkIn}</span>
                           ) : isMissingIn ? (
-                            <span className="font-semibold text-amber-400">Missing</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">Missing</span>
                           ) : (
                             <span className="text-subtle">—</span>
                           )}
@@ -631,7 +631,7 @@ export function PunchRequestsClient({
                           {day.checkOut ? (
                             <span className="font-medium text-text">{day.checkOut}</span>
                           ) : isMissingOut ? (
-                            <span className="font-semibold text-amber-400">Missing</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">Missing</span>
                           ) : (
                             <span className="text-subtle">—</span>
                           )}

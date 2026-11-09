@@ -30,11 +30,11 @@ html.light {
   --color-canvas: #F8FAFC;
   --color-card: #FFFFFF;
   --color-card-hi: #F1F4F9;
-  --color-line: #E2E8F0;
-  --color-line-soft: #EDF2F7;
-  --color-text: #0F172A;
-  --color-muted: #475569;
-  --color-subtle: #64748B;
+  --color-line: #D8DFE9;
+  --color-line-soft: #E5EAF2;
+  --color-text: #090D16;
+  --color-muted: #3B4758;
+  --color-subtle: #53647B;
   --color-acc-1: #4338CA;
   --color-acc-2: #4F46E5;
   --color-acc-3: #6366F1;

@@ -243,16 +243,16 @@ export function ToSchoolClient({
 
       {/* Discrepancy Banner */}
       {discrepancyCount > 0 && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs">
-          <div className="flex items-center gap-2.5 text-amber-200">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10 p-4 text-xs">
+          <div className="flex items-center gap-2.5 text-amber-900 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>
               You have <strong>{discrepancyCount}</strong> attendance {discrepancyCount === 1 ? "discrepancy" : "discrepancies"} needing regularization for {data.monthLabel} (missed terminal check-in, check-out, or no attendance recorded).
             </span>
           </div>
           <Link
             href={`/punch-requests?month=${selectedMonth}&year=${selectedYear}`}
-            className="inline-flex items-center gap-1 rounded-lg bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-200 hover:bg-amber-500/30 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 dark:bg-amber-500/20 dark:border-amber-500/40 dark:text-amber-200 px-3 py-1.5 font-semibold hover:bg-amber-200 dark:hover:bg-amber-500/30 transition-colors"
           >
             <span>Review in Regularization Center</span>
             <ChevronRight className="h-3.5 w-3.5" />
@@ -274,11 +274,11 @@ export function ToSchoolClient({
           <span>Half Day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
           <span>Branch Holiday</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-500 dark:bg-slate-400" />
           <span>Sunday Off</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -296,7 +296,7 @@ export function ToSchoolClient({
             {WEEKDAY_NAMES.map((name, i) => (
               <div
                 key={name}
-                className={`py-2.5 ${i === 6 ? "text-slate-400" : ""}`}
+                className={`py-2.5 ${i === 6 ? "text-slate-700 dark:text-slate-400 font-bold" : ""}`}
               >
                 {name}
               </div>
@@ -325,19 +325,19 @@ export function ToSchoolClient({
               let borderAccent = "";
 
               if (isNoShow) {
-                cellBg = "bg-rose-950/20";
-                borderAccent = "ring-1 ring-rose-500/50 border-rose-500/50";
+                cellBg = "bg-rose-50/70 dark:bg-rose-950/20";
+                borderAccent = "ring-1 ring-rose-400/50 dark:ring-rose-500/50 border-rose-200 dark:border-rose-500/50";
               } else if (isToday) {
                 cellBg = "bg-acc-2/10 hover:bg-acc-2/15";
                 borderAccent = "ring-1 ring-acc-2/60 border-acc-2/60";
               } else if (day.status === "PRESENT") {
                 cellBg = "bg-card";
               } else if (day.status === "HALF_DAY") {
-                cellBg = "bg-amber-950/10";
+                cellBg = "bg-amber-50/70 dark:bg-amber-950/10";
               } else if (isHoliday) {
-                cellBg = "bg-indigo-950/15";
+                cellBg = "bg-indigo-50/70 dark:bg-indigo-950/15";
               } else if (isSunday) {
-                cellBg = "bg-slate-900/30";
+                cellBg = "bg-slate-100/60 dark:bg-slate-900/30";
               }
 
               return (
@@ -350,9 +350,9 @@ export function ToSchoolClient({
                     <span
                       className={`num text-sm font-bold tracking-tight ${
                         isSunday
-                          ? "text-slate-400"
+                          ? "text-slate-600 dark:text-slate-400"
                           : isNoShow
-                            ? "text-rose-400"
+                            ? "text-rose-600 dark:text-rose-400"
                             : isToday
                               ? "text-acc-1"
                               : "text-text"
@@ -376,11 +376,11 @@ export function ToSchoolClient({
                   {/* Middle Row: Campus or Special Status */}
                   <div className="my-1.5 flex flex-col gap-1">
                     {isHoliday ? (
-                      <div className="inline-block truncate rounded border border-indigo-500/30 bg-indigo-500/10 px-1.5 py-0.5 text-[11px] font-medium text-indigo-300">
+                      <div className="inline-block truncate rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
                         {day.holidayName || "School Holiday"}
                       </div>
                     ) : isSunday ? (
-                      <span className="text-[11px] font-medium text-slate-400">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
                         Sunday Off
                       </span>
                     ) : !day.isEmployed ? (
@@ -396,7 +396,7 @@ export function ToSchoolClient({
                       </div>
                     ) : isNoShow ? (
                       <div className="flex items-center gap-1">
-                        <span className="inline-flex items-center gap-1 rounded border border-rose-500/40 bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+                        <span className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-300">
                           <AlertTriangle className="h-2.5 w-2.5" />
                           No Show
                         </span>
@@ -453,13 +453,13 @@ export function ToSchoolClient({
                           {day.checkIn ? (
                             <span>In: {day.checkIn}</span>
                           ) : (
-                            <span className="font-medium text-amber-400">In: Missing</span>
+                            <span className="font-medium text-amber-600 dark:text-amber-400">In: Missing</span>
                           )}
                           <span className="mx-1 text-line">·</span>
                           {day.checkOut ? (
                             <span>Out: {day.checkOut}</span>
                           ) : (
-                            <span className="font-medium text-amber-400">Out: Missing</span>
+                            <span className="font-medium text-amber-600 dark:text-amber-400">Out: Missing</span>
                           )}
                         </div>
                         {!hasPending && !day.isToday && (
