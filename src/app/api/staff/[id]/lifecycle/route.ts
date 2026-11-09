@@ -114,13 +114,26 @@ export async function POST(
     }
 
     if (action === 'REJOIN') {
-      const { joiningDate, departmentId, designationId, shiftId, payGroup } = body;
+      const { joiningDate, departmentId, designationId, shiftId, payGroup, machineId } = body;
 
       if (!isValidDateKey(joiningDate)) {
         return NextResponse.json(
           { error: 'joiningDate must be a valid YYYY-MM-DD date' },
           { status: 400 }
         );
+      }
+
+      if (machineId !== undefined && String(machineId).trim() && String(machineId).trim() !== staff.machineId) {
+        const trimmedMachineId = String(machineId).trim();
+        const existingStaffWithMachine = await prisma.staff.findUnique({
+          where: { machineId: trimmedMachineId },
+        });
+        if (existingStaffWithMachine && existingStaffWithMachine.id !== staff.id) {
+          return NextResponse.json(
+            { error: 'Machine ID is already in use by another staff member' },
+            { status: 409 }
+          );
+        }
       }
 
       const activePeriod = staff.employmentPeriods.find((p) => p.endDate === null);
@@ -163,6 +176,9 @@ export async function POST(
         if (departmentId !== undefined) staffUpdateData.departmentId = departmentId || null;
         if (designationId !== undefined) staffUpdateData.designationId = designationId || null;
         if (shiftId !== undefined) staffUpdateData.shiftId = shiftId || null;
+        if (machineId !== undefined && String(machineId).trim() && String(machineId).trim() !== staff.machineId) {
+          staffUpdateData.machineId = String(machineId).trim();
+        }
 
         const updatedStaff = Object.keys(staffUpdateData).length > 0
           ? await tx.staff.update({

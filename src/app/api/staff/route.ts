@@ -55,6 +55,22 @@ export async function GET() {
       payrollInfo: {
         select: {
           payGroup: true,
+          monthlyCtc: true,
+          bankAccount: true,
+          ifsc: true,
+          nameAsPerBank: true,
+          uan: true,
+          nameOnUan: true,
+          pan: true,
+          aadhaar: true,
+          dob: true,
+          gender: true,
+          fatherHusbandName: true,
+          relationship: true,
+          mobileNumber: true,
+          email: true,
+          nationality: true,
+          qualification: true,
         },
       },
       employmentPeriods: {
@@ -95,6 +111,19 @@ export async function POST(request: Request) {
       email,
       approvesAllDepartments,
       approverDepartmentIds,
+      mobileNumber,
+      gender,
+      dob,
+      fatherHusbandName,
+      relationship,
+      qualification,
+      nationality,
+      bankAccount,
+      ifsc,
+      nameAsPerBank,
+      pan,
+      aadhaar,
+      uan,
     } = data
 
     if (!name || !machineId || !joiningDate) {
@@ -172,6 +201,20 @@ export async function POST(request: Request) {
         data: {
           staffId: staff.id,
           payGroup: payGroup === 'CASH' ? 'CASH' : 'BANK_EPF',
+          ...(mobileNumber !== undefined ? { mobileNumber: mobileNumber ? String(mobileNumber).trim() : null } : {}),
+          ...(gender !== undefined ? { gender: gender ? String(gender).trim() : null } : {}),
+          ...(dob ? { dob: new Date(dob) } : {}),
+          ...(fatherHusbandName !== undefined ? { fatherHusbandName: fatherHusbandName ? String(fatherHusbandName).trim() : null } : {}),
+          ...(relationship !== undefined ? { relationship: relationship ? String(relationship).trim() : null } : {}),
+          ...(qualification !== undefined ? { qualification: qualification ? String(qualification).trim() : null } : {}),
+          ...(nationality !== undefined ? { nationality: nationality ? String(nationality).trim() : null } : {}),
+          ...(bankAccount !== undefined ? { bankAccount: bankAccount ? String(bankAccount).trim() : null } : {}),
+          ...(ifsc !== undefined ? { ifsc: ifsc ? String(ifsc).trim().toUpperCase() : null } : {}),
+          ...(nameAsPerBank !== undefined ? { nameAsPerBank: nameAsPerBank ? String(nameAsPerBank).trim() : null } : {}),
+          ...(pan !== undefined ? { pan: pan ? String(pan).trim().toUpperCase() : null } : {}),
+          ...(aadhaar !== undefined ? { aadhaar: aadhaar ? String(aadhaar).trim() : null } : {}),
+          ...(uan !== undefined ? { uan: uan ? String(uan).trim() : null } : {}),
+          ...(normalizedEmail ? { email: normalizedEmail } : {}),
         },
       })
 
@@ -426,24 +469,62 @@ export async function PUT(request: Request) {
       data: staffUpdateFields,
     })
 
-    // Optional onboarding / access / payGroup updates when provided from unified Staff & Access modal
-    if (updateData.payGroup && (updateData.payGroup === 'BANK_EPF' || updateData.payGroup === 'CASH')) {
-      if (prisma.staffPayrollInfo?.upsert) {
-        const existingPayrollInfo = prisma.staffPayrollInfo.findUnique
-          ? await prisma.staffPayrollInfo.findUnique({ where: { staffId: id } })
-          : null
+    // Optional onboarding / access / payGroup / KYC updates when provided from unified Staff & Access modal
+    const hasPayrollOrKyc =
+      updateData.payGroup !== undefined ||
+      updateData.mobileNumber !== undefined ||
+      updateData.gender !== undefined ||
+      updateData.dob !== undefined ||
+      updateData.fatherHusbandName !== undefined ||
+      updateData.relationship !== undefined ||
+      updateData.qualification !== undefined ||
+      updateData.nationality !== undefined ||
+      updateData.bankAccount !== undefined ||
+      updateData.ifsc !== undefined ||
+      updateData.nameAsPerBank !== undefined ||
+      updateData.pan !== undefined ||
+      updateData.aadhaar !== undefined ||
+      updateData.uan !== undefined
 
-        const updatedPayrollInfo = await prisma.staffPayrollInfo.upsert({
-          where: { staffId: id },
-          update: { payGroup: updateData.payGroup },
-          create: { staffId: id, payGroup: updateData.payGroup },
-        })
+    if (hasPayrollOrKyc && prisma.staffPayrollInfo?.upsert) {
+      const payrollUpdateData: Record<string, unknown> = {}
+      if (updateData.payGroup && (updateData.payGroup === 'BANK_EPF' || updateData.payGroup === 'CASH')) {
+        payrollUpdateData.payGroup = updateData.payGroup
+      }
+      if (updateData.mobileNumber !== undefined) payrollUpdateData.mobileNumber = updateData.mobileNumber ? String(updateData.mobileNumber).trim() : null
+      if (updateData.gender !== undefined) payrollUpdateData.gender = updateData.gender ? String(updateData.gender).trim() : null
+      if (updateData.dob !== undefined) payrollUpdateData.dob = updateData.dob ? new Date(updateData.dob) : null
+      if (updateData.fatherHusbandName !== undefined) payrollUpdateData.fatherHusbandName = updateData.fatherHusbandName ? String(updateData.fatherHusbandName).trim() : null
+      if (updateData.relationship !== undefined) payrollUpdateData.relationship = updateData.relationship ? String(updateData.relationship).trim() : null
+      if (updateData.qualification !== undefined) payrollUpdateData.qualification = updateData.qualification ? String(updateData.qualification).trim() : null
+      if (updateData.nationality !== undefined) payrollUpdateData.nationality = updateData.nationality ? String(updateData.nationality).trim() : null
+      if (updateData.bankAccount !== undefined) payrollUpdateData.bankAccount = updateData.bankAccount ? String(updateData.bankAccount).trim() : null
+      if (updateData.ifsc !== undefined) payrollUpdateData.ifsc = updateData.ifsc ? String(updateData.ifsc).trim().toUpperCase() : null
+      if (updateData.nameAsPerBank !== undefined) payrollUpdateData.nameAsPerBank = updateData.nameAsPerBank ? String(updateData.nameAsPerBank).trim() : null
+      if (updateData.pan !== undefined) payrollUpdateData.pan = updateData.pan ? String(updateData.pan).trim().toUpperCase() : null
+      if (updateData.aadhaar !== undefined) payrollUpdateData.aadhaar = updateData.aadhaar ? String(updateData.aadhaar).trim() : null
+      if (updateData.uan !== undefined) payrollUpdateData.uan = updateData.uan ? String(updateData.uan).trim() : null
 
-        if (
-          existingPayrollInfo &&
-          existingPayrollInfo.payGroup !== updateData.payGroup &&
-          prisma.payGroupChange?.create
-        ) {
+      const existingPayrollInfo = prisma.staffPayrollInfo.findUnique
+        ? await prisma.staffPayrollInfo.findUnique({ where: { staffId: id } })
+        : null
+
+      const updatedPayrollInfo = await prisma.staffPayrollInfo.upsert({
+        where: { staffId: id },
+        update: payrollUpdateData,
+        create: {
+          staffId: id,
+          payGroup: updateData.payGroup || 'BANK_EPF',
+          ...payrollUpdateData,
+        },
+      })
+
+      if (
+        updateData.payGroup &&
+        existingPayrollInfo &&
+        existingPayrollInfo.payGroup !== updateData.payGroup &&
+        prisma.payGroupChange?.create
+      ) {
           const currentMonthKey = istDateKey(new Date()).slice(0, 7)
           await prisma.payGroupChange.create({
             data: {
@@ -486,7 +567,6 @@ export async function PUT(request: Request) {
           }
         }
       }
-    }
 
     if (updatedJoiningDate && prisma.employmentPeriod?.findFirst) {
       const existingPeriod = await prisma.employmentPeriod.findFirst({ where: { staffId: id } })

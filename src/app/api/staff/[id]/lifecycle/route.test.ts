@@ -357,6 +357,58 @@ describe("POST /api/staff/[id]/lifecycle", () => {
         }),
       });
     });
+
+    it("returns 409 when new machineId on REJOIN collides with another staff", async () => {
+      mockPrisma.staff.findUnique.mockImplementation(async ({ where }: any) => {
+        if (where?.id === "s1") {
+          return {
+            id: "s1",
+            machineId: "101",
+            name: "Bob",
+            employmentPeriods: [{ id: "ep1", startDate: "2024-01-01", endDate: "2024-12-31" }],
+            user: null,
+          };
+        }
+        if (where?.machineId === "999") {
+          return { id: "s-other", machineId: "999", name: "Other" };
+        }
+        return null;
+      });
+
+      const res = await createRequest("s1", {
+        action: "REJOIN",
+        joiningDate: "2026-06-01",
+        machineId: "999",
+      });
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toMatch(/machine id is already in use/i);
+    });
+
+    it("updates machineId on REJOIN when a new machineId is provided without collision", async () => {
+      mockPrisma.staff.findUnique.mockImplementation(async ({ where }: any) => {
+        if (where?.id === "s1") {
+          return {
+            id: "s1",
+            machineId: "101",
+            name: "Bob",
+            employmentPeriods: [{ id: "ep1", startDate: "2024-01-01", endDate: "2024-12-31" }],
+            user: null,
+          };
+        }
+        return null;
+      });
+
+      const res = await createRequest("s1", {
+        action: "REJOIN",
+        joiningDate: "2026-06-01",
+        machineId: "108",
+      });
+      expect(res.status).toBe(200);
+      expect(mockPrisma.staff.update).toHaveBeenCalledWith({
+        where: { id: "s1" },
+        data: expect.objectContaining({ machineId: "108" }),
+      });
+    });
   });
 
   describe("action: RESET_PASSWORD", () => {

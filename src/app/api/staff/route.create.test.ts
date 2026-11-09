@@ -208,4 +208,54 @@ describe("POST /api/staff creation flow", () => {
       }),
     });
   });
+
+  it("persists KYC and statutory details into staffPayrollInfo when provided", async () => {
+    mockPrisma.staff.findUnique.mockResolvedValue(null);
+    mockPrisma.staff.findMany.mockResolvedValue([]);
+    mockPrisma.staff.create.mockResolvedValue({
+      id: "s-kyc",
+      name: "Bob Sharma",
+      machineId: "105",
+      employeeCode: "SAR-2026-001",
+      joiningDate: "2026-06-01",
+    });
+
+    const res = await POST(
+      new Request("http://localhost/api/staff", {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Bob Sharma",
+          machineId: "105",
+          joiningDate: "2026-06-01",
+          payGroup: "BANK_EPF",
+          mobileNumber: "9876543210",
+          gender: "Male",
+          fatherHusbandName: "Ram Sharma",
+          qualification: "M.Ed",
+          bankAccount: "1234567890",
+          ifsc: "SBIN0001234",
+          pan: "ABCDE1234F",
+          aadhaar: "123456789012",
+          uan: "100123456789",
+        }),
+      })
+    );
+
+    expect(res.status).toBe(201);
+    expect(mockPrisma.staffPayrollInfo.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        staffId: "s-kyc",
+        payGroup: "BANK_EPF",
+        mobileNumber: "9876543210",
+        gender: "Male",
+        fatherHusbandName: "Ram Sharma",
+        qualification: "M.Ed",
+        bankAccount: "1234567890",
+        ifsc: "SBIN0001234",
+        pan: "ABCDE1234F",
+        aadhaar: "123456789012",
+        uan: "100123456789",
+      }),
+    });
+  });
 });
