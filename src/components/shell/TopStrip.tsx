@@ -8,6 +8,7 @@ import { initials } from "@/lib/initials";
 import type { ShellData } from "@/lib/shell-data";
 import { getNavForRole } from "./nav";
 import { MobileNav } from "./MobileNav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function TopStrip({ shell }: { shell: ShellData }) {
   const router = useRouter();
@@ -83,9 +84,11 @@ export function TopStrip({ shell }: { shell: ShellData }) {
         )}
       </div>
 
-      <div ref={containerRef} className="relative ml-auto w-[min(340px,100%)] max-[600px]:ml-0 max-[600px]:w-full">
-        <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-line px-3 text-subtle focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-acc-2">
-          <Search size={18} aria-hidden="true" className="flex-none" />
+      <div className="ml-auto flex items-center gap-2.5 max-[600px]:ml-0 max-[600px]:w-full">
+        <ThemeToggle />
+        <div ref={containerRef} className="relative w-[min(340px,100%)] max-[600px]:flex-1">
+          <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-line px-3 text-subtle focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-acc-2">
+            <Search size={18} aria-hidden="true" className="flex-none" />
           <input
             type="search"
             value={query}
@@ -141,5 +144,6 @@ export function TopStrip({ shell }: { shell: ShellData }) {
         )}
       </div>
     </div>
-  );
+  </div>
+);
 }

@@ -4,13 +4,14 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { ChevronDown, HelpCircle, KeyRound, LogOut, Plus } from "lucide-react";
+import { ChevronDown, HelpCircle, KeyRound, LogOut, Moon, Plus, Sun } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { initials } from "@/lib/initials";
 import { formatTime } from "@/lib/format";
 import type { ShellData } from "@/lib/shell-data";
 import { IntimeLockup, SchoolBadge } from "@/components/brand/Brand";
 import { getNavForRole, activeHref } from "./nav";
+import { useTheme } from "@/components/ThemeProvider";
 
 export function Sidebar({
   shell,
@@ -22,6 +23,7 @@ export function Sidebar({
   pendingPunchRequestsCount?: number;
 }) {
   const pathname = usePathname();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const navGroups = getNavForRole(shell.roleCode);
   const active = activeHref(pathname, navGroups);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -87,6 +89,14 @@ export function Sidebar({
               <KeyRound size={15} aria-hidden="true" />
               Change password
             </Link>
+            <button
+              type="button"
+              onClick={() => toggleTheme()}
+              className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-muted transition-colors duration-150 hover:bg-card hover:text-text"
+            >
+              {resolvedTheme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
+              {resolvedTheme === "dark" ? "Light theme" : "Dark theme"}
+            </button>
             <button
               type="button"
               onClick={() => signOut()}
