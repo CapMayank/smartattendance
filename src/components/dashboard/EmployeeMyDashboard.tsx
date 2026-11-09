@@ -28,6 +28,7 @@ import type { EmployeePortalData } from "@/lib/employee-portal";
 import { formatHHmm, formatTime } from "@/lib/format";
 import { amountInWords } from "@/lib/amount-in-words";
 import { staffPhotoUrl } from "@/lib/photo-url";
+import { RequestProfileEditModal } from "@/components/profile/RequestProfileEditModal";
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -57,6 +58,7 @@ export function EmployeeMyDashboard({
 }) {
   const { profile, today, monthSummary, monthRecords, payslips } = data;
   const [selectedSlip, setSelectedSlip] = useState<EmployeePortalData["payslips"][number] | null>(null);
+  const [profileEditModalOpen, setProfileEditModalOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -77,7 +79,20 @@ export function EmployeeMyDashboard({
       {/* My Identity + Today Status */}
       <section className="grid grid-cols-1 gap-3.5 min-[1024px]:grid-cols-12">
         <Card className="min-[1024px]:col-span-7">
-          <CardHeader title="My Profile & Shift" caption="Your school identity and assigned schedule" />
+          <CardHeader
+            title="My Profile & Shift"
+            caption="Your school identity and assigned schedule"
+            action={
+              <button
+                type="button"
+                onClick={() => setProfileEditModalOpen(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card-hi px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-acc-2 hover:text-acc-1"
+              >
+                <FileText size={13} aria-hidden="true" />
+                Request Details Edit
+              </button>
+            }
+          />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3.5">
               <Avatar name={profile.name} src={staffPhotoUrl({ id: profile.id, profilePhotoId: profile.profilePhotoId })} />
@@ -448,6 +463,11 @@ export function EmployeeMyDashboard({
           </div>
         )}
       </Modal>
+
+      <RequestProfileEditModal
+        open={profileEditModalOpen}
+        onClose={() => setProfileEditModalOpen(false)}
+      />
     </div>
   );
 }
