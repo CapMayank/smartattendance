@@ -65,6 +65,7 @@ export interface PunchRequestsAdminClientProps {
   departments: { id: string; name: string }[];
   userRole: "ADMIN" | "APPROVER";
   currentCutoffDays: number;
+  showHeader?: boolean;
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -93,6 +94,7 @@ export function PunchRequestsAdminClient({
   departments,
   userRole,
   currentCutoffDays,
+  showHeader = true,
 }: PunchRequestsAdminClientProps) {
   const [requests, setRequests] = useState<AdminPunchRequestItem[]>(initialRequests);
   const [statusFilter, setStatusFilter] = useState<"PENDING" | "APPROVED" | "REJECTED" | "ALL">("ALL");
@@ -323,10 +325,12 @@ export function PunchRequestsAdminClient({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Punch Requests Review Inbox"
-        subtitle="Review, verify, and resolve missed punch regularization requests submitted by staff."
-      />
+      {showHeader && (
+        <PageHeader
+          title="Punch Requests Review Inbox"
+          subtitle="Review, verify, and resolve missed punch regularization requests submitted by staff."
+        />
+      )}
 
       {/* Admin Policy Configuration Card */}
       {userRole === "ADMIN" && (

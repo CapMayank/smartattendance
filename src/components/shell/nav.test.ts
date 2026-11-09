@@ -49,33 +49,33 @@ describe("Navigation Configuration & Role Integration", () => {
       ]);
     });
 
-    it("includes '/punches/requests' under Attendance group", () => {
+    it("includes '/requests' under Attendance group", () => {
       const adminNav = getNavForRole("ADMIN");
       const attendance = adminNav.find((g) => g.group === "Attendance");
       expect(attendance).toBeDefined();
 
-      const punchRequestItem = attendance?.items.find((i) => i.href === "/punches/requests");
-      expect(punchRequestItem).toBeDefined();
-      expect(punchRequestItem?.label).toBe("Punch requests");
+      const requestItem = attendance?.items.find((i) => i.href === "/requests");
+      expect(requestItem).toBeDefined();
+      expect(requestItem?.label).toBe("Requests & Approvals");
     });
   });
 
   describe("getNavForRole('APPROVER')", () => {
-    it("includes '/punches/requests' under Attendance group and excludes restricted hrefs", () => {
+    it("includes '/requests' under Attendance group and excludes restricted hrefs", () => {
       const approverNav = getNavForRole("APPROVER");
       const attendance = approverNav.find((g) => g.group === "Attendance");
       expect(attendance).toBeDefined();
 
-      const punchRequestItem = attendance?.items.find((i) => i.href === "/punches/requests");
-      expect(punchRequestItem).toBeDefined();
-      expect(punchRequestItem?.label).toBe("Punch requests");
+      const requestItem = attendance?.items.find((i) => i.href === "/requests");
+      expect(requestItem).toBeDefined();
+      expect(requestItem?.label).toBe("Requests & Approvals");
 
       const allHrefs = approverNav.flatMap((g) => g.items.map((i) => i.href));
       expect(allHrefs).not.toContain("/staff");
       expect(allHrefs).not.toContain("/attendance/manual");
       expect(allHrefs).not.toContain("/punches/unmatched");
       expect(allHrefs).not.toContain("/reports/staff");
-      expect(allHrefs).toContain("/punches/requests");
+      expect(allHrefs).toContain("/requests");
     });
   });
 
@@ -91,18 +91,22 @@ describe("Navigation Configuration & Role Integration", () => {
       expect(activeHref("/change-password", employeeNav)).toBe("/change-password");
     });
 
-    it("resolves active route for /punches/requests in admin and approver navigation", () => {
+    it("resolves active route for /requests and legacy /punches/requests in admin and approver navigation", () => {
       const adminNav = getNavForRole("ADMIN");
       const approverNav = getNavForRole("APPROVER");
 
-      expect(activeHref("/punches/requests", adminNav)).toBe("/punches/requests");
-      expect(activeHref("/punches/requests/req-123", adminNav)).toBe("/punches/requests");
+      expect(activeHref("/requests", adminNav)).toBe("/requests");
+      expect(activeHref("/requests/profile", adminNav)).toBe("/requests");
+      expect(activeHref("/punches/requests", adminNav)).toBe("/requests");
+      expect(activeHref("/punches/requests/req-123", adminNav)).toBe("/requests");
 
-      expect(activeHref("/punches/requests", approverNav)).toBe("/punches/requests");
-      expect(activeHref("/punches/requests/req-123", approverNav)).toBe("/punches/requests");
+      expect(activeHref("/requests", approverNav)).toBe("/requests");
+      expect(activeHref("/punches/requests", approverNav)).toBe("/requests");
+      expect(activeHref("/punches/requests/req-123", approverNav)).toBe("/requests");
 
       // Default fallback groups is NAV
-      expect(activeHref("/punches/requests")).toBe("/punches/requests");
+      expect(activeHref("/requests")).toBe("/requests");
+      expect(activeHref("/punches/requests")).toBe("/requests");
     });
   });
 });

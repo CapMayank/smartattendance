@@ -44,7 +44,7 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "Calendar", href: "/calendar", icon: Calendar },
       { label: "Shifts", href: "/shifts", icon: Clock },
-      { label: "Punch requests", href: "/punches/requests", icon: CheckCircle2 },
+      { label: "Requests & Approvals", href: "/requests", icon: CheckCircle2 },
       { label: "Manual punch", href: "/attendance/manual", icon: PlusCircle },
       { label: "Unmatched punches", href: "/punches/unmatched", icon: AlertCircle },
     ],
@@ -104,10 +104,11 @@ export function getNavForRole(role?: string): NavGroup[] {
 
 /** Returns the href of the longest matching nav item for a pathname, or null. */
 export function activeHref(pathname: string, groups: NavGroup[] = NAV): string | null {
+  const normalized = pathname === "/punches/requests" || pathname.startsWith("/punches/requests/") ? "/requests" : pathname;
   let best: string | null = null;
   for (const g of groups) {
     for (const { href } of g.items) {
-      const match = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+      const match = href === "/" ? normalized === "/" : normalized === href || normalized.startsWith(href + "/");
       if (match && (best === null || href.length > best.length)) best = href;
     }
   }
