@@ -205,6 +205,44 @@ describe("Admin Profile Requests API", () => {
       expect(log).toBeDefined();
     });
 
+    it("approves request containing EPFO statutory fields and persists them to StaffPayrollInfo", async () => {
+      fakePrisma.profileChangeRequests.push({
+        id: "pcr-epfo",
+        staffId: "s1",
+        status: "PENDING",
+        requestedData: JSON.stringify({
+          maritalStatus: "Married",
+          relationship: "Husband",
+          nameOnAadhaar: "POOJA VERMA",
+          nameOnPan: "POOJA VERMA",
+          nameOnUan: "POOJA VERMA",
+          previousMemberId: "MH/BAN/001",
+          isInternationalWorker: "Y",
+          passportNumber: "Z1234567",
+        }),
+        currentData: JSON.stringify({}),
+        reason: "EPFO compliance update",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      sessionMock.mockResolvedValueOnce({ user: ADMIN_USER } as any);
+      const req = new Request("http://localhost/api/admin/profile-requests/pcr-epfo/decide", {
+        method: "POST",
+        body: JSON.stringify({ action: "APPROVE", remarks: "All statutory docs verified" }),
+      });
+      const res = await decideProfileRequest(req, {
+        params: Promise.resolve({ id: "pcr-epfo" }),
+      });
+      expect(res.status).toBe(200);
+
+      const staffPayroll = await (fakePrisma.client as any).staffPayrollInfo.findUnique({ where: { staffId: "s1" } });
+      expect(staffPayroll?.maritalStatus).toBe("Married");
+      expect(staffPayroll?.nameOnAadhaar).toBe("POOJA VERMA");
+      expect(staffPayroll?.previousMemberId).toBe("MH/BAN/001");
+      expect(staffPayroll?.passportNumber).toBe("Z1234567");
+    });
+
     it("rejects request, saves decisionRemarks, and logs AuditLog", async () => {
       sessionMock.mockResolvedValueOnce({ user: ADMIN_USER } as any);
       const req = new Request("http://localhost/api/admin/profile-requests/pcr-100/decide", {

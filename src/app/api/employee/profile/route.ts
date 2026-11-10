@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { validateForRegistration } from "@/lib/epfo/validation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -20,7 +21,16 @@ export async function GET() {
   const staff = await prisma.staff.findUnique({
     where: { id: staffId },
     include: {
-      payrollInfo: true,
+      payrollInfo: {
+        include: {
+          payGroupChanges: true,
+        },
+      },
+      employmentPeriods: {
+        orderBy: {
+          startDate: "desc",
+        },
+      },
       department: true,
       designation: true,
       shift: true,
@@ -35,7 +45,38 @@ export async function GET() {
     );
   }
 
+  const pendingRequest = await prisma.profileChangeRequest.findFirst({
+    where: {
+      staffId,
+      status: "PENDING",
+    },
+    select: { id: true },
+  });
+
   const info = staff.payrollInfo;
+  const isBankEpf = (info?.payGroup || "BANK_EPF") === "BANK_EPF";
+  let ready = true;
+  let missingFields: string[] = [];
+
+  if (isBankEpf) {
+    const res = validateForRegistration(staff as any);
+    ready = res.ready;
+    missingFields = res.errors.map((e) => e.message);
+  }
+
+  const epfoReadiness = {
+    isBankEpf,
+    ready,
+    missingFields,
+    hasPendingRequest: Boolean(pendingRequest),
+  };
+
+  const toIsoDateStr = (val: Date | string | null | undefined): string => {
+    if (!val) return "";
+    if (val instanceof Date) return isNaN(val.getTime()) ? "" : val.toISOString().slice(0, 10);
+    return String(val).slice(0, 10);
+  };
+
   return NextResponse.json({
     profile: {
       id: staff.id,
@@ -54,21 +95,33 @@ export async function GET() {
         : null,
       email: staff.user?.email ?? info?.email ?? "",
       mobileNumber: info?.mobileNumber ?? "",
-      dob: info?.dob
-        ? typeof info.dob === "string"
-          ? info.dob
-          : info.dob.toISOString().split("T")[0]
-        : "",
+      dob: toIsoDateStr(info?.dob),
       gender: info?.gender ?? "",
       fatherHusbandName: info?.fatherHusbandName ?? "",
       relationship: info?.relationship ?? "",
       qualification: info?.qualification ?? "",
+      maritalStatus: info?.maritalStatus ?? "",
+      nationality: info?.nationality ?? "INDIAN",
       bankAccount: info?.bankAccount ?? "",
       ifsc: info?.ifsc ?? "",
       nameAsPerBank: info?.nameAsPerBank ?? "",
       pan: info?.pan ?? "",
+      nameOnPan: info?.nameOnPan ?? "",
       aadhaar: info?.aadhaar ?? "",
+      nameOnAadhaar: info?.nameOnAadhaar ?? "",
       uan: info?.uan ?? "",
+      nameOnUan: info?.nameOnUan ?? "",
+      previousMemberId: info?.previousMemberId ?? "",
+      isInternationalWorker: info?.isInternationalWorker ?? "N",
+      countryOfOrigin: info?.countryOfOrigin ?? "INDIA",
+      passportNumber: info?.passportNumber ?? "",
+      passportValidFrom: toIsoDateStr(info?.passportValidFrom),
+      passportValidTill: toIsoDateStr(info?.passportValidTill),
+      isPhysicalHandicap: info?.isPhysicalHandicap ?? "N",
+      locomotive: info?.locomotive ?? "N",
+      hearing: info?.hearing ?? "N",
+      visual: info?.visual ?? "N",
+      epfoReadiness,
     },
   });
 }

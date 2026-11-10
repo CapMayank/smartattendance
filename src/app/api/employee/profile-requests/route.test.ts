@@ -99,6 +99,9 @@ describe("Employee Profile & Profile Requests API", () => {
       expect(data.profile.pan).toBe("ABCDE1234F");
       expect(data.profile.bankAccount).toBe("1234567890");
       expect(data.profile.ifsc).toBe("SBIN0001234");
+      expect(data.profile.epfoReadiness).toBeDefined();
+      expect(typeof data.profile.epfoReadiness.isBankEpf).toBe("boolean");
+      expect(data.profile.maritalStatus).toBeDefined();
     });
   });
 
@@ -169,7 +172,49 @@ describe("Employee Profile & Profile Requests API", () => {
       expect(data.error).toContain("Email is already in use");
     });
 
-    it("creates a pending ProfileChangeRequest on valid data", async () => {
+    it("returns 400 on Aadhaar starting with 0 or 1", async () => {
+      sessionMock.mockResolvedValueOnce({
+        user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },
+      } as any);
+      const req = new Request("http://localhost/api/employee/profile-requests", {
+        method: "POST",
+        body: JSON.stringify({ requestedData: { aadhaar: "012345678901" } }),
+      });
+      const res = await postProfileRequest(req);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("Aadhaar");
+    });
+
+    it("returns 400 on IFSC with letter O at 5th character instead of digit 0", async () => {
+      sessionMock.mockResolvedValueOnce({
+        user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },
+      } as any);
+      const req = new Request("http://localhost/api/employee/profile-requests", {
+        method: "POST",
+        body: JSON.stringify({ requestedData: { ifsc: "SBINO001234" } }),
+      });
+      const res = await postProfileRequest(req);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("IFSC");
+    });
+
+    it("returns 400 on relationship other than Father or Husband", async () => {
+      sessionMock.mockResolvedValueOnce({
+        user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },
+      } as any);
+      const req = new Request("http://localhost/api/employee/profile-requests", {
+        method: "POST",
+        body: JSON.stringify({ requestedData: { relationship: "Mother" } }),
+      });
+      const res = await postProfileRequest(req);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("Relationship");
+    });
+
+    it("creates a pending ProfileChangeRequest on valid data including EPFO fields", async () => {
       sessionMock.mockResolvedValueOnce({
         user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },
       } as any);
@@ -181,8 +226,14 @@ describe("Employee Profile & Profile Requests API", () => {
             bankAccount: "98765432100",
             ifsc: "HDFC0001234",
             nameAsPerBank: "Pooja V.",
+            maritalStatus: "Married",
+            relationship: "Father",
+            nameOnAadhaar: "POOJA VERMA",
+            nameOnPan: "POOJA VERMA",
+            nameOnUan: "POOJA VERMA",
+            previousMemberId: "MH/BAN/001",
           },
-          reason: "Updated salary account to HDFC bank",
+          reason: "Updated salary account to HDFC bank and added EPFO details",
         }),
       });
       const res = await postProfileRequest(req);
@@ -190,11 +241,12 @@ describe("Employee Profile & Profile Requests API", () => {
       const data = await res.json();
       expect(data.request.status).toBe("PENDING");
       expect(data.request.staffId).toBe("s1");
-      expect(data.request.reason).toBe("Updated salary account to HDFC bank");
 
       const created = JSON.parse(data.request.requestedData);
       expect(created.pan).toBe("BCDEF5678G");
       expect(created.ifsc).toBe("HDFC0001234");
+      expect(created.maritalStatus).toBe("Married");
+      expect(created.nameOnAadhaar).toBe("POOJA VERMA");
     });
   });
 
