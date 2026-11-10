@@ -132,13 +132,15 @@ export async function getEmployeePortalData(
       orderBy: [{ year: "desc" }, { month: "desc" }],
       take: 12,
     }),
-    prisma.profileChangeRequest.findFirst({
-      where: {
-        staffId,
-        status: "PENDING",
-      },
-      select: { id: true },
-    }),
+    prisma.profileChangeRequest?.findFirst
+      ? prisma.profileChangeRequest.findFirst({
+          where: {
+            staffId,
+            status: "PENDING",
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const monthRecords = monthDailyRecords.map((r) => ({

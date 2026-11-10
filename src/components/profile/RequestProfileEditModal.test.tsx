@@ -31,4 +31,34 @@ describe("RequestProfileEditModal Component", () => {
 
     expect(html).toContain("w-[min(56rem,calc(100vw-2.5rem))]");
   });
+
+  it("renders statutory KYC inputs for Aadhaar, PAN, UAN names, and previous member ID when initialTab is statutory", () => {
+    const html = renderToStaticMarkup(
+      <RequestProfileEditModal
+        open={true}
+        onClose={vi.fn()}
+        initialTab="statutory"
+      />
+    );
+
+    expect(html).toContain("Name as per Aadhaar");
+    expect(html).toContain("Name as per PAN");
+    expect(html).toContain("Name on UAN");
+    expect(html).toContain("Previous EPFO Member ID");
+    expect(html).toContain("International Worker &amp; Disability Details");
+  });
+
+  it("renders Marital Status, Relationship, and Nationality fields on personal tab", () => {
+    const html = renderToStaticMarkup(
+      <RequestProfileEditModal
+        open={true}
+        onClose={vi.fn()}
+        initialTab="personal"
+      />
+    );
+
+    expect(html).toContain("Marital Status");
+    expect(html).toContain("Father / Husband Relationship");
+    expect(html).toContain("Nationality");
+  });
 });
