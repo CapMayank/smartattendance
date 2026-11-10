@@ -4,13 +4,11 @@ import { useState, useEffect } from "react";
 import {
   Clock,
   UserCheck,
-  CheckCircle2,
   Inbox,
   ArrowRight,
   ShieldCheck,
-  SlidersHorizontal,
 } from "lucide-react";
-import { PageHeader, Card, Button } from "@/components/ui";
+import { PageHeader, Card, Button, Tabs } from "@/components/ui";
 import {
   PunchRequestsAdminClient,
   type AdminPunchRequestItem,
@@ -74,76 +72,30 @@ export function RequestsHubClient({
         subtitle="Unified institutional center for attendance punch regularizations, profile modifications, and statutory KYC updates."
       />
 
-      {/* Segmented Apple-style Tab Navigation Bar */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/80 bg-muted/20 p-1.5 backdrop-blur-sm">
-        <button
-          type="button"
-          onClick={() => handleTabChange("all")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-            activeTab === "all"
-              ? "bg-card text-foreground shadow-sm font-semibold"
-              : "text-muted hover:text-foreground"
-          }`}
-        >
-          <Inbox size={16} />
-          <span>All Requests</span>
-          {totalPending > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-              {totalPending}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("punches")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-            activeTab === "punches"
-              ? "bg-card text-foreground shadow-sm font-semibold"
-              : "text-muted hover:text-foreground"
-          }`}
-        >
-          <Clock size={16} />
-          <span>Punch Regularizations</span>
-          {pendingPunches > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-              {pendingPunches}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange("profile")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-            activeTab === "profile"
-              ? "bg-card text-foreground shadow-sm font-semibold"
-              : "text-muted hover:text-foreground"
-          }`}
-        >
-          <UserCheck size={16} />
-          <span>Profile &amp; KYC Updates</span>
-          {pendingProfile > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-              {pendingProfile}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Canonical Design System Tab Navigation Bar */}
+      <Tabs
+        tabs={[
+          { id: "all", label: "All Requests", count: totalPending },
+          { id: "punches", label: "Punch Regularizations", count: pendingPunches },
+          { id: "profile", label: "Profile & KYC Updates", count: pendingProfile },
+        ]}
+        value={activeTab}
+        onChange={(id) => handleTabChange(id as "all" | "punches" | "profile")}
+      />
 
       {/* Tab Contents */}
       {activeTab === "all" && (
         <div className="space-y-6">
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="p-5 flex flex-col justify-between">
+            <Card className="flex flex-col justify-between p-5">
               <div>
-                <div className="flex items-center justify-between text-muted text-xs font-semibold uppercase tracking-wider">
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted">
                   <span>Attendance Punches</span>
                   <Clock size={16} className="text-muted" />
                 </div>
                 <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tight text-foreground">
+                  <span className="text-3xl font-bold tracking-tight text-text">
                     {pendingPunches}
                   </span>
                   <span className="text-xs text-muted">pending review</span>
@@ -152,7 +104,7 @@ export function RequestsHubClient({
                   {initialPunchRequests.length} total requests registered
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-border/40">
+              <div className="mt-4 border-t border-line-soft pt-3">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -165,14 +117,14 @@ export function RequestsHubClient({
               </div>
             </Card>
 
-            <Card className="p-5 flex flex-col justify-between">
+            <Card className="flex flex-col justify-between p-5">
               <div>
-                <div className="flex items-center justify-between text-muted text-xs font-semibold uppercase tracking-wider">
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted">
                   <span>Profile &amp; Statutory KYC</span>
                   <UserCheck size={16} className="text-muted" />
                 </div>
                 <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tight text-foreground">
+                  <span className="text-3xl font-bold tracking-tight text-text">
                     {pendingProfile}
                   </span>
                   <span className="text-xs text-muted">pending verification</span>
@@ -181,7 +133,7 @@ export function RequestsHubClient({
                   {initialProfileRequests.length} total profile edit requests
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-border/40">
+              <div className="mt-4 border-t border-line-soft pt-3">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -194,14 +146,14 @@ export function RequestsHubClient({
               </div>
             </Card>
 
-            <Card className="p-5 flex flex-col justify-between">
+            <Card className="flex flex-col justify-between p-5">
               <div>
-                <div className="flex items-center justify-between text-muted text-xs font-semibold uppercase tracking-wider">
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted">
                   <span>Pending Action Required</span>
                   <Inbox size={16} className="text-muted" />
                 </div>
                 <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
+                  <span className="text-3xl font-bold tracking-tight text-late">
                     {totalPending}
                   </span>
                   <span className="text-xs text-muted">total in need of review</span>
@@ -210,8 +162,8 @@ export function RequestsHubClient({
                   Keep turnaround times fast to ensure accurate payroll.
                 </p>
               </div>
-              <div className="mt-4 pt-3 border-t border-border/40 flex items-center gap-1.5 text-xs text-muted">
-                <ShieldCheck size={14} className="text-emerald-600" />
+              <div className="mt-4 flex items-center gap-1.5 border-t border-line-soft pt-3 text-xs text-muted">
+                <ShieldCheck size={14} className="text-present" />
                 <span>Institutional compliance active</span>
               </div>
             </Card>
@@ -221,10 +173,10 @@ export function RequestsHubClient({
           {pendingProfile > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <UserCheck size={18} className="text-primary" />
+                <h3 className="flex items-center gap-2 text-base font-semibold text-text">
+                  <UserCheck size={18} className="text-acc-1" />
                   <span>Pending Profile &amp; KYC Changes</span>
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  <span className="rounded-full bg-late/15 px-2 py-0.5 text-xs font-semibold text-late">
                     {pendingProfile}
                   </span>
                 </h3>
@@ -249,11 +201,11 @@ export function RequestsHubClient({
           {/* Punch Requests Inbox View */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                <Clock size={18} className="text-primary" />
+              <h3 className="flex items-center gap-2 text-base font-semibold text-text">
+                <Clock size={18} className="text-acc-1" />
                 <span>Punch Regularization Requests</span>
                 {pendingPunches > 0 && (
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  <span className="rounded-full bg-late/15 px-2 py-0.5 text-xs font-semibold text-late">
                     {pendingPunches}
                   </span>
                 )}

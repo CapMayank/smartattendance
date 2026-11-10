@@ -38,7 +38,10 @@ export async function getShellData(): Promise<ShellData | null> {
   try {
     let pendingPromise: Promise<number>;
     if (roleCode === "ADMIN") {
-      pendingPromise = prisma.punchRequest.count({ where: { status: "PENDING" } });
+      pendingPromise = Promise.all([
+        prisma.punchRequest.count({ where: { status: "PENDING" } }),
+        prisma.profileChangeRequest.count({ where: { status: "PENDING" } }),
+      ]).then(([punches, profiles]) => punches + profiles);
     } else if (roleCode === "APPROVER" && session.user?.id) {
       pendingPromise = prisma.user
         .findUnique({
@@ -47,14 +50,22 @@ export async function getShellData(): Promise<ShellData | null> {
         })
         .then((dbUser) => {
           const allowedDeptIds = dbUser ? getApproverDepartmentIds(dbUser) : null;
-          const where: Prisma.PunchRequestWhereInput = { status: "PENDING" };
+          const punchWhere: Prisma.PunchRequestWhereInput = { status: "PENDING" };
+          const profileWhere: Prisma.ProfileChangeRequestWhereInput = { status: "PENDING" };
           if (allowedDeptIds !== null) {
-            where.staff = { departmentId: { in: allowedDeptIds } };
+            punchWhere.staff = { departmentId: { in: allowedDeptIds } };
+            profileWhere.staff = { departmentId: { in: allowedDeptIds } };
           }
-          return prisma.punchRequest.count({ where });
+          return Promise.all([
+            prisma.punchRequest.count({ where: punchWhere }),
+            prisma.profileChangeRequest.count({ where: profileWhere }),
+          ]).then(([punches, profiles]) => punches + profiles);
         });
     } else if (roleCode === "EMPLOYEE" && staffId) {
-      pendingPromise = prisma.punchRequest.count({ where: { staffId, status: "PENDING" } });
+      pendingPromise = Promise.all([
+        prisma.punchRequest.count({ where: { staffId, status: "PENDING" } }),
+        prisma.profileChangeRequest.count({ where: { staffId, status: "PENDING" } }),
+      ]).then(([punches, profiles]) => punches + profiles);
     } else {
       pendingPromise = Promise.resolve(0);
     }

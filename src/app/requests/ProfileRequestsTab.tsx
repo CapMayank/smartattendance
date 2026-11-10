@@ -4,16 +4,15 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Check,
+  CheckCircle2,
   X,
+  XCircle,
+  AlertCircle,
   Search,
   UserCheck,
-  AlertCircle,
-  FileText,
   Clock,
   ArrowRight,
   ShieldAlert,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import {
   Button,
@@ -254,14 +253,16 @@ export function ProfileRequestsTab({
     <div className="space-y-6">
       {/* Approver role advisory banner */}
       {userRole === "APPROVER" && (
-        <Card className="border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+        <Card className="border-late/40 bg-late/5 p-4">
           <div className="flex items-start gap-3">
-            <ShieldAlert className="mt-0.5 text-amber-600 dark:text-amber-400" size={18} />
+            <span className="grid size-9 flex-none place-items-center rounded-xl bg-late/15 text-late">
+              <ShieldAlert size={18} aria-hidden="true" />
+            </span>
             <div className="space-y-1 text-sm">
-              <p className="font-semibold text-amber-900 dark:text-amber-200">
+              <p className="font-semibold text-text">
                 Administrative Authorization Notice
               </p>
-              <p className="text-amber-800 dark:text-amber-300">
+              <p className="text-xs text-muted">
                 Department Approvers may view profile and statutory change requests from staff, but official verification and database updates require an Administrator.
               </p>
             </div>
@@ -394,23 +395,31 @@ export function ProfileRequestsTab({
                   {/* Staff Header & Status */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <Avatar name={req.staff.name} size={38} />
+                      <Avatar
+                        name={req.staff.name}
+                        src={
+                          req.staff.profilePhotoId
+                            ? `/api/photos/${req.staff.profilePhotoId}`
+                            : undefined
+                        }
+                        size={38}
+                      />
                       <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-foreground">{req.staff.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-text">{req.staff.name}</span>
                           {req.staff.employeeCode && (
-                            <span className="rounded bg-muted/20 px-1.5 py-0.5 font-mono text-xs text-muted">
+                            <span className="rounded bg-card-hi px-1.5 py-0.5 text-[11px] font-medium text-muted">
                               {req.staff.employeeCode}
                             </span>
                           )}
+                          <span className="text-xs text-muted">#{req.staff.machineId}</span>
                         </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">
-                          {req.staff.department && <span>{req.staff.department.name}</span>}
-                          {req.staff.department && req.staff.designation && <span>•</span>}
-                          {req.staff.designation && <span>{req.staff.designation.name}</span>}
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} />
+                        <div className="text-xs text-muted">
+                          {req.staff.department?.name || "No department"}
+                          {req.staff.designation?.name ? ` · ${req.staff.designation.name}` : ""}
+                          {" · "}
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={11} aria-hidden="true" />
                             {formatDate(req.createdAt)}
                           </span>
                         </div>
@@ -418,51 +427,48 @@ export function ProfileRequestsTab({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          isPending
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
-                            : req.status === "APPROVED"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
-                            : isPartiallyApproved
-                            ? "bg-amber-500/15 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-500/30"
-                            : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
-                        }`}
-                      >
-                        {isPending && <Clock size={12} />}
-                        {req.status === "APPROVED" && <Check size={12} />}
-                        {isPartiallyApproved && <AlertCircle size={12} />}
-                        {req.status === "REJECTED" && <X size={12} />}
-                        {isPending
-                          ? "PENDING"
-                          : req.status === "APPROVED"
-                          ? "APPROVED"
-                          : isPartiallyApproved
-                          ? "PARTIALLY APPROVED"
-                          : "REJECTED"}
-                      </span>
+                      {isPending && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-late/30 bg-late/10 px-2.5 py-1 text-xs font-medium text-late">
+                          <Clock size={12} aria-hidden="true" />
+                          Pending Review
+                        </span>
+                      )}
+                      {req.status === "APPROVED" && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-present/30 bg-present/10 px-2.5 py-1 text-xs font-medium text-present">
+                          <CheckCircle2 size={12} aria-hidden="true" />
+                          Approved
+                        </span>
+                      )}
+                      {isPartiallyApproved && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-acc-1/40 bg-acc-1/10 px-2.5 py-1 text-xs font-medium text-acc-1">
+                          <AlertCircle size={12} aria-hidden="true" />
+                          Partially Approved
+                        </span>
+                      )}
+                      {req.status === "REJECTED" && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-absent/30 bg-absent/10 px-2.5 py-1 text-xs font-medium text-absent">
+                          <XCircle size={12} aria-hidden="true" />
+                          Rejected
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* Reason Callout */}
                   {req.reason && (
-                    <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-sm">
-                      <div className="flex items-start gap-2">
-                        <FileText size={15} className="mt-0.5 text-muted shrink-0" />
-                        <div>
-                          <span className="font-medium text-foreground">Employee Reason: </span>
-                          <span className="text-muted-foreground">{req.reason}</span>
-                        </div>
-                      </div>
+                    <div className="rounded-lg border-l-2 border-acc-1 bg-card-hi/50 px-3.5 py-2 text-sm text-text">
+                      <span className="font-medium text-muted">Employee Reason: </span>
+                      {req.reason}
                     </div>
                   )}
 
                   {/* Changes Side-by-Side Diff Table */}
-                  <div className="rounded-xl border border-border/80 overflow-hidden bg-card">
-                    <div className="border-b border-border/60 bg-muted/20 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted">
-                      Requested Modifications &amp; Diff Comparison
+                  <div className="overflow-hidden rounded-xl border border-line/60 bg-canvas/60">
+                    <div className="border-b border-line/60 bg-card-hi/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                      Requested Modifications &amp; Diff Comparison ({changedKeys.length}{" "}
+                      {changedKeys.length === 1 ? "field" : "fields"})
                     </div>
-                    <div className="divide-y divide-border/40">
+                    <div className="divide-y divide-line/60">
                       {changedKeys.map((key) => {
                         const label = PROFILE_FIELD_LABELS[key] || key;
                         const currentVal = currentParsed[key];
@@ -481,39 +487,39 @@ export function ProfileRequestsTab({
                         return (
                           <div
                             key={key}
-                            className="grid grid-cols-1 sm:grid-cols-3 gap-2 px-4 py-3 text-sm items-center"
+                            className="grid grid-cols-1 items-center gap-2 px-4 py-3 text-sm sm:grid-cols-3"
                           >
-                            <div className="font-medium text-foreground text-xs sm:text-sm">
+                            <div className="text-xs font-medium text-text sm:text-sm">
                               {label}
                             </div>
                             <div className="text-xs sm:text-sm">
-                              <span className="text-muted text-xs block sm:hidden">Current: </span>
+                              <span className="block text-xs text-muted sm:hidden">Current: </span>
                               <span className="font-mono text-muted line-through">
                                 {currentVal || "— Not Set —"}
                               </span>
                             </div>
-                            <div className="text-xs sm:text-sm flex flex-col gap-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-muted text-xs block sm:hidden">
+                            <div className="flex flex-col gap-1 text-xs sm:text-sm">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="block text-xs text-muted sm:hidden">
                                   Requested:{" "}
                                 </span>
-                                <span className="inline-flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 font-mono font-medium text-accent">
-                                  <ArrowRight size={12} className="hidden sm:inline" />
+                                <span className="inline-flex items-center gap-1 rounded border border-acc-2/30 bg-acc-2/10 px-2 py-0.5 font-mono text-xs font-semibold text-acc-1">
+                                  <ArrowRight size={11} className="hidden sm:inline" />
                                   {requestedVal || "—"}
                                 </span>
                                 {isFieldApproved && (
-                                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-present">
                                     <CheckCircle2 size={12} /> Approved
                                   </span>
                                 )}
                                 {isFieldRejected && (
-                                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-absent">
                                     <XCircle size={12} /> Rejected
                                   </span>
                                 )}
                               </div>
                               {fieldRemark && (
-                                <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                                <p className="text-[11px] text-absent">
                                   Note: {fieldRemark}
                                 </p>
                               )}
@@ -527,36 +533,33 @@ export function ProfileRequestsTab({
                   {/* Decision Remarks if Decided */}
                   {req.status !== "PENDING" &&
                     (structuredMeta?.note || (req.decisionRemarks && !structuredMeta)) && (
-                      <div className="text-xs text-muted rounded-lg bg-muted/20 p-2.5">
-                        <span className="font-medium text-foreground">Admin remarks: </span>
+                      <div className="rounded-lg border border-line bg-canvas/40 px-3.5 py-2 text-xs text-muted">
+                        <span className="font-semibold text-text">Reviewer remarks: </span>
                         {structuredMeta?.note || req.decisionRemarks}
                       </div>
                     )}
 
                   {/* Admin Action Bar for Pending Requests */}
                   {isPending && userRole === "ADMIN" && (
-                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-border/40">
+                    <div className="flex items-center justify-end gap-2.5 border-t border-line/70 pt-3">
                       <Button
                         variant="secondary"
-                        size="sm"
                         onClick={() => handleOpenAction(req, "APPROVE")}
                       >
-                        Selective Review &amp; Decision
+                        Selective Review
                       </Button>
                       <Button
                         variant="danger"
-                        size="sm"
+                        icon={X}
                         onClick={() => handleOpenAction(req, "REJECT")}
                       >
-                        <X size={14} className="mr-1" />
                         Reject All
                       </Button>
                       <Button
                         variant="primary"
-                        size="sm"
+                        icon={Check}
                         onClick={() => handleOpenAction(req, "APPROVE")}
                       >
-                        <Check size={14} className="mr-1" />
                         Approve All
                       </Button>
                     </div>
@@ -573,29 +576,26 @@ export function ProfileRequestsTab({
         <Modal
           open={true}
           onClose={handleCloseModal}
-          title="Review &amp; Decide Profile Updates"
-          subtitle={`Request submitted by ${activeModalRequest.staff.name} (${
-            activeModalRequest.staff.employeeCode || activeModalRequest.staff.machineId
-          })`}
+          title="Review & Decide Profile Updates"
           size="lg"
         >
           <div className="space-y-5 pt-2">
-            <div className="flex items-center justify-between rounded-lg bg-canvas p-3 border border-line-soft text-xs">
+            <div className="flex items-center justify-between rounded-lg border border-line-soft bg-canvas p-3 text-xs">
               <span className="font-semibold text-text">
                 Selective Field Control: Choose which fields to approve or reject
               </span>
               <div className="flex items-center gap-2">
-                <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="rounded bg-present/10 px-2 py-0.5 font-semibold text-present">
                   {approvedCount} Approved
                 </span>
-                <span className="rounded bg-rose-500/10 px-2 py-0.5 font-semibold text-rose-600 dark:text-rose-400">
+                <span className="rounded bg-absent/10 px-2 py-0.5 font-semibold text-absent">
                   {rejectedCount} Rejected
                 </span>
               </div>
             </div>
 
             {/* Field-by-Field Decision Toggles */}
-            <div className="space-y-3 max-h-[45vh] overflow-y-auto overscroll-contain pr-1">
+            <div className="max-h-[45vh] space-y-3 overflow-y-auto overscroll-contain pr-1">
               {Object.keys(fieldDecisions).map((key) => {
                 let requestedVal = "";
                 let currentVal = "";
@@ -622,8 +622,8 @@ export function ProfileRequestsTab({
                     key={key}
                     className={`rounded-xl border p-3 transition-colors ${
                       isApproved
-                        ? "border-emerald-500/30 bg-emerald-500/5"
-                        : "border-rose-500/30 bg-rose-500/5"
+                        ? "border-present/40 bg-present/5"
+                        : "border-absent/40 bg-absent/5"
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -648,7 +648,7 @@ export function ProfileRequestsTab({
                           }
                           className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer transition-all ${
                             isApproved
-                              ? "bg-emerald-600 text-white shadow-xs"
+                              ? "bg-present text-white shadow-xs"
                               : "border border-line bg-card text-muted hover:text-text"
                           }`}
                         >
@@ -661,7 +661,7 @@ export function ProfileRequestsTab({
                           }
                           className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer transition-all ${
                             isRejected
-                              ? "bg-rose-600 text-white shadow-xs"
+                              ? "bg-absent text-white shadow-xs"
                               : "border border-line bg-card text-muted hover:text-text"
                           }`}
                         >
@@ -671,7 +671,7 @@ export function ProfileRequestsTab({
                     </div>
 
                     {isRejected && (
-                      <div className="mt-2.5 pt-2 border-t border-rose-500/20">
+                      <div className="mt-2.5 border-t border-absent/20 pt-2">
                         <input
                           type="text"
                           placeholder="Rejection note for this field (e.g. Document mismatch, invalid format)"
@@ -679,7 +679,7 @@ export function ProfileRequestsTab({
                           onChange={(e) =>
                             setFieldRemarks((prev) => ({ ...prev, [key]: e.target.value }))
                           }
-                          className="w-full rounded-lg border border-rose-300 bg-canvas px-3 py-1.5 text-xs text-text placeholder:text-muted focus:border-rose-500 focus:outline-none dark:border-rose-900/60"
+                          className="w-full rounded-lg border border-line bg-canvas px-3 py-1.5 text-xs text-text placeholder:text-muted focus:border-absent focus:outline-none"
                         />
                       </div>
                     )}
@@ -702,7 +702,7 @@ export function ProfileRequestsTab({
               />
             </Field>
 
-            <div className="flex items-center justify-between gap-3 pt-3 border-t border-line-soft">
+            <div className="flex items-center justify-between gap-3 border-t border-line-soft pt-3">
               <span className="text-xs text-muted">
                 {approvedCount === totalCount
                   ? "All fields will be approved and updated"

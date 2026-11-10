@@ -75,6 +75,7 @@ describe("Dashboard Page", () => {
         absent: 0,
         devicesOnline: 1,
         devicesTotal: 1,
+        pendingRequests: { punches: 0, profile: 0, total: 0 },
         deltas: {
           in: { text: "same", direction: "flat" as const },
           late: { text: "same", direction: "flat" as const },
@@ -102,5 +103,54 @@ describe("Dashboard Page", () => {
 
     expect(mockGetDashboardData).toHaveBeenCalled()
     expect(html).not.toContain("No linked staff profile found for your account")
+  })
+
+  it("renders pending requests alert card when there are pending requests", async () => {
+    session.mockResolvedValue({
+      user: {
+        id: "u-admin",
+        name: "Admin User",
+        role: "ADMIN",
+      },
+    } as never)
+
+    mockGetDashboardData.mockResolvedValue({
+      kpis: {
+        inToday: 10,
+        total: 10,
+        late: 0,
+        absent: 0,
+        devicesOnline: 1,
+        devicesTotal: 1,
+        pendingRequests: { punches: 2, profile: 1, total: 3 },
+        deltas: {
+          in: { text: "same", direction: "flat" as const },
+          late: { text: "same", direction: "flat" as const },
+          absent: { text: "same", direction: "flat" as const },
+        },
+        spark: { in: [], late: [], absent: [], devices: [] },
+      },
+      arrivals: [],
+      commonShift: { start: "09:00", end: "17:00" },
+      graceLabel: "09:15",
+      ring: { onTime: 10, late: 0, absent: 0 },
+      departments: [],
+      attention: [],
+      attentionMore: 0,
+      trend: [],
+      staff: [],
+      punchLog: [],
+      workingDay: true,
+      offDayName: null,
+      now: new Date().toISOString(),
+    })
+
+    const jsx = await Dashboard({ searchParams: Promise.resolve({}) })
+    const html = renderToStaticMarkup(jsx)
+
+    expect(html).toContain("3 Requests Pending Administrator Review")
+    expect(html).toContain("2 punch regularizations")
+    expect(html).toContain("1 profile &amp; KYC update")
+    expect(html).toContain("Review Requests Inbox")
   })
 })
