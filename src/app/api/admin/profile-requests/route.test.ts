@@ -268,5 +268,94 @@ describe("Admin Profile Requests API", () => {
       const log = fakePrisma.auditLogs.find((l) => (l as any).action === "PROFILE_CHANGE_REJECTED");
       expect(log).toBeDefined();
     });
+
+    it("selectively approves a subset of fields, updates only approved fields, marks status as PARTIALLY_APPROVED, and persists field-level remarks", async () => {
+      fakePrisma.profileChangeRequests.push({
+        id: "pcr-selective",
+        staffId: "s1",
+        status: "PENDING",
+        requestedData: JSON.stringify({
+          bankAccount: "8888777766",
+          ifsc: "PUNB0008888",
+          pan: "XYZAB9999K",
+        }),
+        currentData: JSON.stringify({
+          bankAccount: "1111222233",
+          ifsc: "SBIN0001111",
+          pan: "ABCDE1111F",
+        }),
+        reason: "Updating bank and PAN",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      sessionMock.mockResolvedValueOnce({ user: ADMIN_USER } as any);
+      const req = new Request("http://localhost/api/admin/profile-requests/pcr-selective/decide", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "SELECTIVE",
+          approvedFields: ["bankAccount", "ifsc"],
+          rejectedFields: ["pan"],
+          fieldRemarks: {
+            pan: "PAN card name does not match school identity records",
+          },
+          decisionRemarks: "Bank details verified. Please provide PAN card copy for name discrepancy.",
+        }),
+      });
+
+      const res = await decideProfileRequest(req, {
+        params: Promise.resolve({ id: "pcr-selective" }),
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.request.status).toBe("PARTIALLY_APPROVED");
+
+      // Verify that approved fields WERE updated
+      const updatedPayroll = await (fakePrisma.client as any).staffPayrollInfo.findUnique({
+        where: { staffId: "s1" },
+      });
+      expect(updatedPayroll?.bankAccount).toBe("8888777766");
+      expect(updatedPayroll?.ifsc).toBe("PUNB0008888");
+
+      // Verify that rejected field WAS NOT updated
+      expect(updatedPayroll?.pan).not.toBe("XYZAB9999K");
+
+      // Verify structured decisionRemarks
+      const parsedRemarks = JSON.parse(data.request.decisionRemarks);
+      expect(parsedRemarks.approvedFields).toEqual(["bankAccount", "ifsc"]);
+      expect(parsedRemarks.rejectedFields).toEqual(["pan"]);
+      expect(parsedRemarks.fieldRemarks?.pan).toBe("PAN card name does not match school identity records");
+    });
+
+    it("marks status as REJECTED when all fields are rejected in selective action", async () => {
+      fakePrisma.profileChangeRequests.push({
+        id: "pcr-all-rejected",
+        staffId: "s1",
+        status: "PENDING",
+        requestedData: JSON.stringify({ pan: "XYZAB9999K" }),
+        currentData: JSON.stringify({ pan: "ABCDE1111F" }),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      sessionMock.mockResolvedValueOnce({ user: ADMIN_USER } as any);
+      const req = new Request("http://localhost/api/admin/profile-requests/pcr-all-rejected/decide", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "SELECTIVE",
+          approvedFields: [],
+          rejectedFields: ["pan"],
+          fieldRemarks: { pan: "Invalid card copy" },
+        }),
+      });
+
+      const res = await decideProfileRequest(req, {
+        params: Promise.resolve({ id: "pcr-all-rejected" }),
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.request.status).toBe("REJECTED");
+    });
   });
 });

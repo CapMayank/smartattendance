@@ -36,7 +36,7 @@ import { PROFILE_FIELD_LABELS } from "@/app/requests/ProfileRequestsTab";
 export interface ProfileRequestItem {
   id: string;
   staffId: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "PARTIALLY_APPROVED";
   requestedData: string;
   currentData?: string | null;
   reason?: string | null;
@@ -61,9 +61,14 @@ export function EmployeeProfileClient({ initialData }: EmployeeProfileClientProp
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<"personal" | "banking" | "statutory" | "history">("personal");
+  const [reRequestFields, setReRequestFields] = useState<string[] | undefined>(undefined);
 
-  const openEdit = (tab: "personal" | "banking" | "statutory" | "history" = "personal") => {
+  const openEdit = (
+    tab: "personal" | "banking" | "statutory" | "history" = "personal",
+    targetFields?: string[]
+  ) => {
     setModalTab(tab);
+    setReRequestFields(targetFields);
     setModalOpen(true);
   };
 
@@ -413,28 +418,60 @@ export function EmployeeProfileClient({ initialData }: EmployeeProfileClientProp
               }
               const keys = Object.keys(parsedDiff);
 
+              let structuredMeta: {
+                note?: string;
+                approvedFields?: string[];
+                rejectedFields?: string[];
+                fieldRemarks?: Record<string, string>;
+              } | null = null;
+
+              if (r.decisionRemarks) {
+                try {
+                  structuredMeta = JSON.parse(r.decisionRemarks);
+                } catch {
+                  structuredMeta = null;
+                }
+              }
+
+              const isPartiallyApproved = r.status === "PARTIALLY_APPROVED";
+              const isApproved = r.status === "APPROVED";
+              const isRejected = r.status === "REJECTED";
+              const isPending = r.status === "PENDING";
+
+              const hasRejectedFields =
+                (structuredMeta?.rejectedFields && structuredMeta.rejectedFields.length > 0) ||
+                isRejected;
+
               return (
-                <div key={r.id} className="py-3.5 first:pt-0 last:pb-0 space-y-2">
+                <div key={r.id} className="py-4 first:pt-0 last:pb-0 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          r.status === "PENDING"
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          isPending
                             ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
-                            : r.status === "APPROVED"
+                            : isApproved
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : isPartiallyApproved
+                            ? "bg-amber-500/15 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-500/30"
                             : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
                         }`}
                       >
-                        {r.status === "PENDING" && <Clock size={12} />}
-                        {r.status === "APPROVED" && <CheckCircle2 size={12} />}
-                        {r.status === "REJECTED" && <XCircle size={12} />}
-                        {r.status}
+                        {isPending && <Clock size={12} />}
+                        {isApproved && <CheckCircle2 size={12} />}
+                        {isPartiallyApproved && <AlertCircle size={12} />}
+                        {isRejected && <XCircle size={12} />}
+                        {isPartiallyApproved ? "PARTIALLY APPROVED" : r.status}
                       </span>
                       <span className="text-xs text-muted">
                         Submitted {formatDate(r.createdAt)}
                       </span>
                     </div>
+                    {r.decidedAt && (
+                      <span className="text-[11px] text-muted">
+                        Decided {formatDate(r.decidedAt)}
+                      </span>
+                    )}
                   </div>
 
                   {r.reason && (
@@ -445,23 +482,97 @@ export function EmployeeProfileClient({ initialData }: EmployeeProfileClientProp
                   )}
 
                   {keys.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {keys.map((k) => (
-                        <span
-                          key={k}
-                          className="rounded border border-line-soft bg-canvas px-2 py-0.5 text-[11px] font-medium text-text"
-                        >
-                          {PROFILE_FIELD_LABELS[k] || k}:{" "}
-                          <span className="num font-semibold text-acc-1">{parsedDiff[k]}</span>
-                        </span>
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {keys.map((k) => {
+                        const isFieldApproved =
+                          isApproved ||
+                          (structuredMeta?.approvedFields &&
+                            structuredMeta.approvedFields.includes(k));
+                        const isFieldRejected =
+                          isRejected ||
+                          (structuredMeta?.rejectedFields &&
+                            structuredMeta.rejectedFields.includes(k));
+                        const fieldNote = structuredMeta?.fieldRemarks?.[k];
+
+                        return (
+                          <div
+                            key={k}
+                            className={`rounded-lg border p-2 text-xs flex flex-col gap-1 ${
+                              isFieldApproved
+                                ? "border-emerald-500/30 bg-emerald-500/5"
+                                : isFieldRejected
+                                ? "border-rose-500/30 bg-rose-500/5"
+                                : "border-line-soft bg-canvas"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-text">
+                                {PROFILE_FIELD_LABELS[k] || k}
+                              </span>
+                              {isFieldApproved && (
+                                <span className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                  <CheckCircle2 size={11} /> Approved
+                                </span>
+                              )}
+                              {isFieldRejected && (
+                                <span className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-rose-600 dark:text-rose-400">
+                                  <XCircle size={11} /> Rejected
+                                </span>
+                              )}
+                            </div>
+                            <span className="num font-semibold text-text">{parsedDiff[k]}</span>
+                            {fieldNote && (
+                              <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                                Reason: {fieldNote}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
-                  {r.decisionRemarks && (
+                  {(structuredMeta?.note || (r.decisionRemarks && !structuredMeta)) && (
                     <p className="text-[11.5px] text-muted italic">
-                      Admin Note: {r.decisionRemarks}
+                      Admin Note: {structuredMeta?.note || r.decisionRemarks}
                     </p>
+                  )}
+
+                  {/* Re-request CTA */}
+                  {hasRejectedFields && (
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          const rejected = structuredMeta?.rejectedFields ?? keys;
+                          let tab: "personal" | "banking" | "statutory" = "personal";
+                          if (
+                            rejected.some((k) =>
+                              ["bankAccount", "ifsc", "nameAsPerBank"].includes(k)
+                            )
+                          ) {
+                            tab = "banking";
+                          } else if (
+                            rejected.some((k) =>
+                              [
+                                "pan",
+                                "nameOnPan",
+                                "aadhaar",
+                                "nameOnAadhaar",
+                                "uan",
+                                "nameOnUan",
+                              ].includes(k)
+                            )
+                          ) {
+                            tab = "statutory";
+                          }
+                          openEdit(tab, rejected);
+                        }}
+                      >
+                        Fix &amp; Re-Submit Rejected Details →
+                      </Button>
+                    </div>
                   )}
                 </div>
               );
@@ -474,6 +585,7 @@ export function EmployeeProfileClient({ initialData }: EmployeeProfileClientProp
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         initialTab={modalTab}
+        reRequestFields={reRequestFields}
         onSubmitted={() => {
           setModalOpen(false);
           router.refresh();

@@ -35,7 +35,7 @@ export default async function ProfilePage() {
   const requests: ProfileRequestItem[] = rawRequests.map((r) => ({
     id: r.id,
     staffId: r.staffId,
-    status: r.status as "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED",
+    status: r.status as "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "PARTIALLY_APPROVED",
     requestedData: r.requestedData,
     currentData: r.currentData,
     reason: r.reason,

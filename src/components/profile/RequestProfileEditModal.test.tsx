@@ -63,4 +63,29 @@ describe("RequestProfileEditModal Component", () => {
     expect(html).toContain("Father / Husband Relationship");
     expect(html).toContain("Nationality");
   });
+
+  it("renders reassurance banner informing user that current records are pre-filled", () => {
+    const html = renderToStaticMarkup(
+      <RequestProfileEditModal
+        open={true}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(html).toContain("Your saved records are pre-filled below");
+    expect(html).toContain("Only edit the specific details you need to change");
+    expect(html).toContain("No Changes Made");
+  });
+
+  it("renders when initialTab is history", () => {
+    const html = renderToStaticMarkup(
+      <RequestProfileEditModal
+        open={true}
+        onClose={vi.fn()}
+        initialTab="history"
+      />
+    );
+
+    expect(html).toContain("Your Submitted Profile Change Requests");
+  });
 });

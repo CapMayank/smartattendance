@@ -79,4 +79,30 @@ describe("ProfileRequestsTab - EPFO Field Labels and Diffs", () => {
     expect(html).not.toContain(">nameOnAadhaar<");
     expect(html).not.toContain(">previousMemberId<");
   });
+
+  it("renders status pill for PARTIALLY_APPROVED requests", () => {
+    const partiallyApprovedRequest = [
+      {
+        ...SAMPLE_EPFO_REQUEST[0],
+        id: "pcr-partial",
+        status: "PARTIALLY_APPROVED" as any,
+        decisionRemarks: JSON.stringify({
+          note: "Approved marital status, rejected passport",
+          approvedFields: ["maritalStatus"],
+          rejectedFields: ["passportNumber"],
+          fieldRemarks: { passportNumber: "Passport expired" },
+        }),
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <ProfileRequestsTab
+        initialRequests={partiallyApprovedRequest}
+        departments={[{ id: "d1", name: "Science" }]}
+        userRole="ADMIN"
+      />
+    );
+
+    expect(html).toContain("PARTIALLY APPROVED");
+  });
 });
