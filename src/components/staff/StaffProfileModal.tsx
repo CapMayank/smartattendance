@@ -73,6 +73,20 @@ type StaffMember = {
     relationship?: string | null
     qualification?: string | null
     nationality?: string | null
+    maritalStatus?: string | null
+    nameOnUan?: string | null
+    nameOnPan?: string | null
+    nameOnAadhaar?: string | null
+    previousMemberId?: string | null
+    isInternationalWorker?: string | null
+    countryOfOrigin?: string | null
+    passportNumber?: string | null
+    passportValidFrom?: string | Date | null
+    passportValidTill?: string | Date | null
+    isPhysicalHandicap?: string | null
+    locomotive?: string | null
+    hearing?: string | null
+    visual?: string | null
     bankAccount?: string | null
     ifsc?: string | null
     nameAsPerBank?: string | null
@@ -102,6 +116,8 @@ type StaffProfileModalProps = {
   depts: { id: string; name: string }[]
   desigs: { id: string; name: string }[]
   shifts: { id: string; name: string }[]
+  initialTab?: 'general' | 'kyc' | 'shift' | 'statutory' | 'overview' | 'employment'
+  highlightedFields?: string[]
 }
 
 export function StaffProfileModal({
@@ -113,9 +129,22 @@ export function StaffProfileModal({
   depts,
   desigs,
   shifts,
+  initialTab,
+  highlightedFields,
 }: StaffProfileModalProps) {
   const todayKey = istDateKey(new Date())
   const [activeTab, setActiveTab] = useState<'overview' | 'kyc' | 'employment' | 'statutory'>('overview')
+
+  useEffect(() => {
+    if (open && initialTab) {
+      if (initialTab === 'general' || initialTab === 'overview') setActiveTab('overview')
+      else if (initialTab === 'shift' || initialTab === 'employment') setActiveTab('employment')
+      else if (initialTab === 'kyc') setActiveTab('kyc')
+      else if (initialTab === 'statutory') setActiveTab('statutory')
+    }
+  }, [open, initialTab])
+
+  const isHighlighted = (fieldKey: string) => Boolean(highlightedFields?.includes(fieldKey))
 
   // Form Edit State
   const [formData, setFormData] = useState({
@@ -146,6 +175,20 @@ export function StaffProfileModal({
     pan: '',
     aadhaar: '',
     uan: '',
+    maritalStatus: '',
+    nameOnUan: '',
+    nameOnPan: '',
+    nameOnAadhaar: '',
+    previousMemberId: '',
+    isInternationalWorker: 'N',
+    countryOfOrigin: 'INDIA',
+    passportNumber: '',
+    passportValidFrom: '',
+    passportValidTill: '',
+    isPhysicalHandicap: 'N',
+    locomotive: 'N',
+    hearing: 'N',
+    visual: 'N',
   })
 
   // Shift Change Preview State
@@ -216,6 +259,20 @@ export function StaffProfileModal({
         pan: staff.payrollInfo?.pan || '',
         aadhaar: staff.payrollInfo?.aadhaar || '',
         uan: staff.payrollInfo?.uan || '',
+        maritalStatus: staff.payrollInfo?.maritalStatus || '',
+        nameOnUan: staff.payrollInfo?.nameOnUan || '',
+        nameOnPan: staff.payrollInfo?.nameOnPan || '',
+        nameOnAadhaar: staff.payrollInfo?.nameOnAadhaar || '',
+        previousMemberId: staff.payrollInfo?.previousMemberId || '',
+        isInternationalWorker: staff.payrollInfo?.isInternationalWorker || 'N',
+        countryOfOrigin: staff.payrollInfo?.countryOfOrigin || 'INDIA',
+        passportNumber: staff.payrollInfo?.passportNumber || '',
+        passportValidFrom: staff.payrollInfo?.passportValidFrom ? String(staff.payrollInfo.passportValidFrom).slice(0, 10) : '',
+        passportValidTill: staff.payrollInfo?.passportValidTill ? String(staff.payrollInfo.passportValidTill).slice(0, 10) : '',
+        isPhysicalHandicap: staff.payrollInfo?.isPhysicalHandicap || 'N',
+        locomotive: staff.payrollInfo?.locomotive || 'N',
+        hearing: staff.payrollInfo?.hearing || 'N',
+        visual: staff.payrollInfo?.visual || 'N',
       })
     }
   }, [staff, depts, desigs, todayKey])
@@ -329,6 +386,20 @@ export function StaffProfileModal({
         pan: formData.pan.trim() || null,
         aadhaar: formData.aadhaar.trim() || null,
         uan: formData.uan.trim() || null,
+        maritalStatus: formData.maritalStatus || null,
+        nameOnUan: formData.nameOnUan.trim() || null,
+        nameOnPan: formData.nameOnPan.trim() || null,
+        nameOnAadhaar: formData.nameOnAadhaar.trim() || null,
+        previousMemberId: formData.previousMemberId.trim() || null,
+        isInternationalWorker: formData.isInternationalWorker || 'N',
+        countryOfOrigin: formData.countryOfOrigin.trim() || 'INDIA',
+        passportNumber: formData.passportNumber.trim() || null,
+        passportValidFrom: formData.passportValidFrom || null,
+        passportValidTill: formData.passportValidTill || null,
+        isPhysicalHandicap: formData.isPhysicalHandicap || 'N',
+        locomotive: formData.locomotive || 'N',
+        hearing: formData.hearing || 'N',
+        visual: formData.visual || 'N',
       }
 
       const res = await fetch('/api/staff', {
@@ -724,31 +795,46 @@ export function StaffProfileModal({
           {activeTab === 'kyc' && (
             <div className="space-y-4 pt-1">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Mobile Number" htmlFor="kyc-mobile">
+                <Field
+                  label="Mobile Number"
+                  htmlFor="kyc-mobile"
+                  helper={isHighlighted('mobileNumber') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="kyc-mobile"
                     type="tel"
                     value={formData.mobileNumber}
                     onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                     placeholder="10-digit mobile number"
+                    className={isHighlighted('mobileNumber') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
-                <Field label="Date of Birth (DOB)" htmlFor="kyc-dob">
+                <Field
+                  label="Date of Birth (DOB)"
+                  htmlFor="kyc-dob"
+                  helper={isHighlighted('dob') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="kyc-dob"
                     type="date"
                     value={formData.dob}
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                    className={isHighlighted('dob') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Gender" htmlFor="kyc-gender">
+                <Field
+                  label="Gender"
+                  htmlFor="kyc-gender"
+                  helper={isHighlighted('gender') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Select
                     id="kyc-gender"
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className={isHighlighted('gender') ? 'ring-2 ring-amber-500' : ''}
                   >
                     <option value="">Select Gender...</option>
                     <option value="Male">Male</option>
@@ -767,20 +853,30 @@ export function StaffProfileModal({
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Father / Husband Name" htmlFor="kyc-guardian">
+                <Field
+                  label="Father / Husband Name"
+                  htmlFor="kyc-guardian"
+                  helper={isHighlighted('fatherHusbandName') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="kyc-guardian"
                     type="text"
                     value={formData.fatherHusbandName}
                     onChange={(e) => setFormData({ ...formData, fatherHusbandName: e.target.value })}
                     placeholder="Full guardian name"
+                    className={isHighlighted('fatherHusbandName') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
-                <Field label="Relationship" htmlFor="kyc-relation">
+                <Field
+                  label="Relationship"
+                  htmlFor="kyc-relation"
+                  helper={isHighlighted('relationship') ? <span className="text-amber-500 font-medium">Missing for EPFO (Father or Husband only)</span> : undefined}
+                >
                   <Select
                     id="kyc-relation"
                     value={formData.relationship}
                     onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                    className={isHighlighted('relationship') ? 'ring-2 ring-amber-500' : ''}
                   >
                     <option value="Father">Father</option>
                     <option value="Husband">Husband</option>
@@ -790,15 +886,35 @@ export function StaffProfileModal({
                 </Field>
               </div>
 
-              <Field label="Highest Educational Qualification" htmlFor="kyc-qualification">
-                <Input
-                  id="kyc-qualification"
-                  type="text"
-                  value={formData.qualification}
-                  onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
-                  placeholder="e.g. M.Sc, B.Ed, D.El.Ed"
-                />
-              </Field>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Highest Educational Qualification" htmlFor="kyc-qualification">
+                  <Input
+                    id="kyc-qualification"
+                    type="text"
+                    value={formData.qualification}
+                    onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                    placeholder="e.g. M.Sc, B.Ed, D.El.Ed"
+                  />
+                </Field>
+                <Field
+                  label="Marital Status"
+                  htmlFor="kyc-marital"
+                  helper={isHighlighted('maritalStatus') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
+                  <Select
+                    id="kyc-marital"
+                    value={formData.maritalStatus}
+                    onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}
+                    className={isHighlighted('maritalStatus') ? 'ring-2 ring-amber-500' : ''}
+                  >
+                    <option value="">Select Marital Status...</option>
+                    <option value="Married">Married</option>
+                    <option value="Unmarried">Unmarried (Single)</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Divorced">Divorced</option>
+                  </Select>
+                </Field>
+              </div>
             </div>
           )}
 
@@ -964,64 +1080,262 @@ export function StaffProfileModal({
               )}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Bank Account Number" htmlFor="stat-account">
+                <Field
+                  label="Bank Account Number"
+                  htmlFor="stat-account"
+                  helper={isHighlighted('bankAccount') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="stat-account"
                     type="text"
                     value={formData.bankAccount}
                     onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
                     placeholder="Account number"
+                    className={isHighlighted('bankAccount') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
-                <Field label="IFSC Code" htmlFor="stat-ifsc">
+                <Field
+                  label="IFSC Code"
+                  htmlFor="stat-ifsc"
+                  helper={isHighlighted('ifsc') ? <span className="text-amber-500 font-medium">Missing for EPFO (0 at 5th char)</span> : undefined}
+                >
                   <Input
                     id="stat-ifsc"
                     type="text"
                     value={formData.ifsc}
                     onChange={(e) => setFormData({ ...formData, ifsc: e.target.value.toUpperCase() })}
                     placeholder="e.g. SBIN0001234"
+                    className={isHighlighted('ifsc') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
               </div>
 
-              <Field label="Name As Per Bank Account" htmlFor="stat-bankname">
+              <Field
+                label="Name As Per Bank Account"
+                htmlFor="stat-bankname"
+                helper={isHighlighted('nameAsPerBank') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+              >
                 <Input
                   id="stat-bankname"
                   type="text"
                   value={formData.nameAsPerBank}
                   onChange={(e) => setFormData({ ...formData, nameAsPerBank: e.target.value })}
                   placeholder="Full name as printed in passbook"
+                  className={isHighlighted('nameAsPerBank') ? 'ring-2 ring-amber-500' : ''}
                 />
               </Field>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="PAN Number" htmlFor="stat-pan">
+                <Field
+                  label="PAN Number"
+                  htmlFor="stat-pan"
+                  helper={isHighlighted('pan') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="stat-pan"
                     type="text"
                     value={formData.pan}
                     onChange={(e) => setFormData({ ...formData, pan: e.target.value.toUpperCase() })}
                     placeholder="ABCDE1234F"
+                    className={isHighlighted('pan') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
-                <Field label="Aadhaar Number" htmlFor="stat-aadhaar">
+                <Field
+                  label="Aadhaar Number"
+                  htmlFor="stat-aadhaar"
+                  helper={isHighlighted('aadhaar') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="stat-aadhaar"
                     type="text"
                     value={formData.aadhaar}
                     onChange={(e) => setFormData({ ...formData, aadhaar: e.target.value })}
                     placeholder="12-digit UID"
+                    className={isHighlighted('aadhaar') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
-                <Field label="Universal Account Number (UAN)" htmlFor="stat-uan">
+                <Field
+                  label="Universal Account Number (UAN)"
+                  htmlFor="stat-uan"
+                  helper={isHighlighted('uan') ? <span className="text-amber-500 font-medium">Missing for EPFO</span> : undefined}
+                >
                   <Input
                     id="stat-uan"
                     type="text"
                     value={formData.uan}
                     onChange={(e) => setFormData({ ...formData, uan: e.target.value })}
                     placeholder="12-digit EPF UAN"
+                    className={isHighlighted('uan') ? 'ring-2 ring-amber-500' : ''}
                   />
                 </Field>
+              </div>
+
+              {/* EPFO Member Details */}
+              <div className="pt-2 border-t border-line-soft space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  EPFO Statutory Member Details
+                </h4>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field
+                    label="Name on Aadhaar"
+                    htmlFor="stat-name-aadhaar"
+                    helper={isHighlighted('nameOnAadhaar') ? <span className="text-amber-500 font-medium">Required for EPFO</span> : undefined}
+                  >
+                    <Input
+                      id="stat-name-aadhaar"
+                      type="text"
+                      value={formData.nameOnAadhaar}
+                      onChange={(e) => setFormData({ ...formData, nameOnAadhaar: e.target.value })}
+                      placeholder="As on Aadhaar card"
+                      className={isHighlighted('nameOnAadhaar') ? 'ring-2 ring-amber-500' : ''}
+                    />
+                  </Field>
+
+                  <Field
+                    label="Name on PAN"
+                    htmlFor="stat-name-pan"
+                    helper={isHighlighted('nameOnPan') ? <span className="text-amber-500 font-medium">Required for EPFO</span> : undefined}
+                  >
+                    <Input
+                      id="stat-name-pan"
+                      type="text"
+                      value={formData.nameOnPan}
+                      onChange={(e) => setFormData({ ...formData, nameOnPan: e.target.value })}
+                      placeholder="As on PAN card"
+                      className={isHighlighted('nameOnPan') ? 'ring-2 ring-amber-500' : ''}
+                    />
+                  </Field>
+
+                  <Field
+                    label="Name on UAN (Portal)"
+                    htmlFor="stat-name-uan"
+                    helper={isHighlighted('nameOnUan') ? <span className="text-amber-500 font-medium">Required for EPFO</span> : undefined}
+                  >
+                    <Input
+                      id="stat-name-uan"
+                      type="text"
+                      value={formData.nameOnUan}
+                      onChange={(e) => setFormData({ ...formData, nameOnUan: e.target.value })}
+                      placeholder="As on EPFO portal"
+                      className={isHighlighted('nameOnUan') ? 'ring-2 ring-amber-500' : ''}
+                    />
+                  </Field>
+                </div>
+
+                <div>
+                  <Field label="Previous Member ID" htmlFor="stat-prev-id">
+                    <Input
+                      id="stat-prev-id"
+                      type="text"
+                      value={formData.previousMemberId}
+                      onChange={(e) => setFormData({ ...formData, previousMemberId: e.target.value })}
+                      placeholder="e.g. MH/BAN/0012345/000/0000123"
+                    />
+                  </Field>
+                </div>
+
+                {/* Collapsible Additional EPFO Fields */}
+                <details className="group rounded-xl border border-line-soft bg-canvas p-3 text-xs">
+                  <summary className="cursor-pointer font-medium text-text select-none flex items-center justify-between">
+                    <span>Additional EPFO Fields (International Worker &amp; Disability)</span>
+                    <span className="text-subtle transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+
+                  <div className="mt-3 space-y-3 pt-2 border-t border-line-soft">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Field label="International Worker" htmlFor="stat-iw">
+                        <Select
+                          id="stat-iw"
+                          value={formData.isInternationalWorker}
+                          onChange={(e) => setFormData({ ...formData, isInternationalWorker: e.target.value })}
+                        >
+                          <option value="N">No (Domestic Worker)</option>
+                          <option value="Y">Yes (International Worker)</option>
+                        </Select>
+                      </Field>
+
+                      <Field label="Country of Origin" htmlFor="stat-country">
+                        <Input
+                          id="stat-country"
+                          type="text"
+                          value={formData.countryOfOrigin}
+                          onChange={(e) => setFormData({ ...formData, countryOfOrigin: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <Field label="Passport Number" htmlFor="stat-passport">
+                        <Input
+                          id="stat-passport"
+                          type="text"
+                          value={formData.passportNumber}
+                          onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
+                        />
+                      </Field>
+                      <Field label="Passport Valid From" htmlFor="stat-passport-from">
+                        <Input
+                          id="stat-passport-from"
+                          type="date"
+                          value={formData.passportValidFrom}
+                          onChange={(e) => setFormData({ ...formData, passportValidFrom: e.target.value })}
+                        />
+                      </Field>
+                      <Field label="Passport Valid Till" htmlFor="stat-passport-till">
+                        <Input
+                          id="stat-passport-till"
+                          type="date"
+                          value={formData.passportValidTill}
+                          onChange={(e) => setFormData({ ...formData, passportValidTill: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                      <Field label="Physical Handicap" htmlFor="stat-handicap">
+                        <Select
+                          id="stat-handicap"
+                          value={formData.isPhysicalHandicap}
+                          onChange={(e) => setFormData({ ...formData, isPhysicalHandicap: e.target.value })}
+                        >
+                          <option value="N">No</option>
+                          <option value="Y">Yes</option>
+                        </Select>
+                      </Field>
+                      <Field label="Locomotive" htmlFor="stat-locomotive">
+                        <Select
+                          id="stat-locomotive"
+                          value={formData.locomotive}
+                          onChange={(e) => setFormData({ ...formData, locomotive: e.target.value })}
+                        >
+                          <option value="N">No</option>
+                          <option value="Y">Yes</option>
+                        </Select>
+                      </Field>
+                      <Field label="Hearing" htmlFor="stat-hearing">
+                        <Select
+                          id="stat-hearing"
+                          value={formData.hearing}
+                          onChange={(e) => setFormData({ ...formData, hearing: e.target.value })}
+                        >
+                          <option value="N">No</option>
+                          <option value="Y">Yes</option>
+                        </Select>
+                      </Field>
+                      <Field label="Visual" htmlFor="stat-visual">
+                        <Select
+                          id="stat-visual"
+                          value={formData.visual}
+                          onChange={(e) => setFormData({ ...formData, visual: e.target.value })}
+                        >
+                          <option value="N">No</option>
+                          <option value="Y">Yes</option>
+                        </Select>
+                      </Field>
+                    </div>
+                  </div>
+                </details>
               </div>
 
               <div className="rounded-xl border border-line-soft bg-canvas p-3 text-xs text-subtle">

@@ -71,6 +71,19 @@ export async function GET() {
           email: true,
           nationality: true,
           qualification: true,
+          maritalStatus: true,
+          nameOnPan: true,
+          nameOnAadhaar: true,
+          previousMemberId: true,
+          isInternationalWorker: true,
+          countryOfOrigin: true,
+          passportNumber: true,
+          passportValidFrom: true,
+          passportValidTill: true,
+          isPhysicalHandicap: true,
+          locomotive: true,
+          hearing: true,
+          visual: true,
         },
       },
       employmentPeriods: {
@@ -124,6 +137,20 @@ export async function POST(request: Request) {
       pan,
       aadhaar,
       uan,
+      maritalStatus,
+      nameOnUan,
+      nameOnPan,
+      nameOnAadhaar,
+      previousMemberId,
+      isInternationalWorker,
+      countryOfOrigin,
+      passportNumber,
+      passportValidFrom,
+      passportValidTill,
+      isPhysicalHandicap,
+      locomotive,
+      hearing,
+      visual,
     } = data
 
     if (!name || !machineId || !joiningDate) {
@@ -214,6 +241,20 @@ export async function POST(request: Request) {
           ...(pan !== undefined ? { pan: pan ? String(pan).trim().toUpperCase() : null } : {}),
           ...(aadhaar !== undefined ? { aadhaar: aadhaar ? String(aadhaar).trim() : null } : {}),
           ...(uan !== undefined ? { uan: uan ? String(uan).trim() : null } : {}),
+          ...(maritalStatus !== undefined ? { maritalStatus: maritalStatus ? String(maritalStatus).trim() : null } : {}),
+          ...(nameOnUan !== undefined ? { nameOnUan: nameOnUan ? String(nameOnUan).trim() : null } : {}),
+          ...(nameOnPan !== undefined ? { nameOnPan: nameOnPan ? String(nameOnPan).trim() : null } : {}),
+          ...(nameOnAadhaar !== undefined ? { nameOnAadhaar: nameOnAadhaar ? String(nameOnAadhaar).trim() : null } : {}),
+          ...(previousMemberId !== undefined ? { previousMemberId: previousMemberId ? String(previousMemberId).trim() : null } : {}),
+          ...(isInternationalWorker !== undefined ? { isInternationalWorker: isInternationalWorker === 'Y' ? 'Y' : 'N' } : {}),
+          ...(countryOfOrigin !== undefined ? { countryOfOrigin: countryOfOrigin ? String(countryOfOrigin).trim() : 'INDIA' } : {}),
+          ...(passportNumber !== undefined ? { passportNumber: passportNumber ? String(passportNumber).trim() : null } : {}),
+          ...(passportValidFrom ? { passportValidFrom: new Date(passportValidFrom) } : {}),
+          ...(passportValidTill ? { passportValidTill: new Date(passportValidTill) } : {}),
+          ...(isPhysicalHandicap !== undefined ? { isPhysicalHandicap: isPhysicalHandicap === 'Y' ? 'Y' : 'N' } : {}),
+          ...(locomotive !== undefined ? { locomotive: locomotive === 'Y' ? 'Y' : 'N' } : {}),
+          ...(hearing !== undefined ? { hearing: hearing === 'Y' ? 'Y' : 'N' } : {}),
+          ...(visual !== undefined ? { visual: visual === 'Y' ? 'Y' : 'N' } : {}),
           ...(normalizedEmail ? { email: normalizedEmail } : {}),
         },
       })
@@ -484,7 +525,21 @@ export async function PUT(request: Request) {
       updateData.nameAsPerBank !== undefined ||
       updateData.pan !== undefined ||
       updateData.aadhaar !== undefined ||
-      updateData.uan !== undefined
+      updateData.uan !== undefined ||
+      updateData.maritalStatus !== undefined ||
+      updateData.nameOnUan !== undefined ||
+      updateData.nameOnPan !== undefined ||
+      updateData.nameOnAadhaar !== undefined ||
+      updateData.previousMemberId !== undefined ||
+      updateData.isInternationalWorker !== undefined ||
+      updateData.countryOfOrigin !== undefined ||
+      updateData.passportNumber !== undefined ||
+      updateData.passportValidFrom !== undefined ||
+      updateData.passportValidTill !== undefined ||
+      updateData.isPhysicalHandicap !== undefined ||
+      updateData.locomotive !== undefined ||
+      updateData.hearing !== undefined ||
+      updateData.visual !== undefined
 
     if (hasPayrollOrKyc && prisma.staffPayrollInfo?.upsert) {
       const payrollUpdateData: Record<string, unknown> = {}
@@ -504,6 +559,20 @@ export async function PUT(request: Request) {
       if (updateData.pan !== undefined) payrollUpdateData.pan = updateData.pan ? String(updateData.pan).trim().toUpperCase() : null
       if (updateData.aadhaar !== undefined) payrollUpdateData.aadhaar = updateData.aadhaar ? String(updateData.aadhaar).trim() : null
       if (updateData.uan !== undefined) payrollUpdateData.uan = updateData.uan ? String(updateData.uan).trim() : null
+      if (updateData.maritalStatus !== undefined) payrollUpdateData.maritalStatus = updateData.maritalStatus ? String(updateData.maritalStatus).trim() : null
+      if (updateData.nameOnUan !== undefined) payrollUpdateData.nameOnUan = updateData.nameOnUan ? String(updateData.nameOnUan).trim() : null
+      if (updateData.nameOnPan !== undefined) payrollUpdateData.nameOnPan = updateData.nameOnPan ? String(updateData.nameOnPan).trim() : null
+      if (updateData.nameOnAadhaar !== undefined) payrollUpdateData.nameOnAadhaar = updateData.nameOnAadhaar ? String(updateData.nameOnAadhaar).trim() : null
+      if (updateData.previousMemberId !== undefined) payrollUpdateData.previousMemberId = updateData.previousMemberId ? String(updateData.previousMemberId).trim() : null
+      if (updateData.isInternationalWorker !== undefined) payrollUpdateData.isInternationalWorker = updateData.isInternationalWorker === 'Y' ? 'Y' : 'N'
+      if (updateData.countryOfOrigin !== undefined) payrollUpdateData.countryOfOrigin = updateData.countryOfOrigin ? String(updateData.countryOfOrigin).trim() : 'INDIA'
+      if (updateData.passportNumber !== undefined) payrollUpdateData.passportNumber = updateData.passportNumber ? String(updateData.passportNumber).trim() : null
+      if (updateData.passportValidFrom !== undefined) payrollUpdateData.passportValidFrom = updateData.passportValidFrom ? new Date(updateData.passportValidFrom) : null
+      if (updateData.passportValidTill !== undefined) payrollUpdateData.passportValidTill = updateData.passportValidTill ? new Date(updateData.passportValidTill) : null
+      if (updateData.isPhysicalHandicap !== undefined) payrollUpdateData.isPhysicalHandicap = updateData.isPhysicalHandicap === 'Y' ? 'Y' : 'N'
+      if (updateData.locomotive !== undefined) payrollUpdateData.locomotive = updateData.locomotive === 'Y' ? 'Y' : 'N'
+      if (updateData.hearing !== undefined) payrollUpdateData.hearing = updateData.hearing === 'Y' ? 'Y' : 'N'
+      if (updateData.visual !== undefined) payrollUpdateData.visual = updateData.visual === 'Y' ? 'Y' : 'N'
       if (updateData.isHigherPensionOpted !== undefined) payrollUpdateData.isHigherPensionOpted = Boolean(updateData.isHigherPensionOpted)
 
       const existingPayrollInfo = prisma.staffPayrollInfo.findUnique
