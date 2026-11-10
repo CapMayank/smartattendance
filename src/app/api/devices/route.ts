@@ -20,9 +20,41 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const device = await prisma.device.create({ data })
+    const name = typeof data?.name === 'string' ? data.name.trim() : ''
+    if (!name) {
+      return NextResponse.json({ error: 'Device name is required' }, { status: 400 })
+    }
+
+    const serialNumber =
+      typeof data?.serialNumber === 'string' && data.serialNumber.trim()
+        ? data.serialNumber.trim()
+        : null
+    const ipAddress =
+      typeof data?.ipAddress === 'string' && data.ipAddress.trim()
+        ? data.ipAddress.trim()
+        : null
+    const port =
+      typeof data?.port === 'string' && data.port.trim()
+        ? data.port.trim()
+        : null
+
+    const device = await prisma.device.create({
+      data: {
+        name,
+        serialNumber,
+        ipAddress,
+        port,
+      },
+    })
     return NextResponse.json(device, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as { code?: string }
+    if (err?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'A device with this serial number already exists' },
+        { status: 400 }
+      )
+    }
     return NextResponse.json({ error: 'Failed to create device' }, { status: 500 })
   }
 }
@@ -34,14 +66,58 @@ export async function PUT(request: Request) {
 
   try {
     const data = await request.json()
-    const { id, ...updateData } = data
+    const { id } = data
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const updateData: {
+      name?: string
+      serialNumber?: string | null
+      ipAddress?: string | null
+      port?: string | null
+    } = {}
+
+    if (typeof data.name === 'string') {
+      const name = data.name.trim()
+      if (!name) {
+        return NextResponse.json({ error: 'Device name cannot be empty' }, { status: 400 })
+      }
+      updateData.name = name
+    }
+
+    if ('serialNumber' in data) {
+      updateData.serialNumber =
+        typeof data.serialNumber === 'string' && data.serialNumber.trim()
+          ? data.serialNumber.trim()
+          : null
+    }
+
+    if ('ipAddress' in data) {
+      updateData.ipAddress =
+        typeof data.ipAddress === 'string' && data.ipAddress.trim()
+          ? data.ipAddress.trim()
+          : null
+    }
+
+    if ('port' in data) {
+      updateData.port =
+        typeof data.port === 'string' && data.port.trim()
+          ? data.port.trim()
+          : null
+    }
+
     const device = await prisma.device.update({
       where: { id },
-      data: updateData
+      data: updateData,
     })
     return NextResponse.json(device)
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as { code?: string }
+    if (err?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'A device with this serial number already exists' },
+        { status: 400 }
+      )
+    }
     return NextResponse.json({ error: 'Failed to update device' }, { status: 500 })
   }
 }
@@ -57,7 +133,7 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
     await prisma.device.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete device' }, { status: 500 })
   }
 }

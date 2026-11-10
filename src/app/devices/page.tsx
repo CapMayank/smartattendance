@@ -10,6 +10,7 @@ import { formatDateLong, formatPing } from '@/lib/format'
 type Device = {
   id: string
   name: string
+  serialNumber: string | null
   ipAddress: string | null
   port: string | null
   status: string
@@ -20,9 +21,9 @@ export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [formData, setFormData] = useState({ name: '', ipAddress: '', port: '' })
+  const [formData, setFormData] = useState({ name: '', serialNumber: '', ipAddress: '', port: '' })
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editData, setEditData] = useState({ name: '', ipAddress: '', port: '' })
+  const [editData, setEditData] = useState({ name: '', serialNumber: '', ipAddress: '', port: '' })
 
   const loadDevices = useCallback(async () => {
     const res = await fetch('/api/devices')
@@ -58,7 +59,7 @@ export default function DevicesPage() {
     })
     const data = await res.json().catch(() => null)
     if (res.ok) {
-      setFormData({ name: '', ipAddress: '', port: '' })
+      setFormData({ name: '', serialNumber: '', ipAddress: '', port: '' })
       fetchDevices()
       toast.success('Device registered')
     } else {
@@ -82,6 +83,7 @@ export default function DevicesPage() {
     setEditingId(device.id)
     setEditData({
       name: device.name,
+      serialNumber: device.serialNumber || '',
       ipAddress: device.ipAddress || '',
       port: device.port || ''
     })
@@ -118,6 +120,9 @@ export default function DevicesPage() {
             <Field label="Device name" htmlFor="new-name">
               <Input id="new-name" type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Front Door D01" required />
             </Field>
+            <Field label="Serial number (optional)" htmlFor="new-serial" helper="Hardware serial number (e.g. A250904118)">
+              <Input id="new-serial" type="text" className="num font-mono uppercase" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})} placeholder="e.g. A250904118" />
+            </Field>
             <Field label="IP address (optional)" htmlFor="new-ip">
               <Input id="new-ip" type="text" className="num" value={formData.ipAddress} onChange={e => setFormData({...formData, ipAddress: e.target.value})} placeholder="e.g. 192.168.1.100" />
             </Field>
@@ -141,6 +146,7 @@ export default function DevicesPage() {
                 <thead>
                   <tr>
                     <th>Device</th>
+                    <th>Serial Number</th>
                     <th>Network</th>
                     <th>Status</th>
                     <th>Last ping</th>
@@ -164,6 +170,13 @@ export default function DevicesPage() {
                               <p className="num text-xs text-subtle">ID: {device.id}</p>
                             </div>
                           </div>
+                        </td>
+                        <td className="num text-xs">
+                          {device.serialNumber ? (
+                            <span className="font-mono text-text">{device.serialNumber}</span>
+                          ) : (
+                            <span className="font-sans text-subtle">No SN</span>
+                          )}
                         </td>
                         <td className="num text-muted">
                           {device.ipAddress ? `${device.ipAddress}${device.port ? `:${device.port}` : ''}` : <span className="font-sans text-subtle">No IP</span>}
@@ -202,6 +215,9 @@ export default function DevicesPage() {
         <div className="space-y-4">
           <Field label="Device name" htmlFor="edit-name">
             <Input id="edit-name" type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} data-autofocus />
+          </Field>
+          <Field label="Serial number" htmlFor="edit-serial" helper="Hardware serial number (e.g. A250904118)">
+            <Input id="edit-serial" type="text" className="num font-mono uppercase" value={editData.serialNumber} onChange={e => setEditData({...editData, serialNumber: e.target.value})} placeholder="e.g. A250904118" />
           </Field>
           <Field label="IP address" htmlFor="edit-ip">
             <Input id="edit-ip" type="text" className="num" value={editData.ipAddress} onChange={e => setEditData({...editData, ipAddress: e.target.value})} />

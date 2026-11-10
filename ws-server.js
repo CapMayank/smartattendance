@@ -65,7 +65,7 @@ wss.on('connection', function connection(ws, req) {
     try {
       const ipRaw = req.socket.remoteAddress || '';
       const ipAddress = ipRaw.replace(/^.*:/, '');
-      const serialNumber = data.sn || null;
+      const serialNumber = data.sn ? String(data.sn).trim() : null;
       
       let existingDevice = null;
       if (serialNumber) {
