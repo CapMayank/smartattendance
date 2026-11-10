@@ -344,8 +344,9 @@ function StaffPayrollContent() {
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-subtle">
                       <EmptyState
+                        icon={Users}
                         title="No staff members found"
-                        description="Try adjusting your filters or search terms."
+                        hint="Try adjusting your filters or search terms."
                       />
                     </td>
                   </tr>
@@ -360,9 +361,9 @@ function StaffPayrollContent() {
                         <td>
                           <div className="flex items-center gap-3">
                             <Avatar
-                              src={staffPhotoUrl(s.id, s.hasPhoto, s.profilePhotoId)}
+                              src={staffPhotoUrl(s)}
                               name={s.name}
-                              size="sm"
+                              size={28}
                             />
                             <div>
                               <div className="font-medium text-text">{s.name}</div>
@@ -516,9 +517,9 @@ function StaffPayrollContent() {
           <div className="space-y-5">
             <div className="flex items-center gap-3 rounded-xl border border-line-soft bg-canvas p-3">
               <Avatar
-                src={staffPhotoUrl(editingStaff.id, editingStaff.hasPhoto, editingStaff.profilePhotoId)}
+                src={staffPhotoUrl(editingStaff)}
                 name={editingStaff.name}
-                size="md"
+                size={38}
               />
               <div>
                 <p className="text-sm font-semibold text-text">{editingStaff.name}</p>

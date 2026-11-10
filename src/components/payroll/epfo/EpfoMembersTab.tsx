@@ -8,6 +8,7 @@ import {
   Info,
   RotateCcw,
   Search,
+  ShieldCheck,
   Wrench,
   X,
 } from 'lucide-react';
@@ -363,7 +364,7 @@ export function EpfoMembersTab({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              size="xs"
+              size="sm"
               variant="secondary"
               icon={RotateCcw}
               onClick={handleUndo}
@@ -510,8 +511,9 @@ export function EpfoMembersTab({
                       'Loading EPFO member compliance records...'
                     ) : (
                       <EmptyState
+                        icon={ShieldCheck}
                         title="No staff in this compliance queue"
-                        description="All members in this queue are either up to date or no matching records were found."
+                        hint="All members in this queue are either up to date or no matching records were found."
                       />
                     )}
                   </td>
@@ -560,7 +562,7 @@ export function EpfoMembersTab({
                               className="h-8 text-xs font-mono"
                             />
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="secondary"
                               onClick={() => handleSaveInlineUan(member.id)}
                               loading={savingUanId === member.id}
@@ -614,7 +616,7 @@ export function EpfoMembersTab({
                               ⚠ {member.readiness.errors.length} missing
                             </span>
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="secondary"
                               icon={Wrench}
                               onClick={() =>
@@ -633,7 +635,7 @@ export function EpfoMembersTab({
 
                       <td className="text-right">
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="ghost"
                           onClick={() =>
                             onFixMember(
