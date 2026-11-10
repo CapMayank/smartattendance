@@ -12,6 +12,8 @@ import {
   Clock,
   ArrowRight,
   ShieldAlert,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import {
   Button,
@@ -31,7 +33,7 @@ import { formatDate } from "@/lib/format";
 export interface AdminProfileRequestItem {
   id: string;
   staffId: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "PARTIALLY_APPROVED";
   requestedData: string; // JSON string
   currentData?: string | null; // JSON string
   reason?: string | null;
@@ -101,13 +103,16 @@ export function ProfileRequestsTab({
   userRole,
 }: ProfileRequestsTabProps) {
   const [requests, setRequests] = useState<AdminProfileRequestItem[]>(initialRequests);
-  const [statusFilter, setStatusFilter] = useState<"PENDING" | "APPROVED" | "REJECTED" | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<
+    "PENDING" | "APPROVED" | "REJECTED" | "PARTIALLY_APPROVED" | "ALL"
+  >("ALL");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Modal State for Action
+  // Modal State for Selective Decision
   const [activeModalRequest, setActiveModalRequest] = useState<AdminProfileRequestItem | null>(null);
-  const [modalAction, setModalAction] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [fieldDecisions, setFieldDecisions] = useState<Record<string, "APPROVE" | "REJECT">>({});
+  const [fieldRemarks, setFieldRemarks] = useState<Record<string, string>>({});
   const [decisionRemarks, setDecisionRemarks] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -116,7 +121,9 @@ export function ProfileRequestsTab({
     return {
       all: requests.length,
       pending: requests.filter((r) => r.status === "PENDING").length,
-      approved: requests.filter((r) => r.status === "APPROVED").length,
+      approved: requests.filter(
+        (r) => r.status === "APPROVED" || r.status === "PARTIALLY_APPROVED"
+      ).length,
       rejected: requests.filter((r) => r.status === "REJECTED").length,
     };
   }, [requests]);
@@ -124,9 +131,18 @@ export function ProfileRequestsTab({
   // Filtered requests
   const filteredRequests = useMemo(() => {
     return requests.filter((req) => {
-      if (statusFilter !== "ALL" && req.status !== statusFilter) return false;
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "APPROVED") {
+          if (req.status !== "APPROVED" && req.status !== "PARTIALLY_APPROVED") return false;
+        } else if (req.status !== statusFilter) {
+          return false;
+        }
+      }
       if (selectedDepartment !== "ALL") {
-        if (req.staff.department?.id !== selectedDepartment && req.staff.departmentId !== selectedDepartment) {
+        if (
+          req.staff.department?.id !== selectedDepartment &&
+          req.staff.departmentId !== selectedDepartment
+        ) {
           return false;
         }
       }
@@ -141,41 +157,74 @@ export function ProfileRequestsTab({
     });
   }, [requests, statusFilter, selectedDepartment, searchQuery]);
 
-  const handleOpenAction = (req: AdminProfileRequestItem, action: "APPROVE" | "REJECT") => {
+  const handleOpenAction = (
+    req: AdminProfileRequestItem,
+    defaultAction: "APPROVE" | "REJECT" = "APPROVE"
+  ) => {
     setActiveModalRequest(req);
-    setModalAction(action);
+    let requestedParsed: Record<string, string> = {};
+    try {
+      requestedParsed = JSON.parse(req.requestedData);
+    } catch {
+      requestedParsed = {};
+    }
+
+    const initialMap: Record<string, "APPROVE" | "REJECT"> = {};
+    for (const key of Object.keys(requestedParsed)) {
+      initialMap[key] = defaultAction;
+    }
+    setFieldDecisions(initialMap);
+    setFieldRemarks({});
     setDecisionRemarks("");
   };
 
   const handleCloseModal = () => {
     setActiveModalRequest(null);
-    setModalAction(null);
+    setFieldDecisions({});
+    setFieldRemarks({});
     setDecisionRemarks("");
     setIsSubmitting(false);
   };
 
+  const approvedCount = Object.values(fieldDecisions).filter((v) => v === "APPROVE").length;
+  const rejectedCount = Object.values(fieldDecisions).filter((v) => v === "REJECT").length;
+  const totalCount = Object.keys(fieldDecisions).length;
+
   const handleSubmitDecision = async () => {
-    if (!activeModalRequest || !modalAction) return;
+    if (!activeModalRequest) return;
 
     setIsSubmitting(true);
     try {
+      const approvedFields = Object.keys(fieldDecisions).filter(
+        (k) => fieldDecisions[k] === "APPROVE"
+      );
+      const rejectedFields = Object.keys(fieldDecisions).filter(
+        (k) => fieldDecisions[k] === "REJECT"
+      );
+
       const res = await fetch(`/api/admin/profile-requests/${activeModalRequest.id}/decide`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: modalAction,
+          action: "SELECTIVE",
+          approvedFields,
+          rejectedFields,
+          fieldRemarks,
           decisionRemarks: decisionRemarks.trim() || undefined,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || `Failed to ${modalAction.toLowerCase()} request`);
+        throw new Error(data.error || "Failed to record decision");
       }
 
+      const nextStatus = data.request.status as AdminProfileRequestItem["status"];
       toast.success(
-        modalAction === "APPROVE"
-          ? `Request for ${activeModalRequest.staff.name} approved & profile updated`
+        nextStatus === "APPROVED"
+          ? `All changes for ${activeModalRequest.staff.name} approved and applied`
+          : nextStatus === "PARTIALLY_APPROVED"
+          ? `Selective decision recorded: ${approvedFields.length} approved, ${rejectedFields.length} rejected`
           : `Request for ${activeModalRequest.staff.name} rejected`
       );
 
@@ -185,8 +234,8 @@ export function ProfileRequestsTab({
           r.id === activeModalRequest.id
             ? {
                 ...r,
-                status: modalAction === "APPROVE" ? "APPROVED" : "REJECTED",
-                decisionRemarks: decisionRemarks.trim() || null,
+                status: nextStatus,
+                decisionRemarks: data.request.decisionRemarks,
                 decidedAt: new Date().toISOString(),
               }
             : r
@@ -306,6 +355,7 @@ export function ProfileRequestsTab({
         <div className="space-y-4">
           {filteredRequests.map((req) => {
             const isPending = req.status === "PENDING";
+            const isPartiallyApproved = req.status === "PARTIALLY_APPROVED";
             let requestedParsed: Record<string, string> = {};
             let currentParsed: Record<string, string> = {};
 
@@ -322,6 +372,21 @@ export function ProfileRequestsTab({
             }
 
             const changedKeys = Object.keys(requestedParsed);
+
+            let structuredMeta: {
+              note?: string;
+              approvedFields?: string[];
+              rejectedFields?: string[];
+              fieldRemarks?: Record<string, string>;
+            } | null = null;
+
+            if (req.decisionRemarks) {
+              try {
+                structuredMeta = JSON.parse(req.decisionRemarks);
+              } catch {
+                structuredMeta = null;
+              }
+            }
 
             return (
               <Card key={req.id} className="p-5 transition-shadow hover:shadow-sm">
@@ -355,17 +420,26 @@ export function ProfileRequestsTab({
                     <div className="flex items-center gap-2">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          req.status === "PENDING"
+                          isPending
                             ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
                             : req.status === "APPROVED"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
+                            : isPartiallyApproved
+                            ? "bg-amber-500/15 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-500/30"
                             : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
                         }`}
                       >
-                        {req.status === "PENDING" && <Clock size={12} />}
+                        {isPending && <Clock size={12} />}
                         {req.status === "APPROVED" && <Check size={12} />}
+                        {isPartiallyApproved && <AlertCircle size={12} />}
                         {req.status === "REJECTED" && <X size={12} />}
-                        {req.status}
+                        {isPending
+                          ? "PENDING"
+                          : req.status === "APPROVED"
+                          ? "APPROVED"
+                          : isPartiallyApproved
+                          ? "PARTIALLY APPROVED"
+                          : "REJECTED"}
                       </span>
                     </div>
                   </div>
@@ -394,6 +468,16 @@ export function ProfileRequestsTab({
                         const currentVal = currentParsed[key];
                         const requestedVal = requestedParsed[key];
 
+                        const isFieldApproved =
+                          req.status === "APPROVED" ||
+                          (structuredMeta?.approvedFields &&
+                            structuredMeta.approvedFields.includes(key));
+                        const isFieldRejected =
+                          req.status === "REJECTED" ||
+                          (structuredMeta?.rejectedFields &&
+                            structuredMeta.rejectedFields.includes(key));
+                        const fieldRemark = structuredMeta?.fieldRemarks?.[key];
+
                         return (
                           <div
                             key={key}
@@ -408,12 +492,31 @@ export function ProfileRequestsTab({
                                 {currentVal || "— Not Set —"}
                               </span>
                             </div>
-                            <div className="text-xs sm:text-sm flex items-center gap-1.5">
-                              <span className="text-muted text-xs block sm:hidden">Requested: </span>
-                              <span className="inline-flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 font-mono font-medium text-accent">
-                                <ArrowRight size={12} className="hidden sm:inline" />
-                                {requestedVal || "—"}
-                              </span>
+                            <div className="text-xs sm:text-sm flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted text-xs block sm:hidden">
+                                  Requested:{" "}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 font-mono font-medium text-accent">
+                                  <ArrowRight size={12} className="hidden sm:inline" />
+                                  {requestedVal || "—"}
+                                </span>
+                                {isFieldApproved && (
+                                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <CheckCircle2 size={12} /> Approved
+                                  </span>
+                                )}
+                                {isFieldRejected && (
+                                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                                    <XCircle size={12} /> Rejected
+                                  </span>
+                                )}
+                              </div>
+                              {fieldRemark && (
+                                <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                                  Note: {fieldRemark}
+                                </p>
+                              )}
                             </div>
                           </div>
                         );
@@ -422,23 +525,31 @@ export function ProfileRequestsTab({
                   </div>
 
                   {/* Decision Remarks if Decided */}
-                  {req.status !== "PENDING" && req.decisionRemarks && (
-                    <div className="text-xs text-muted rounded-lg bg-muted/20 p-2.5">
-                      <span className="font-medium text-foreground">Admin remarks: </span>
-                      {req.decisionRemarks}
-                    </div>
-                  )}
+                  {req.status !== "PENDING" &&
+                    (structuredMeta?.note || (req.decisionRemarks && !structuredMeta)) && (
+                      <div className="text-xs text-muted rounded-lg bg-muted/20 p-2.5">
+                        <span className="font-medium text-foreground">Admin remarks: </span>
+                        {structuredMeta?.note || req.decisionRemarks}
+                      </div>
+                    )}
 
                   {/* Admin Action Bar for Pending Requests */}
                   {isPending && userRole === "ADMIN" && (
                     <div className="flex items-center justify-end gap-3 pt-2 border-t border-border/40">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenAction(req, "APPROVE")}
+                      >
+                        Selective Review &amp; Decision
+                      </Button>
                       <Button
                         variant="danger"
                         size="sm"
                         onClick={() => handleOpenAction(req, "REJECT")}
                       >
                         <X size={14} className="mr-1" />
-                        Reject
+                        Reject All
                       </Button>
                       <Button
                         variant="primary"
@@ -446,7 +557,7 @@ export function ProfileRequestsTab({
                         onClick={() => handleOpenAction(req, "APPROVE")}
                       >
                         <Check size={14} className="mr-1" />
-                        Approve
+                        Approve All
                       </Button>
                     </div>
                   )}
@@ -457,71 +568,168 @@ export function ProfileRequestsTab({
         </div>
       )}
 
-      {/* Decision Modal */}
-      {activeModalRequest && modalAction && (
+      {/* Selective Decision Modal */}
+      {activeModalRequest && (
         <Modal
           open={true}
           onClose={handleCloseModal}
-          title={
-            modalAction === "APPROVE"
-              ? "Approve Profile & KYC Changes"
-              : "Reject Profile Change Request"
-          }
-          subtitle={`Request submitted by ${activeModalRequest.staff.name} (${activeModalRequest.staff.employeeCode || activeModalRequest.staff.machineId})`}
-          size="md"
+          title="Review &amp; Decide Profile Updates"
+          subtitle={`Request submitted by ${activeModalRequest.staff.name} (${
+            activeModalRequest.staff.employeeCode || activeModalRequest.staff.machineId
+          })`}
+          size="lg"
         >
-          <div className="space-y-4 pt-2">
-            {modalAction === "APPROVE" ? (
-              <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
-                Approving this request will immediately update the staff profile, banking and statutory KYC records, and linked login credentials in the system.
+          <div className="space-y-5 pt-2">
+            <div className="flex items-center justify-between rounded-lg bg-canvas p-3 border border-line-soft text-xs">
+              <span className="font-semibold text-text">
+                Selective Field Control: Choose which fields to approve or reject
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                  {approvedCount} Approved
+                </span>
+                <span className="rounded bg-rose-500/10 px-2 py-0.5 font-semibold text-rose-600 dark:text-rose-400">
+                  {rejectedCount} Rejected
+                </span>
               </div>
-            ) : (
-              <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
-                Rejecting this request will keep the staff member&apos;s current profile unchanged. Please state the reason below so the employee understands why it was rejected.
-              </div>
-            )}
+            </div>
+
+            {/* Field-by-Field Decision Toggles */}
+            <div className="space-y-3 max-h-[45vh] overflow-y-auto overscroll-contain pr-1">
+              {Object.keys(fieldDecisions).map((key) => {
+                let requestedVal = "";
+                let currentVal = "";
+                try {
+                  const reqObj = JSON.parse(activeModalRequest.requestedData);
+                  requestedVal = reqObj[key] || "";
+                } catch {
+                  requestedVal = "";
+                }
+                try {
+                  const curObj = activeModalRequest.currentData
+                    ? JSON.parse(activeModalRequest.currentData)
+                    : {};
+                  currentVal = curObj[key] || "";
+                } catch {
+                  currentVal = "";
+                }
+
+                const isApproved = fieldDecisions[key] === "APPROVE";
+                const isRejected = fieldDecisions[key] === "REJECT";
+
+                return (
+                  <div
+                    key={key}
+                    className={`rounded-xl border p-3 transition-colors ${
+                      isApproved
+                        ? "border-emerald-500/30 bg-emerald-500/5"
+                        : "border-rose-500/30 bg-rose-500/5"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold text-text">
+                          {PROFILE_FIELD_LABELS[key] || key}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs">
+                          <span className="text-muted line-through">
+                            {currentVal || "Not set"}
+                          </span>
+                          <ArrowRight size={11} className="text-muted" />
+                          <span className="font-semibold text-text">{requestedVal}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFieldDecisions((prev) => ({ ...prev, [key]: "APPROVE" }))
+                          }
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer transition-all ${
+                            isApproved
+                              ? "bg-emerald-600 text-white shadow-xs"
+                              : "border border-line bg-card text-muted hover:text-text"
+                          }`}
+                        >
+                          <Check size={12} /> Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFieldDecisions((prev) => ({ ...prev, [key]: "REJECT" }))
+                          }
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer transition-all ${
+                            isRejected
+                              ? "bg-rose-600 text-white shadow-xs"
+                              : "border border-line bg-card text-muted hover:text-text"
+                          }`}
+                        >
+                          <X size={12} /> Reject
+                        </button>
+                      </div>
+                    </div>
+
+                    {isRejected && (
+                      <div className="mt-2.5 pt-2 border-t border-rose-500/20">
+                        <input
+                          type="text"
+                          placeholder="Rejection note for this field (e.g. Document mismatch, invalid format)"
+                          value={fieldRemarks[key] || ""}
+                          onChange={(e) =>
+                            setFieldRemarks((prev) => ({ ...prev, [key]: e.target.value }))
+                          }
+                          className="w-full rounded-lg border border-rose-300 bg-canvas px-3 py-1.5 text-xs text-text placeholder:text-muted focus:border-rose-500 focus:outline-none dark:border-rose-900/60"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             <Field
-              label={
-                modalAction === "APPROVE"
-                  ? "Decision Remarks (Optional)"
-                  : "Reason for Rejection (Optional)"
-              }
+              label="Overall Decision Remarks (Optional)"
               htmlFor="decisionRemarks"
-              helper={
-                modalAction === "APPROVE"
-                  ? "Add any verification reference or notes."
-                  : "E.g. IFSC code mismatch, invalid document, or typo."
-              }
+              helper="Add any general guidance or notes that will be displayed to the employee."
             >
               <Textarea
                 id="decisionRemarks"
-                rows={3}
-                placeholder={
-                  modalAction === "APPROVE"
-                    ? "Verified against physical bank passbook / documents..."
-                    : "Please provide a valid IFSC code corresponding to your branch..."
-                }
+                rows={2}
+                placeholder="e.g. Approved banking details. Please re-submit PAN with supporting identity document."
                 value={decisionRemarks}
                 onChange={(e) => setDecisionRemarks(e.target.value)}
               />
             </Field>
 
-            <div className="flex items-center justify-end gap-3 pt-3">
-              <Button variant="secondary" onClick={handleCloseModal} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button
-                variant={modalAction === "APPROVE" ? "primary" : "danger"}
-                onClick={handleSubmitDecision}
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Processing..."
-                  : modalAction === "APPROVE"
-                  ? "Confirm & Apply Updates"
-                  : "Reject Request"}
-              </Button>
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-line-soft">
+              <span className="text-xs text-muted">
+                {approvedCount === totalCount
+                  ? "All fields will be approved and updated"
+                  : rejectedCount === totalCount
+                  ? "All fields will be rejected"
+                  : `${approvedCount} approved fields will update the profile; ${rejectedCount} will be rejected`}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={handleCloseModal} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button
+                  variant={
+                    approvedCount === 0 ? "danger" : approvedCount === totalCount ? "primary" : "primary"
+                  }
+                  onClick={handleSubmitDecision}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? "Processing..."
+                    : approvedCount === totalCount
+                    ? "Approve All Changes"
+                    : approvedCount === 0
+                    ? "Reject All Changes"
+                    : `Confirm Decision (${approvedCount} Approved, ${rejectedCount} Rejected)`}
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>
