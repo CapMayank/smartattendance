@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   AlarmClock,
+  AlertCircle,
   Calendar,
   CheckCircle2,
   Clock,
@@ -50,6 +51,7 @@ export function EmployeeMyDashboard({
   const { profile, today, monthSummary, monthRecords, payslips } = data;
   const [selectedSlip, setSelectedSlip] = useState<EmployeePortalData["payslips"][number] | null>(null);
   const [profileEditModalOpen, setProfileEditModalOpen] = useState(false);
+  const [profileEditInitialTab, setProfileEditInitialTab] = useState<"personal" | "banking" | "statutory" | "history">("personal");
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -67,6 +69,52 @@ export function EmployeeMyDashboard({
         }
       />
 
+      {/* Mandatory EPFO / KYC Compliance Alert */}
+      {profile.epfoReadiness?.isBankEpf && !profile.epfoReadiness.ready && (
+        profile.epfoReadiness.hasPendingRequest ? (
+          <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-semibold">EPFO &amp; KYC Update Pending Admin Review</p>
+                <p className="text-xs opacity-90">
+                  Your requested profile and EPFO statutory updates have been submitted and are currently awaiting review by an administrator.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-600 sm:flex-row sm:items-center sm:justify-between dark:text-red-400">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-semibold">Action Required: Complete Mandatory KYC &amp; EPFO Details</p>
+                <p className="text-xs opacity-90">
+                  Statutory compliance requires all employees on EPF payroll to submit complete Aadhaar, PAN, Bank account, Father/Husband details, and EPFO registration fields.
+                </p>
+                {profile.epfoReadiness.missingFields.length > 0 && (
+                  <p className="mt-1.5 text-[11.5px] font-medium">
+                    Missing / Incomplete: {profile.epfoReadiness.missingFields.join(" · ")}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setProfileEditInitialTab("statutory");
+                setProfileEditModalOpen(true);
+              }}
+            >
+              Complete KYC &amp; EPFO Details
+            </Button>
+          </div>
+        )
+      )}
+
       {/* My Identity + Today Status */}
       <section className="grid grid-cols-1 gap-3.5 min-[1024px]:grid-cols-12">
         <Card className="min-[1024px]:col-span-7">
@@ -76,7 +124,10 @@ export function EmployeeMyDashboard({
             action={
               <button
                 type="button"
-                onClick={() => setProfileEditModalOpen(true)}
+                onClick={() => {
+                  setProfileEditInitialTab("personal");
+                  setProfileEditModalOpen(true);
+                }}
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card-hi px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-acc-2 hover:text-acc-1"
               >
                 <FileText size={13} aria-hidden="true" />
@@ -136,6 +187,82 @@ export function EmployeeMyDashboard({
               <p className="mt-1 truncate text-[13.5px] font-medium text-text">{profile.email || "Use Employee ID"}</p>
             </div>
           </div>
+
+          {profile.kycDetails && (
+            <details
+              className="group mt-3.5 rounded-xl border border-line-soft bg-canvas p-3.5"
+              open={Boolean(profile.epfoReadiness?.isBankEpf && !profile.epfoReadiness.ready)}
+            >
+              <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold text-text">
+                <span>My Statutory, KYC &amp; Banking Details</span>
+                <span className="text-muted transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-2.5 border-t border-line-soft pt-3 text-xs sm:grid-cols-3">
+                <div>
+                  <span className="text-[11px] text-subtle">UAN</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.uan || "Not Linked"}</p>
+                  {profile.kycDetails.nameOnUan && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameOnUan}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Aadhaar Number</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.aadhaar || "Not Provided"}</p>
+                  {profile.kycDetails.nameOnAadhaar && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameOnAadhaar}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">PAN Number</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.pan || "Not Provided"}</p>
+                  {profile.kycDetails.nameOnPan && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameOnPan}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Bank Account &amp; IFSC</span>
+                  <p className="num font-medium text-text">
+                    {profile.kycDetails.bankAccount
+                      ? `${profile.kycDetails.bankAccount} (${profile.kycDetails.ifsc || "No IFSC"})`
+                      : "Not Provided"}
+                  </p>
+                  {profile.kycDetails.nameAsPerBank && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameAsPerBank}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Father / Husband</span>
+                  <p className="font-medium text-text">
+                    {profile.kycDetails.fatherHusbandName
+                      ? `${profile.kycDetails.fatherHusbandName}${profile.kycDetails.relationship ? ` (${profile.kycDetails.relationship})` : ""}`
+                      : "Not Provided"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Marital Status &amp; Gender</span>
+                  <p className="font-medium text-text">
+                    {[profile.kycDetails.maritalStatus, profile.kycDetails.gender].filter(Boolean).join(" · ") || "Not Provided"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Date of Birth &amp; Mobile</span>
+                  <p className="num font-medium text-text">
+                    {[profile.kycDetails.dob, profile.kycDetails.mobileNumber].filter(Boolean).join(" · ") || "Not Provided"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Qualification &amp; Nationality</span>
+                  <p className="font-medium text-text">
+                    {[profile.kycDetails.qualification, profile.kycDetails.nationality].filter(Boolean).join(" · ") || "INDIAN"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Previous Member ID</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.previousMemberId || "—"}</p>
+                </div>
+              </div>
+            </details>
+          )}
         </Card>
 
         <Card className="min-[1024px]:col-span-5">
@@ -369,6 +496,7 @@ export function EmployeeMyDashboard({
       <RequestProfileEditModal
         open={profileEditModalOpen}
         onClose={() => setProfileEditModalOpen(false)}
+        initialTab={profileEditInitialTab}
       />
     </div>
   );

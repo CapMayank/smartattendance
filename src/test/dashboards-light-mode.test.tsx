@@ -107,6 +107,113 @@ describe("Dashboards in Light Theme", () => {
     expect(html).toContain("My Payslips");
   });
 
+  it("renders mandatory KYC and EPFO completion banner when employee is BANK_EPF and compliance details are incomplete", () => {
+    const dataWithMissingKyc: EmployeePortalData = {
+      ...mockPortalData,
+      profile: {
+        ...mockPortalData.profile,
+        kycDetails: {
+          mobileNumber: "9876543210",
+          dob: "1992-05-10",
+          gender: "Female",
+          maritalStatus: "Married",
+          fatherHusbandName: "Rajesh Patel",
+          relationship: "Husband",
+          nationality: "INDIAN",
+          qualification: "Post Graduate",
+          bankAccount: "1234567890",
+          ifsc: "SBIN0001234",
+          nameAsPerBank: "SUNITA PATEL",
+          pan: "ABCDE1234F",
+          nameOnPan: "SUNITA PATEL",
+          aadhaar: null,
+          nameOnAadhaar: null,
+          uan: "100123456789",
+          nameOnUan: "SUNITA PATEL",
+          previousMemberId: null,
+          isInternationalWorker: "N",
+          countryOfOrigin: "INDIA",
+          passportNumber: null,
+          passportValidFrom: null,
+          passportValidTill: null,
+          isPhysicalHandicap: "N",
+          locomotive: "N",
+          hearing: "N",
+          visual: "N",
+        },
+        epfoReadiness: {
+          isBankEpf: true,
+          ready: false,
+          missingFields: ["Aadhaar number is required for EPFO compliance"],
+          hasPendingRequest: false,
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="light">
+        <EmployeeMyDashboard title="Good morning, Sunita" subtitle="Monday, 9 Nov" data={dataWithMissingKyc} />
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain("Action Required: Complete Mandatory KYC &amp; EPFO Details");
+    expect(html).toContain("Missing / Incomplete: Aadhaar number is required for EPFO compliance");
+    expect(html).toContain("Complete KYC &amp; EPFO Details");
+    expect(html).toContain("My Statutory, KYC &amp; Banking Details");
+    expect(html).toContain("100123456789");
+    expect(html).toContain("ABCDE1234F");
+    expect(html).toContain("Rajesh Patel (Husband)");
+  });
+
+  it("renders pending review banner when employee has already submitted KYC updates", () => {
+    const dataWithPendingRequest: EmployeePortalData = {
+      ...mockPortalData,
+      profile: {
+        ...mockPortalData.profile,
+        epfoReadiness: {
+          isBankEpf: true,
+          ready: false,
+          missingFields: ["Aadhaar number is required for EPFO compliance"],
+          hasPendingRequest: true,
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="light">
+        <EmployeeMyDashboard title="Good morning, Sunita" subtitle="Monday, 9 Nov" data={dataWithPendingRequest} />
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain("EPFO &amp; KYC Update Pending Admin Review");
+    expect(html).not.toContain("Complete KYC &amp; EPFO Details");
+  });
+
+  it("does not render KYC alert banner when employee is CASH pay group or ready", () => {
+    const cashData: EmployeePortalData = {
+      ...mockPortalData,
+      profile: {
+        ...mockPortalData.profile,
+        payGroup: "CASH",
+        epfoReadiness: {
+          isBankEpf: false,
+          ready: true,
+          missingFields: [],
+          hasPendingRequest: false,
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="light">
+        <EmployeeMyDashboard title="Good morning, Sunita" subtitle="Monday, 9 Nov" data={cashData} />
+      </ThemeProvider>,
+    );
+
+    expect(html).not.toContain("Action Required: Complete Mandatory KYC &amp; EPFO Details");
+    expect(html).not.toContain("EPFO &amp; KYC Update Pending Admin Review");
+  });
+
   it("renders Admin Dashboard components (StaffToday, DepartmentTurnout, AttentionList) in light mode", () => {
     const staffRows = [
       {

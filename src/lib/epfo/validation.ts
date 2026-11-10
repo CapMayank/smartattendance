@@ -256,3 +256,99 @@ export function validateForNextAction(
       return { ready: false, errors: [] };
   }
 }
+
+export function evaluateEmployeeKycAndEpfoReadiness(
+  member: EpfoMemberInput
+): EpfoValidationResult {
+  const errors: EpfoValidationError[] = [];
+  const info = member.payrollInfo;
+
+  if (info?.uan && !UAN_REGEX.test(info.uan.trim())) {
+    errors.push({ field: 'uan', message: 'UAN must be a 12-digit number' });
+  }
+
+  const dobIso = parseIsoDateKey(info?.dob);
+  if (!dobIso) {
+    errors.push({ field: 'dob', message: 'Date of birth is required' });
+  }
+
+  if (!mapGender(info?.gender)) {
+    errors.push({ field: 'gender', message: 'Gender must be Male, Female, or Other' });
+  }
+
+  if (!sanitizeEpfoName(info?.fatherHusbandName)) {
+    errors.push({ field: 'fatherHusbandName', message: 'Father or Husband name is required' });
+  }
+
+  if (!mapRelationship(info?.relationship)) {
+    errors.push({ field: 'relationship', message: 'Father / Husband relationship is required' });
+  }
+
+  const mobile = (info?.mobileNumber || '').trim();
+  if (!MOBILE_REGEX.test(mobile)) {
+    errors.push({ field: 'mobileNumber', message: 'Valid 10-digit mobile number is required' });
+  }
+
+  if (!mapMaritalStatus(info?.maritalStatus)) {
+    errors.push({ field: 'maritalStatus', message: 'Marital status is required' });
+  }
+
+  const aadhaar = (info?.aadhaar || '').trim();
+  if (!AADHAAR_REGEX.test(aadhaar)) {
+    errors.push({
+      field: 'aadhaar',
+      message: 'Aadhaar must be a 12-digit number not starting with 0 or 1',
+    });
+  }
+
+  const pan = (info?.pan || '').trim().toUpperCase();
+  if (!PAN_REGEX.test(pan)) {
+    errors.push({
+      field: 'pan',
+      message: 'Valid 10-character PAN is required (e.g. ABCDE1234F)',
+    });
+  }
+
+  const bankAcc = (info?.bankAccount || '').trim();
+  if (!BANK_ACC_REGEX.test(bankAcc)) {
+    errors.push({
+      field: 'bankAccount',
+      message: 'Valid bank account number (9 to 18 digits) is required',
+    });
+  }
+
+  const ifsc = (info?.ifsc || '').trim().toUpperCase();
+  if (!IFSC_REGEX.test(ifsc)) {
+    errors.push({
+      field: 'ifsc',
+      message: 'Valid 11-character IFSC code (with 0 at 5th character) is required',
+    });
+  }
+
+  if (info?.isInternationalWorker === 'Y') {
+    if (!info.passportNumber?.trim()) {
+      errors.push({
+        field: 'passportNumber',
+        message: 'Passport number is required for international workers',
+      });
+    }
+    if (!parseIsoDateKey(info.passportValidFrom)) {
+      errors.push({
+        field: 'passportValidFrom',
+        message: 'Passport valid from date is required',
+      });
+    }
+    if (!parseIsoDateKey(info.passportValidTill)) {
+      errors.push({
+        field: 'passportValidTill',
+        message: 'Passport valid till date is required',
+      });
+    }
+  }
+
+  return {
+    ready: errors.length === 0,
+    errors,
+  };
+}
+

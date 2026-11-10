@@ -37,13 +37,28 @@ export type ProfileData = {
   gender?: string;
   fatherHusbandName?: string;
   relationship?: string;
+  maritalStatus?: string;
+  nationality?: string;
   qualification?: string;
   bankAccount?: string;
   ifsc?: string;
   nameAsPerBank?: string;
   pan?: string;
+  nameOnPan?: string;
   aadhaar?: string;
+  nameOnAadhaar?: string;
   uan?: string;
+  nameOnUan?: string;
+  previousMemberId?: string;
+  isInternationalWorker?: string;
+  countryOfOrigin?: string;
+  passportNumber?: string;
+  passportValidFrom?: string;
+  passportValidTill?: string;
+  isPhysicalHandicap?: string;
+  locomotive?: string;
+  hearing?: string;
+  visual?: string;
 };
 
 export type ProfileRequestItem = {
@@ -86,13 +101,30 @@ export function RequestProfileEditModal({
     dob: string;
     gender: string;
     fatherHusbandName: string;
+    relationship: string;
+    maritalStatus: string;
+    nationality: string;
+    qualification: string;
     bankAccount: string;
     confirmBankAccount: string;
     ifsc: string;
     nameAsPerBank: string;
     pan: string;
+    nameOnPan: string;
     aadhaar: string;
+    nameOnAadhaar: string;
     uan: string;
+    nameOnUan: string;
+    previousMemberId: string;
+    isInternationalWorker: string;
+    countryOfOrigin: string;
+    passportNumber: string;
+    passportValidFrom: string;
+    passportValidTill: string;
+    isPhysicalHandicap: string;
+    locomotive: string;
+    hearing: string;
+    visual: string;
   }>({
     name: "",
     email: "",
@@ -100,13 +132,30 @@ export function RequestProfileEditModal({
     dob: "",
     gender: "",
     fatherHusbandName: "",
+    relationship: "",
+    maritalStatus: "",
+    nationality: "",
+    qualification: "",
     bankAccount: "",
     confirmBankAccount: "",
     ifsc: "",
     nameAsPerBank: "",
     pan: "",
+    nameOnPan: "",
     aadhaar: "",
+    nameOnAadhaar: "",
     uan: "",
+    nameOnUan: "",
+    previousMemberId: "",
+    isInternationalWorker: "",
+    countryOfOrigin: "",
+    passportNumber: "",
+    passportValidFrom: "",
+    passportValidTill: "",
+    isPhysicalHandicap: "",
+    locomotive: "",
+    hearing: "",
+    visual: "",
   });
 
   const fetchData = async () => {
@@ -168,8 +217,23 @@ export function RequestProfileEditModal({
       return;
     }
 
-    if (edits.aadhaar && !/^\d{12}$/.test(edits.aadhaar.trim())) {
-      toast.error("Invalid Aadhaar number. Must be exactly 12 digits.");
+    if (edits.aadhaar && !/^[2-9]\d{11}$/.test(edits.aadhaar.trim())) {
+      toast.error("Invalid Aadhaar number. Must be exactly 12 digits and cannot start with 0 or 1.");
+      return;
+    }
+
+    if (edits.uan && !/^\d{12}$/.test(edits.uan.trim())) {
+      toast.error("Invalid UAN format. Must be exactly 12 digits.");
+      return;
+    }
+
+    if (edits.bankAccount && !/^\d{9,18}$/.test(edits.bankAccount.trim())) {
+      toast.error("Invalid bank account number. Must be between 9 and 18 digits.");
+      return;
+    }
+
+    if (edits.relationship && !["Father", "Husband", "F", "H"].includes(edits.relationship.trim())) {
+      toast.error("Invalid Relationship. Must be Father or Husband.");
       return;
     }
 
@@ -207,13 +271,30 @@ export function RequestProfileEditModal({
         dob: "",
         gender: "",
         fatherHusbandName: "",
+        relationship: "",
+        maritalStatus: "",
+        nationality: "",
+        qualification: "",
         bankAccount: "",
         confirmBankAccount: "",
         ifsc: "",
         nameAsPerBank: "",
         pan: "",
+        nameOnPan: "",
         aadhaar: "",
+        nameOnAadhaar: "",
         uan: "",
+        nameOnUan: "",
+        previousMemberId: "",
+        isInternationalWorker: "",
+        countryOfOrigin: "",
+        passportNumber: "",
+        passportValidFrom: "",
+        passportValidTill: "",
+        isPhysicalHandicap: "",
+        locomotive: "",
+        hearing: "",
+        visual: "",
       });
       setReason("");
       fetchData();
@@ -241,12 +322,29 @@ export function RequestProfileEditModal({
     dob: "Date of Birth",
     gender: "Gender",
     fatherHusbandName: "Father / Husband Name",
+    relationship: "Father / Husband Relationship",
+    maritalStatus: "Marital Status",
+    nationality: "Nationality",
+    qualification: "Educational Qualification",
     bankAccount: "Bank Account Number",
     ifsc: "IFSC Code",
     nameAsPerBank: "Name as per Bank",
     pan: "Permanent Account Number (PAN)",
+    nameOnPan: "Name as per PAN",
     aadhaar: "Aadhaar Number",
+    nameOnAadhaar: "Name as per Aadhaar",
     uan: "Universal Account Number (UAN)",
+    nameOnUan: "Name on UAN",
+    previousMemberId: "Previous EPFO Member ID",
+    isInternationalWorker: "International Worker (Y/N)",
+    countryOfOrigin: "Country of Origin",
+    passportNumber: "Passport Number",
+    passportValidFrom: "Passport Valid From",
+    passportValidTill: "Passport Valid Till",
+    isPhysicalHandicap: "Disability Status (Y/N)",
+    locomotive: "Locomotive Disability",
+    hearing: "Hearing Disability",
+    visual: "Visual Disability",
   };
 
   return (
@@ -465,6 +563,78 @@ export function RequestProfileEditModal({
                   </p>
                 )}
               </div>
+
+              <div>
+                <Field label="Father / Husband Relationship" htmlFor="req-relationship">
+                  <Select
+                    id="req-relationship"
+                    value={edits.relationship}
+                    onChange={(e) => setEdits({ ...edits, relationship: e.target.value })}
+                  >
+                    <option value="">Leave unchanged ({currentProfile?.relationship || "Not Set"})</option>
+                    <option value="Father">Father</option>
+                    <option value="Husband">Husband</option>
+                  </Select>
+                </Field>
+                {currentProfile?.relationship && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.relationship}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Field label="Marital Status" htmlFor="req-marital-status">
+                  <Select
+                    id="req-marital-status"
+                    value={edits.maritalStatus}
+                    onChange={(e) => setEdits({ ...edits, maritalStatus: e.target.value })}
+                  >
+                    <option value="">Leave unchanged ({currentProfile?.maritalStatus || "Not Set"})</option>
+                    <option value="Unmarried">Unmarried</option>
+                    <option value="Married">Married</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Divorced">Divorced</option>
+                  </Select>
+                </Field>
+                {currentProfile?.maritalStatus && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.maritalStatus}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Field label="Nationality" htmlFor="req-nationality">
+                  <Input
+                    id="req-nationality"
+                    value={edits.nationality}
+                    onChange={(e) => setEdits({ ...edits, nationality: e.target.value.toUpperCase() })}
+                    placeholder={currentProfile?.nationality || "INDIAN"}
+                  />
+                </Field>
+                {currentProfile?.nationality && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.nationality}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Field label="Educational Qualification" htmlFor="req-qualification">
+                  <Input
+                    id="req-qualification"
+                    value={edits.qualification}
+                    onChange={(e) => setEdits({ ...edits, qualification: e.target.value })}
+                    placeholder={currentProfile?.qualification || "e.g. Graduate, Post Graduate"}
+                  />
+                </Field>
+                {currentProfile?.qualification && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.qualification}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -554,7 +724,7 @@ export function RequestProfileEditModal({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Field label="Permanent Account Number (PAN)" htmlFor="req-pan">
                   <Input
@@ -573,12 +743,28 @@ export function RequestProfileEditModal({
               </div>
 
               <div>
+                <Field label="Name as per PAN" htmlFor="req-name-on-pan">
+                  <Input
+                    id="req-name-on-pan"
+                    value={edits.nameOnPan}
+                    onChange={(e) => setEdits({ ...edits, nameOnPan: e.target.value })}
+                    placeholder={currentProfile?.nameOnPan || currentProfile?.name || "Name printed on PAN card"}
+                  />
+                </Field>
+                {currentProfile?.nameOnPan && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.nameOnPan}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <Field label="Aadhaar Number (12 Digits)" htmlFor="req-aadhaar">
                   <Input
                     id="req-aadhaar"
                     value={edits.aadhaar}
                     onChange={(e) => setEdits({ ...edits, aadhaar: e.target.value.replace(/\D/g, "") })}
-                    placeholder="12-digit number"
+                    placeholder="12-digit number (starts with 2-9)"
                     maxLength={12}
                   />
                 </Field>
@@ -590,12 +776,29 @@ export function RequestProfileEditModal({
               </div>
 
               <div>
+                <Field label="Name as per Aadhaar" htmlFor="req-name-on-aadhaar">
+                  <Input
+                    id="req-name-on-aadhaar"
+                    value={edits.nameOnAadhaar}
+                    onChange={(e) => setEdits({ ...edits, nameOnAadhaar: e.target.value })}
+                    placeholder={currentProfile?.nameOnAadhaar || currentProfile?.name || "Name printed on Aadhaar"}
+                  />
+                </Field>
+                {currentProfile?.nameOnAadhaar && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.nameOnAadhaar}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <Field label="Universal Account Number (UAN)" htmlFor="req-uan">
                   <Input
                     id="req-uan"
                     value={edits.uan}
                     onChange={(e) => setEdits({ ...edits, uan: e.target.value.replace(/\D/g, "") })}
                     placeholder="12-digit UAN"
+                    maxLength={12}
                   />
                 </Field>
                 {currentProfile?.uan && (
@@ -604,7 +807,179 @@ export function RequestProfileEditModal({
                   </p>
                 )}
               </div>
+
+              <div>
+                <Field label="Name on UAN" htmlFor="req-name-on-uan">
+                  <Input
+                    id="req-name-on-uan"
+                    value={edits.nameOnUan}
+                    onChange={(e) => setEdits({ ...edits, nameOnUan: e.target.value })}
+                    placeholder={currentProfile?.nameOnUan || currentProfile?.name || "Name on EPFO UAN card"}
+                  />
+                </Field>
+                {currentProfile?.nameOnUan && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.nameOnUan}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="sm:col-span-2">
+                <Field label="Previous EPFO Member ID" htmlFor="req-prev-member-id">
+                  <Input
+                    id="req-prev-member-id"
+                    value={edits.previousMemberId}
+                    onChange={(e) => setEdits({ ...edits, previousMemberId: e.target.value })}
+                    placeholder={currentProfile?.previousMemberId || "e.g. MH/BAN/0012345/000/0000001"}
+                  />
+                </Field>
+                {currentProfile?.previousMemberId && (
+                  <p className="mt-1 text-[11px] text-muted">
+                    Current: <span className="font-medium text-text">{currentProfile.previousMemberId}</span>
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Collapsible International Worker & Disability section */}
+            <details className="group rounded-xl border border-line-soft bg-canvas p-3.5">
+              <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold text-text">
+                <span>International Worker &amp; Disability Details</span>
+                <span className="text-muted transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <div className="mt-3.5 grid grid-cols-1 gap-4 border-t border-line-soft pt-3.5 sm:grid-cols-2">
+                <div>
+                  <Field label="International Worker (Y/N)" htmlFor="req-intl-worker">
+                    <Select
+                      id="req-intl-worker"
+                      value={edits.isInternationalWorker}
+                      onChange={(e) => setEdits({ ...edits, isInternationalWorker: e.target.value })}
+                    >
+                      <option value="">Leave unchanged ({currentProfile?.isInternationalWorker || "N"})</option>
+                      <option value="N">No (Indian Citizen)</option>
+                      <option value="Y">Yes (International Worker)</option>
+                    </Select>
+                  </Field>
+                </div>
+
+                <div>
+                  <Field label="Country of Origin" htmlFor="req-country">
+                    <Input
+                      id="req-country"
+                      value={edits.countryOfOrigin}
+                      onChange={(e) => setEdits({ ...edits, countryOfOrigin: e.target.value })}
+                      placeholder={currentProfile?.countryOfOrigin || "INDIA"}
+                    />
+                  </Field>
+                  {currentProfile?.countryOfOrigin && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="font-medium text-text">{currentProfile.countryOfOrigin}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Field label="Passport Number" htmlFor="req-passport">
+                    <Input
+                      id="req-passport"
+                      value={edits.passportNumber}
+                      onChange={(e) => setEdits({ ...edits, passportNumber: e.target.value.toUpperCase() })}
+                      placeholder={currentProfile?.passportNumber || "Passport number"}
+                    />
+                  </Field>
+                  {currentProfile?.passportNumber && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="num font-medium text-text">{currentProfile.passportNumber}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Field label="Passport Valid From" htmlFor="req-passport-from">
+                    <Input
+                      id="req-passport-from"
+                      type="date"
+                      value={edits.passportValidFrom}
+                      onChange={(e) => setEdits({ ...edits, passportValidFrom: e.target.value })}
+                    />
+                  </Field>
+                  {currentProfile?.passportValidFrom && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="num font-medium text-text">{currentProfile.passportValidFrom}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Field label="Passport Valid Till" htmlFor="req-passport-till">
+                    <Input
+                      id="req-passport-till"
+                      type="date"
+                      value={edits.passportValidTill}
+                      onChange={(e) => setEdits({ ...edits, passportValidTill: e.target.value })}
+                    />
+                  </Field>
+                  {currentProfile?.passportValidTill && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="num font-medium text-text">{currentProfile.passportValidTill}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Field label="Disability Status (Y/N)" htmlFor="req-handicap">
+                    <Select
+                      id="req-handicap"
+                      value={edits.isPhysicalHandicap}
+                      onChange={(e) => setEdits({ ...edits, isPhysicalHandicap: e.target.value })}
+                    >
+                      <option value="">Leave unchanged ({currentProfile?.isPhysicalHandicap || "N"})</option>
+                      <option value="N">No</option>
+                      <option value="Y">Yes</option>
+                    </Select>
+                  </Field>
+                </div>
+
+                {(edits.isPhysicalHandicap === "Y" ||
+                  (edits.isPhysicalHandicap === "" && currentProfile?.isPhysicalHandicap === "Y")) && (
+                  <div className="grid grid-cols-3 gap-2 sm:col-span-2">
+                    <Field label="Locomotive" htmlFor="req-locomotive">
+                      <Select
+                        id="req-locomotive"
+                        value={edits.locomotive}
+                        onChange={(e) => setEdits({ ...edits, locomotive: e.target.value })}
+                      >
+                        <option value="">Leave unchanged ({currentProfile?.locomotive || "N"})</option>
+                        <option value="N">No</option>
+                        <option value="Y">Yes</option>
+                      </Select>
+                    </Field>
+                    <Field label="Hearing" htmlFor="req-hearing">
+                      <Select
+                        id="req-hearing"
+                        value={edits.hearing}
+                        onChange={(e) => setEdits({ ...edits, hearing: e.target.value })}
+                      >
+                        <option value="">Leave unchanged ({currentProfile?.hearing || "N"})</option>
+                        <option value="N">No</option>
+                        <option value="Y">Yes</option>
+                      </Select>
+                    </Field>
+                    <Field label="Visual" htmlFor="req-visual">
+                      <Select
+                        id="req-visual"
+                        value={edits.visual}
+                        onChange={(e) => setEdits({ ...edits, visual: e.target.value })}
+                      >
+                        <option value="">Leave unchanged ({currentProfile?.visual || "N"})</option>
+                        <option value="N">No</option>
+                        <option value="Y">Yes</option>
+                      </Select>
+                    </Field>
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
         )}
 

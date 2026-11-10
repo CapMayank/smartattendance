@@ -3,10 +3,13 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { sanitizeEpfoName } from "@/lib/epfo/mappings";
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-const AADHAAR_REGEX = /^\d{12}$/;
+const AADHAAR_REGEX = /^[2-9]\d{11}$/;
+const UAN_REGEX = /^\d{12}$/;
+const BANK_ACC_REGEX = /^\d{9,18}$/;
 const MOBILE_REGEX = /^\d{10}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -89,10 +92,55 @@ export async function POST(req: Request) {
     if (cleanRequestedData.aadhaar) {
       if (!AADHAAR_REGEX.test(cleanRequestedData.aadhaar)) {
         return NextResponse.json(
-          { error: "Invalid Aadhaar format: Must be exactly 12 digits" },
+          { error: "Invalid Aadhaar format: Must be exactly 12 digits and cannot start with 0 or 1" },
           { status: 400 }
         );
       }
+    }
+
+    // Validate UAN
+    if (cleanRequestedData.uan) {
+      if (!UAN_REGEX.test(cleanRequestedData.uan)) {
+        return NextResponse.json(
+          { error: "Invalid UAN format: Must be exactly 12 digits" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate Bank Account
+    if (cleanRequestedData.bankAccount) {
+      if (!BANK_ACC_REGEX.test(cleanRequestedData.bankAccount)) {
+        return NextResponse.json(
+          { error: "Invalid bank account format: Must be between 9 and 18 digits" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate Relationship
+    if (cleanRequestedData.relationship) {
+      const rel = cleanRequestedData.relationship.trim();
+      if (!["Father", "Husband", "F", "H"].includes(rel)) {
+        return NextResponse.json(
+          { error: "Invalid Relationship: Must be either Father or Husband" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Sanitize document names
+    if (cleanRequestedData.nameOnAadhaar) {
+      cleanRequestedData.nameOnAadhaar = sanitizeEpfoName(cleanRequestedData.nameOnAadhaar);
+    }
+    if (cleanRequestedData.nameOnPan) {
+      cleanRequestedData.nameOnPan = sanitizeEpfoName(cleanRequestedData.nameOnPan);
+    }
+    if (cleanRequestedData.nameOnUan) {
+      cleanRequestedData.nameOnUan = sanitizeEpfoName(cleanRequestedData.nameOnUan);
+    }
+    if (cleanRequestedData.nameAsPerBank) {
+      cleanRequestedData.nameAsPerBank = sanitizeEpfoName(cleanRequestedData.nameAsPerBank);
     }
 
     // Validate Mobile
@@ -151,12 +199,37 @@ export async function POST(req: Request) {
         : "",
       gender: info?.gender ?? "",
       fatherHusbandName: info?.fatherHusbandName ?? "",
+      relationship: info?.relationship ?? "",
+      maritalStatus: info?.maritalStatus ?? "",
+      nationality: info?.nationality ?? "INDIAN",
+      qualification: info?.qualification ?? "",
       bankAccount: info?.bankAccount ?? "",
       ifsc: info?.ifsc ?? "",
       nameAsPerBank: info?.nameAsPerBank ?? "",
       pan: info?.pan ?? "",
+      nameOnPan: info?.nameOnPan ?? "",
       aadhaar: info?.aadhaar ?? "",
+      nameOnAadhaar: info?.nameOnAadhaar ?? "",
       uan: info?.uan ?? "",
+      nameOnUan: info?.nameOnUan ?? "",
+      previousMemberId: info?.previousMemberId ?? "",
+      isInternationalWorker: info?.isInternationalWorker ?? "N",
+      countryOfOrigin: info?.countryOfOrigin ?? "INDIA",
+      passportNumber: info?.passportNumber ?? "",
+      passportValidFrom: info?.passportValidFrom
+        ? typeof info.passportValidFrom === "string"
+          ? info.passportValidFrom
+          : info.passportValidFrom.toISOString().split("T")[0]
+        : "",
+      passportValidTill: info?.passportValidTill
+        ? typeof info.passportValidTill === "string"
+          ? info.passportValidTill
+          : info.passportValidTill.toISOString().split("T")[0]
+        : "",
+      isPhysicalHandicap: info?.isPhysicalHandicap ?? "N",
+      locomotive: info?.locomotive ?? "N",
+      hearing: info?.hearing ?? "N",
+      visual: info?.visual ?? "N",
     };
 
     const request = await prisma.profileChangeRequest.create({

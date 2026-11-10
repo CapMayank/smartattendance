@@ -107,12 +107,25 @@ export async function POST(
         "ifsc",
         "nameAsPerBank",
         "pan",
+        "nameOnPan",
         "aadhaar",
+        "nameOnAadhaar",
         "uan",
+        "nameOnUan",
         "gender",
         "fatherHusbandName",
         "relationship",
+        "maritalStatus",
+        "nationality",
         "qualification",
+        "previousMemberId",
+        "isInternationalWorker",
+        "countryOfOrigin",
+        "passportNumber",
+        "isPhysicalHandicap",
+        "locomotive",
+        "hearing",
+        "visual",
       ];
 
       for (const field of payrollFields) {
@@ -123,6 +136,12 @@ export async function POST(
 
       if (requestedData.dob) {
         payrollUpdate.dob = new Date(requestedData.dob);
+      }
+      if (requestedData.passportValidFrom) {
+        payrollUpdate.passportValidFrom = new Date(requestedData.passportValidFrom);
+      }
+      if (requestedData.passportValidTill) {
+        payrollUpdate.passportValidTill = new Date(requestedData.passportValidTill);
       }
 
       if (Object.keys(payrollUpdate).length > 0) {
