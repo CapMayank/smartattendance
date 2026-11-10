@@ -20,6 +20,7 @@ import {
   Info,
   Send,
   RotateCcw,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/format";
