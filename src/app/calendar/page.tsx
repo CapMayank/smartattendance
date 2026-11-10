@@ -23,6 +23,7 @@ import {
   Input,
   Modal,
 } from '@/components/ui'
+import { UnifiedCalendar } from '@/components/calendar/UnifiedCalendar'
 import { cn } from '@/lib/cn'
 import {
   startOfMonth,
@@ -306,198 +307,142 @@ export default function CalendarPage() {
       {/* Main Two-Column Bento Layout */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Left Column: Calendar Bento Grid Card */}
-        <div className="flex-1 rounded-2xl border border-line bg-card shadow-sm overflow-hidden flex flex-col">
-          {/* Integrated Card Header Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-card-hi/40 px-4 py-3 sm:px-5">
-            {/* Month Navigator */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={prevMonth}
-                disabled={loading}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-card hover:bg-card-hi transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
-                aria-label="Previous month"
-              >
-                <ChevronLeft className="h-4 w-4 text-text" />
-              </button>
+        <UnifiedCalendar
+          currentDate={currentMonth}
+          onPrevMonth={prevMonth}
+          onNextMonth={nextMonth}
+          onGoToToday={goToToday}
+          isLoading={loading}
+          legendItems={[
+            {
+              label: 'School Holiday',
+              dotClass: 'bg-indigo-600 dark:bg-indigo-400',
+              ringClass: 'ring-2 ring-indigo-500/20',
+            },
+            {
+              label: 'Sunday Off',
+              dotClass: 'bg-slate-400 dark:bg-slate-500',
+              ringClass: 'ring-2 ring-slate-400/20',
+            },
+            {
+              label: 'Today',
+              dotClass: 'bg-indigo-600 dark:bg-indigo-400',
+              ringClass: 'ring-2 ring-indigo-500/20',
+            },
+            {
+              label: 'Working Day',
+              dotClass: 'bg-slate-500 dark:bg-slate-400',
+              ringClass: 'ring-2 ring-slate-500/20',
+            },
+          ]}
+          renderDay={(day, { isTodayDate, isSundayDate }) => {
+            const holiday = holidays.find((h) => isSameDay(new Date(h.date), day));
 
-              <div className="flex items-center gap-2 px-1">
-                <CalendarDays className="h-4 w-4 text-acc-2" />
-                <span className="num text-sm sm:text-base font-bold tracking-tight text-text">
-                  {format(currentMonth, 'MMMM yyyy')}
-                </span>
-              </div>
+            let cellClasses = 'bg-card hover:bg-card-hi/40 transition-colors';
 
-              <button
-                type="button"
-                onClick={nextMonth}
-                disabled={loading}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-card hover:bg-card-hi transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
-                aria-label="Next month"
-              >
-                <ChevronRight className="h-4 w-4 text-text" />
-              </button>
+            if (isTodayDate) {
+              cellClasses =
+                'bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/25 ring-2 ring-inset ring-indigo-600 dark:ring-indigo-400 z-10';
+            } else if (holiday) {
+              cellClasses =
+                'bg-indigo-50/20 hover:bg-indigo-50/40 dark:bg-indigo-950/20 border-l-[3px] border-l-indigo-500';
+            } else if (isSundayDate) {
+              cellClasses = 'bg-canvas/40 hover:bg-canvas/60 text-muted';
+            }
 
-              <Button variant="secondary" onClick={goToToday} className="h-8 px-2.5 text-xs ml-1 shadow-2xs">
-                Today
-              </Button>
-            </div>
-
-            {/* Integrated Micro-Legend */}
-            <div className="flex flex-wrap items-center gap-3.5 text-xs text-muted">
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 ring-2 ring-indigo-500/20" />
-                <span className="font-semibold text-text">School Holiday</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500 ring-2 ring-slate-400/20" />
-                <span className="font-semibold text-text">Sunday Off</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 ring-2 ring-indigo-500/20" />
-                <span className="font-semibold text-text">Today</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-slate-500 dark:bg-slate-400 ring-2 ring-slate-500/20" />
-                <span className="font-semibold text-text">Working Day</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[640px] sm:min-w-[700px]">
-              {/* Weekday Headers */}
-              <div className="grid grid-cols-7 border-b border-line bg-card-hi/70 text-center text-xs font-semibold text-text">
-                {WEEKDAY_NAMES.map((name, i) => (
-                  <div
-                    key={name}
-                    className={cn(
-                      "py-2.5 text-[11px] uppercase tracking-wider font-semibold",
-                      i === 6 ? "text-muted" : "text-text"
-                    )}
-                  >
-                    {name}
-                  </div>
-                ))}
-              </div>
-
-              {/* Days Grid */}
-              <div className="grid grid-cols-7 divide-x divide-y divide-line">
-                {days.map((day) => {
-                  const holiday = holidays.find((h) => isSameDay(new Date(h.date), day))
-                  const isCurrentMonth = isSameMonth(day, monthStart)
-                  const isTodayDate = isToday(day)
-                  const isSundayDate = isSunday(day)
-
-                  let cellClasses = 'bg-card hover:bg-card-hi/40 transition-colors'
-
-                  if (!isCurrentMonth) {
-                    cellClasses = 'bg-canvas/40'
-                  } else if (isTodayDate) {
-                    cellClasses = 'bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/25 ring-2 ring-inset ring-indigo-600 dark:ring-indigo-400 z-10'
-                  } else if (holiday) {
-                    cellClasses = 'bg-indigo-50/20 hover:bg-indigo-50/40 dark:bg-indigo-950/20 border-l-[3px] border-l-indigo-500'
-                  } else if (isSundayDate) {
-                    cellClasses = 'bg-canvas/40 hover:bg-canvas/60 text-muted'
+            return (
+              <div
+                key={day.toISOString()}
+                onClick={() => {
+                  if (holiday) {
+                    handleDelete(holiday.id, holiday.name);
+                  } else {
+                    openAddModal(day);
                   }
-
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      onClick={() => {
-                        if (holiday) {
-                          handleDelete(holiday.id, holiday.name)
-                        } else if (isCurrentMonth) {
-                          openAddModal(day)
-                        }
-                      }}
+                }}
+                className={cn(
+                  'group relative flex min-h-[130px] sm:min-h-[142px] flex-col justify-between p-2 sm:p-2.5 transition-colors duration-150 cursor-pointer',
+                  cellClasses
+                )}
+              >
+                {/* Top Row: Day Number + Status Badge */}
+                <div className="flex items-center justify-between gap-1 leading-none">
+                  {isTodayDate ? (
+                    <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num flex-none">
+                      {format(day, 'dd')}
+                    </span>
+                  ) : (
+                    <span
                       className={cn(
-                        'group relative flex min-h-[128px] sm:min-h-[136px] flex-col justify-between p-2 sm:p-2.5 transition-colors duration-150 cursor-pointer',
-                        cellClasses
+                        'num text-xs sm:text-sm font-semibold tracking-tight',
+                        holiday
+                          ? 'text-indigo-900 dark:text-indigo-300 font-bold'
+                          : isSundayDate
+                            ? 'text-muted font-normal'
+                            : 'text-text font-semibold'
                       )}
                     >
-                      {/* Top Row: Day Number + Status Badge */}
-                      <div className="flex items-center justify-between gap-1 leading-none">
-                        {isTodayDate ? (
-                          <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num flex-none">
-                            {format(day, 'dd')}
-                          </span>
-                        ) : (
-                          <span
-                            className={cn(
-                              'num text-xs sm:text-sm font-semibold tracking-tight',
-                              !isCurrentMonth
-                                ? 'text-subtle/40'
-                                : holiday
-                                  ? 'text-indigo-900 dark:text-indigo-300 font-bold'
-                                  : isSundayDate
-                                    ? 'text-muted font-normal'
-                                    : 'text-text font-semibold'
-                            )}
-                          >
-                            {format(day, 'dd')}
-                          </span>
-                        )}
+                      {format(day, 'dd')}
+                    </span>
+                  )}
 
-                        {/* Status Pill Badge */}
-                        {isTodayDate ? (
-                          <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[9.5px] font-bold text-white shadow-2xs dark:bg-indigo-500 whitespace-nowrap">
-                            Today
-                          </span>
-                        ) : null}
-                      </div>
+                  {isTodayDate ? (
+                    <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[9.5px] font-bold text-white shadow-2xs dark:bg-indigo-500 whitespace-nowrap">
+                      Today
+                    </span>
+                  ) : null}
+                </div>
 
-                      {/* Middle Content */}
-                      <div className="my-1 flex flex-col gap-1 min-w-0">
-                        {holiday ? (
-                          <div
-                            title={holiday.name}
-                            className="group/pill flex items-center justify-between gap-1 rounded-md border border-indigo-200/80 bg-indigo-50/90 px-1.5 py-0.5 text-[10.5px] font-semibold text-indigo-950 dark:border-indigo-800/80 dark:bg-indigo-950/70 dark:text-indigo-200 min-w-0 shadow-2xs"
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
-                              <span className="truncate">{holiday.name}</span>
-                            </div>
-                            {!isApprover && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDelete(holiday.id, holiday.name)
-                                }}
-                                className="opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0 rounded p-0.5 text-indigo-800 hover:bg-rose-100 hover:text-rose-700 dark:text-indigo-300 dark:hover:bg-rose-950/60 dark:hover:text-rose-300 transition-opacity cursor-pointer"
-                                title={`Delete holiday: ${holiday.name}`}
-                                aria-label={`Delete ${holiday.name}`}
-                              >
-                                <Trash2 size={12} aria-hidden="true" />
-                              </button>
-                            )}
-                          </div>
-                        ) : isSundayDate && isCurrentMonth ? (
-                          <span className="text-[11px] font-medium text-muted/70">
-                            Sunday Off
-                          </span>
-                        ) : null}
+                {/* Middle Content: Anti-Clipping Holiday Tag or Sunday */}
+                <div className="my-1 flex flex-col gap-1 min-w-0">
+                  {holiday ? (
+                    <div
+                      title={holiday.name}
+                      className="group/pill flex items-start justify-between gap-1.5 rounded-lg border border-indigo-200/90 bg-indigo-50/90 p-1.5 text-[11px] font-semibold text-indigo-950 dark:border-indigo-800/80 dark:bg-indigo-950/70 dark:text-indigo-200 shadow-2xs min-w-0"
+                    >
+                      <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                        <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400 mt-1" />
+                        <span className="leading-snug break-words line-clamp-2">
+                          {holiday.name}
+                        </span>
                       </div>
-
-                      {/* Bottom Hover Action (when empty day) */}
-                      <div className="mt-auto pt-1 min-w-0">
-                        {!holiday && isCurrentMonth && !isApprover && (
-                          <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                            <span className="inline-flex items-center gap-1 rounded border border-line-soft bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-text shadow-2xs hover:bg-card whitespace-nowrap">
-                              <Plus size={10} aria-hidden="true" />
-                              Mark
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      {!isApprover && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(holiday.id, holiday.name);
+                          }}
+                          className="opacity-0 group-hover/pill:opacity-100 focus:opacity-100 shrink-0 rounded p-0.5 text-indigo-700 hover:bg-rose-100 hover:text-rose-700 dark:text-indigo-300 dark:hover:bg-rose-950/60 dark:hover:text-rose-300 transition-all cursor-pointer -mr-0.5"
+                          title={`Delete holiday: ${holiday.name}`}
+                          aria-label={`Delete ${holiday.name}`}
+                        >
+                          <Trash2 size={12} aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
-                  )
-                })}
+                  ) : isSundayDate ? (
+                    <span className="text-[11px] font-medium text-muted/70">
+                      Sunday Off
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Bottom Hover Action (when empty day) */}
+                <div className="mt-auto pt-1 min-w-0">
+                  {!holiday && !isApprover && (
+                    <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <span className="inline-flex items-center gap-1 rounded border border-line-soft bg-card-hi px-1.5 py-0.5 text-[10px] font-semibold text-text shadow-2xs hover:bg-card whitespace-nowrap">
+                        <Plus size={10} aria-hidden="true" />
+                        Mark
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
+            );
+          }}
+        />
 
         {/* Right Column: Sidebar (Metrics & Holiday List) */}
         <div className="flex w-full flex-col gap-5 lg:w-72 xl:w-80 flex-none">

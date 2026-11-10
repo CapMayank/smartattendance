@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import type { ToSchoolData, ToSchoolDay } from "@/lib/to-school";
 import { AttendanceIndexSidebar } from "@/components/calendar/AttendanceIndexSidebar";
+import { UnifiedCalendar } from "@/components/calendar/UnifiedCalendar";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { formatDate, formatHHmm } from "@/lib/format";
@@ -54,6 +55,14 @@ export function ToSchoolClient({
       ((d.checkIn && !d.checkOut) || (!d.checkIn && d.checkOut) || d.isNoShow)
   );
   const discrepancyCount = discrepancyDays.length;
+
+  const dayMap = useMemo(() => {
+    const map = new Map<string, ToSchoolDay>();
+    for (const d of data.days) {
+      map.set(d.dateKey, d);
+    }
+    return map;
+  }, [data.days]);
 
   // Punch Request Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -268,302 +277,276 @@ export function ToSchoolClient({
 
       {/* Main Two-Column Bento Layout */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        {/* Calendar Grid Container Card */}
-        <div className="flex-1 rounded-2xl border border-line bg-card shadow-sm overflow-hidden flex flex-col">
-          {/* Integrated Card Header Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-card-hi/40 px-4 py-3 sm:px-5">
-            {/* Month Navigator */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePrevMonth}
-                disabled={isLoading}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-card hover:bg-card-hi transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
-                aria-label="Previous month"
+        {/* Calendar Grid Container Card using Shared UnifiedCalendar */}
+        <UnifiedCalendar
+          currentDate={new Date(selectedYear, selectedMonth - 1, 1)}
+          monthLabel={data.monthLabel}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
+          isLoading={isLoading}
+          legendItems={[
+            {
+              label: "Present",
+              dotClass: "bg-present",
+              ringClass: "ring-2 ring-emerald-500/20",
+            },
+            {
+              label: "Half Day",
+              dotClass: "bg-late",
+              ringClass: "ring-2 ring-amber-500/20",
+            },
+            {
+              label: "Branch Holiday",
+              dotClass: "bg-indigo-600 dark:bg-indigo-400",
+              ringClass: "ring-2 ring-indigo-500/20",
+            },
+            {
+              label: "Sunday Off",
+              dotClass: "bg-slate-400 dark:bg-slate-500",
+              ringClass: "ring-2 ring-slate-400/20",
+            },
+            {
+              label: "No Show",
+              dotClass: "bg-rose-500",
+              ringClass: "ring-2 ring-rose-500/20",
+            },
+          ]}
+          renderDay={(date, { dateKey }) => {
+            const day = dayMap.get(dateKey);
+            if (!day) return null;
+
+            const isSunday = day.isSunday;
+            const isHoliday = day.isHoliday;
+            const isNoShow = day.isNoShow;
+            const isToday = day.isToday;
+            const hasPending = day.hasPendingRequest;
+            const isHalfDay = day.status === "HALF_DAY";
+            const isPresent = day.status === "PRESENT";
+
+            let cellClasses = "bg-card hover:bg-card-hi/40 transition-colors";
+            if (isToday) {
+              cellClasses =
+                "bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/25 ring-2 ring-inset ring-indigo-600 dark:ring-indigo-400 z-10";
+            } else if (isNoShow) {
+              cellClasses =
+                "bg-rose-50/20 hover:bg-rose-50/40 dark:bg-rose-950/20 border-l-[3px] border-l-rose-500";
+            } else if (isHalfDay) {
+              cellClasses =
+                "bg-amber-50/20 hover:bg-amber-50/40 dark:bg-amber-950/20 border-l-[3px] border-l-amber-500";
+            } else if (isHoliday) {
+              cellClasses =
+                "bg-indigo-50/20 hover:bg-indigo-50/40 dark:bg-indigo-950/20 border-l-[3px] border-l-indigo-500";
+            } else if (isSunday) {
+              cellClasses = "bg-canvas/40 hover:bg-canvas/60 text-muted";
+            }
+
+            return (
+              <div
+                key={day.dateKey}
+                className={cn(
+                  "relative flex min-h-[130px] sm:min-h-[142px] flex-col justify-between p-2 sm:p-2.5 transition-colors",
+                  cellClasses
+                )}
               >
-                <ChevronLeft className="h-4 w-4 text-text" />
-              </button>
-
-              <div className="flex items-center gap-2 px-1">
-                <CalendarDays className="h-4 w-4 text-acc-2" />
-                <span className="num text-sm sm:text-base font-bold tracking-tight text-text">
-                  {data.monthLabel}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                disabled={isLoading}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-card hover:bg-card-hi transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
-                aria-label="Next month"
-              >
-                <ChevronRight className="h-4 w-4 text-text" />
-              </button>
-
-              {isLoading && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted ml-1" />
-              )}
-            </div>
-
-            {/* Integrated Micro-Legend */}
-            <div className="flex flex-wrap items-center gap-3.5 text-xs text-muted">
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-present ring-2 ring-emerald-500/20" />
-                <span className="font-semibold text-text">Present</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-late ring-2 ring-amber-500/20" />
-                <span className="font-semibold text-text">Half Day</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 ring-2 ring-indigo-500/20" />
-                <span className="font-semibold text-text">Branch Holiday</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500 ring-2 ring-slate-400/20" />
-                <span className="font-semibold text-text">Sunday Off</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-rose-500 ring-2 ring-rose-500/20" />
-                <span className="font-semibold text-text">No Show</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[640px] sm:min-w-[700px]">
-              {/* Day of Week Headers */}
-              <div className="grid grid-cols-7 border-b border-line bg-card-hi/70 text-center text-xs font-semibold text-text">
-                {WEEKDAY_NAMES.map((name, i) => (
-                  <div
-                    key={name}
-                    className={cn(
-                      "py-2.5 text-[11px] uppercase tracking-wider font-semibold",
-                      i === 6 ? "text-muted" : "text-text"
-                    )}
-                  >
-                    {name}
-                  </div>
-                ))}
-              </div>
-
-              {/* Days Grid */}
-              <div className="grid grid-cols-7 divide-x divide-y divide-line">
-                {/* Leading empty cells for days from previous month */}
-                {Array.from({ length: leadingEmptyCount }).map((_, index) => (
-                  <div
-                    key={`empty-${index}`}
-                    className="min-h-[128px] sm:min-h-[136px] bg-canvas/40 p-2 sm:p-2.5"
-                  />
-                ))}
-
-                {/* Days in Month */}
-                {data.days.map((day) => {
-                  const isSunday = day.isSunday;
-                  const isHoliday = day.isHoliday;
-                  const isNoShow = day.isNoShow;
-                  const isToday = day.isToday;
-                  const hasPending = day.hasPendingRequest;
-                  const isHalfDay = day.status === "HALF_DAY";
-                  const isPresent = day.status === "PRESENT";
-
-                  let cellClasses = "bg-card hover:bg-card-hi/40 transition-colors";
-                  if (isToday) {
-                    cellClasses = "bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/25 ring-2 ring-inset ring-indigo-600 dark:ring-indigo-400 z-10";
-                  } else if (isNoShow) {
-                    cellClasses = "bg-rose-50/20 hover:bg-rose-50/40 dark:bg-rose-950/20 border-l-[3px] border-l-rose-500";
-                  } else if (isHalfDay) {
-                    cellClasses = "bg-amber-50/20 hover:bg-amber-50/40 dark:bg-amber-950/20 border-l-[3px] border-l-amber-500";
-                  } else if (isHoliday) {
-                    cellClasses = "bg-indigo-50/20 hover:bg-indigo-50/40 dark:bg-indigo-950/20 border-l-[3px] border-l-indigo-500";
-                  } else if (isSunday) {
-                    cellClasses = "bg-canvas/40 hover:bg-canvas/60 text-muted";
-                  }
-
-                  return (
-                    <div
-                      key={day.dateKey}
+                {/* Top Row: Day Number + Status/Bracket Badge */}
+                <div className="flex items-center justify-between gap-1 leading-none">
+                  {isToday ? (
+                    <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num flex-none">
+                      {String(day.dayNumber).padStart(2, "0")}
+                    </span>
+                  ) : (
+                    <span
                       className={cn(
-                        "relative flex min-h-[128px] sm:min-h-[136px] flex-col justify-between p-2 sm:p-2.5 transition-colors",
-                        cellClasses
+                        "num text-xs sm:text-sm font-semibold tracking-tight",
+                        isSunday
+                          ? "text-muted font-normal"
+                          : isNoShow
+                            ? "text-rose-600 dark:text-rose-400 font-bold"
+                            : isHoliday
+                              ? "text-indigo-900 dark:text-indigo-300 font-bold"
+                              : isHalfDay
+                                ? "text-amber-800 dark:text-amber-300 font-bold"
+                                : "text-text font-semibold"
                       )}
                     >
-                      {/* Top Row: Day Number + Status/Bracket Badge */}
-                      <div className="flex items-center justify-between gap-1 leading-none">
-                        {isToday ? (
-                          <span className="inline-flex size-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs dark:bg-indigo-500 num flex-none">
-                            {String(day.dayNumber).padStart(2, "0")}
+                      {String(day.dayNumber).padStart(2, "0")}
+                    </span>
+                  )}
+
+                  {/* Duration Bracket or Today Pill */}
+                  {day.hoursBracket !== "—" ? (
+                    <span className="rounded border border-line-soft bg-canvas/80 px-1.5 py-0.5 text-[9.5px] font-semibold text-muted num whitespace-nowrap">
+                      {day.hoursBracket}
+                    </span>
+                  ) : isToday ? (
+                    <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[9.5px] font-bold text-white shadow-2xs dark:bg-indigo-500 whitespace-nowrap">
+                      Today
+                    </span>
+                  ) : isNoShow ? (
+                    <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[9.5px] font-bold text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300 whitespace-nowrap">
+                      No Show
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Middle Row: Content */}
+                <div className="my-1 flex flex-col gap-1 min-w-0">
+                  {isHoliday ? (
+                    <div
+                      title={day.holidayName || "School Holiday"}
+                      className="flex items-start gap-1.5 rounded-lg border border-indigo-200/90 bg-indigo-50/90 p-1.5 text-[11px] font-semibold text-indigo-950 dark:border-indigo-800/80 dark:bg-indigo-950/70 dark:text-indigo-200 min-w-0 shadow-2xs"
+                    >
+                      <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400 mt-1" />
+                      <span className="leading-snug break-words line-clamp-2">
+                        {day.holidayName || "Holiday"}
+                      </span>
+                    </div>
+                  ) : isSunday ? (
+                    <span className="text-[11px] font-medium text-muted/70">
+                      Sunday Off
+                    </span>
+                  ) : !day.isEmployed ? (
+                    <span className="text-[11px] font-medium text-muted/60">
+                      Not Employed
+                    </span>
+                  ) : null}
+
+                  {hasPending && (
+                    <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[9.5px] font-bold text-amber-900 dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-300 w-fit shadow-2xs">
+                      <Clock className="size-2.5 text-amber-700 dark:text-amber-400 shrink-0" />
+                      <span className="whitespace-nowrap">Request Pending</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Bottom Row: In/Out Times Micro-card or Action Button */}
+                <div className="mt-auto pt-1 min-w-0">
+                  {isNoShow ? (
+                    <button
+                      type="button"
+                      onClick={() => openRegularizationModal(day)}
+                      className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-300/80 bg-rose-50/90 px-2 py-1.5 text-[10.5px] font-semibold text-rose-800 shadow-2xs hover:bg-rose-100 hover:border-rose-400 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:hover:bg-rose-900/40 transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <PlusCircle className="size-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                      <span className="whitespace-nowrap">Request Punch</span>
+                    </button>
+                  ) : isToday ? (
+                    day.checkIn ? (
+                      <div className="rounded-lg border border-line-soft/80 bg-canvas/70 px-2 py-1 text-[10.5px] font-medium shadow-2xs space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="num font-medium text-text whitespace-nowrap">
+                            In: {formatHHmm(day.checkIn)}
                           </span>
-                        ) : (
+                          <span className="size-1.5 rounded-full bg-present shrink-0" />
+                        </div>
+                        <div className="flex items-center justify-between border-t border-line-soft/50 pt-0.5">
+                          <span className="num font-medium text-muted whitespace-nowrap">
+                            Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}
+                          </span>
                           <span
                             className={cn(
-                              "num text-xs sm:text-sm font-semibold tracking-tight",
-                              isSunday
-                                ? "text-muted font-normal"
-                                : isNoShow
-                                  ? "text-rose-600 dark:text-rose-400 font-bold"
-                                  : isHoliday
-                                    ? "text-indigo-900 dark:text-indigo-300 font-bold"
-                                    : isHalfDay
-                                      ? "text-amber-800 dark:text-amber-300 font-bold"
-                                      : "text-text font-semibold"
+                              "size-1.5 rounded-full shrink-0",
+                              day.checkOut ? "bg-present" : "bg-muted/40"
                             )}
-                          >
-                            {String(day.dayNumber).padStart(2, "0")}
-                          </span>
-                        )}
-
-                        {/* Duration Bracket or Today Pill */}
-                        {day.hoursBracket !== "—" ? (
-                          <span className="rounded border border-line-soft bg-canvas/80 px-1.5 py-0.5 text-[9.5px] font-semibold text-muted num whitespace-nowrap">
-                            {day.hoursBracket}
-                          </span>
-                        ) : isToday ? (
-                          <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[9.5px] font-bold text-white shadow-2xs dark:bg-indigo-500 whitespace-nowrap">
-                            Today
-                          </span>
-                        ) : isNoShow ? (
-                          <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[9.5px] font-bold text-rose-700 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300 whitespace-nowrap">
-                            No Show
-                          </span>
-                        ) : null}
+                          />
+                        </div>
                       </div>
-
-                      {/* Middle Row: Content */}
-                      <div className="my-1 flex flex-col gap-1 min-w-0">
-                        {isHoliday ? (
-                          <div
-                            title={day.holidayName || "School Holiday"}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200/80 bg-indigo-50/90 px-1.5 py-0.5 text-[10.5px] font-semibold text-indigo-950 dark:border-indigo-800/80 dark:bg-indigo-950/70 dark:text-indigo-200 min-w-0 shadow-2xs"
-                          >
-                            <span className="size-1.5 rounded-full bg-indigo-600 shrink-0 dark:bg-indigo-400" />
-                            <span className="truncate">{day.holidayName || "Holiday"}</span>
-                          </div>
-                        ) : isSunday ? (
-                          <span className="text-[11px] font-medium text-muted/70">
-                            Sunday Off
-                          </span>
-                        ) : !day.isEmployed ? (
-                          <span className="text-[11px] font-medium text-muted/60">
-                            Not Employed
-                          </span>
-                        ) : null}
-
-                        {hasPending && (
-                          <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[9.5px] font-bold text-amber-900 dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-300 w-fit shadow-2xs">
-                            <Clock className="size-2.5 text-amber-700 dark:text-amber-400 shrink-0" />
-                            <span className="whitespace-nowrap">Request Pending</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Bottom Row: In/Out Times Micro-card or Action Button */}
-                      <div className="mt-auto pt-1 min-w-0">
-                        {isNoShow ? (
-                          <button
-                            type="button"
-                            onClick={() => openRegularizationModal(day)}
-                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-300/80 bg-rose-50/90 px-2 py-1.5 text-[10.5px] font-semibold text-rose-800 shadow-2xs hover:bg-rose-100 hover:border-rose-400 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:hover:bg-rose-900/40 transition-colors cursor-pointer whitespace-nowrap"
-                          >
-                            <PlusCircle className="size-3 text-rose-600 dark:text-rose-400 shrink-0" />
-                            <span className="whitespace-nowrap">Request Punch</span>
-                          </button>
-                        ) : isToday ? (
-                          day.checkIn ? (
-                            <div className="rounded-lg border border-line-soft/80 bg-canvas/70 px-2 py-1 text-[10.5px] font-medium shadow-2xs space-y-0.5">
-                              <div className="flex items-center justify-between">
-                                <span className="num font-medium text-text whitespace-nowrap">
-                                  In: {formatHHmm(day.checkIn)}
-                                </span>
-                                <span className="size-1.5 rounded-full bg-present shrink-0" />
-                              </div>
-                              <div className="flex items-center justify-between border-t border-line-soft/50 pt-0.5">
-                                <span className="num font-medium text-muted whitespace-nowrap">
-                                  Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}
-                                </span>
-                                <span className={cn("size-1.5 rounded-full shrink-0", day.checkOut ? "bg-present" : "bg-muted/40")} />
-                              </div>
-                            </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openRegularizationModal(day)}
+                        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-300/80 bg-indigo-50/90 px-2 py-1.5 text-[10.5px] font-semibold text-indigo-900 shadow-2xs hover:bg-indigo-100 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200 dark:hover:bg-indigo-900/40 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <PlusCircle className="size-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        <span className="whitespace-nowrap">Request Punch</span>
+                      </button>
+                    )
+                  ) : isHalfDay ? (
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <div className="rounded-lg border border-amber-200/70 bg-amber-50/40 dark:border-amber-900/50 dark:bg-amber-950/20 px-2 py-1 text-[10.5px] font-medium shadow-2xs space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          {day.checkIn ? (
+                            <span className="num font-medium text-text whitespace-nowrap">
+                              In: {formatHHmm(day.checkIn)}
+                            </span>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => openRegularizationModal(day)}
-                              className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-300/80 bg-indigo-50/90 px-2 py-1.5 text-[10.5px] font-semibold text-indigo-900 shadow-2xs hover:bg-indigo-100 hover:border-indigo-400 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200 dark:hover:bg-indigo-900/40 transition-colors cursor-pointer whitespace-nowrap"
-                            >
-                              <PlusCircle className="size-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                              <span className="whitespace-nowrap">Request Punch</span>
-                            </button>
-                          )
-                        ) : isHalfDay ? (
-                          <div className="flex flex-col gap-1 min-w-0">
-                            <div className="rounded-lg border border-amber-200/70 bg-amber-50/40 dark:border-amber-900/50 dark:bg-amber-950/20 px-2 py-1 text-[10.5px] font-medium shadow-2xs space-y-0.5">
-                              <div className="flex items-center justify-between">
-                                {day.checkIn ? (
-                                  <span className="num font-medium text-text whitespace-nowrap">
-                                    In: {formatHHmm(day.checkIn)}
-                                  </span>
-                                ) : (
-                                  <span className="whitespace-nowrap font-bold text-amber-700 dark:text-amber-400">
-                                    In: Missing
-                                  </span>
-                                )}
-                                <span className={cn("size-1.5 rounded-full shrink-0", day.checkIn ? "bg-present" : "bg-amber-500")} />
-                              </div>
-                              <div className="flex items-center justify-between border-t border-amber-200/50 dark:border-amber-900/40 pt-0.5">
-                                {day.checkOut ? (
-                                  <span className="num font-medium text-text whitespace-nowrap">
-                                    Out: {formatHHmm(day.checkOut)}
-                                  </span>
-                                ) : (
-                                  <span className="whitespace-nowrap font-bold text-amber-700 dark:text-amber-400">
-                                    Out: Missing
-                                  </span>
-                                )}
-                                <span className={cn("size-1.5 rounded-full shrink-0", day.checkOut ? "bg-present" : "bg-amber-500")} />
-                              </div>
-                            </div>
-                            {!hasPending && !day.isToday && (
-                              <button
-                                type="button"
-                                onClick={() => openRegularizationModal(day)}
-                                className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-amber-300/80 bg-amber-50/90 px-1.5 py-1 text-[10px] font-bold text-amber-900 shadow-2xs hover:bg-amber-100 hover:border-amber-400 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors cursor-pointer whitespace-nowrap"
-                              >
-                                <PlusCircle className="size-2.5 text-amber-700 dark:text-amber-400 shrink-0" />
-                                <span className="whitespace-nowrap">
-                                  {day.checkIn && !day.checkOut
-                                    ? "Request Out Punch"
-                                    : !day.checkIn && day.checkOut
-                                      ? "Request In Punch"
-                                      : "Request Punch"}
-                                </span>
-                              </button>
+                            <span className="whitespace-nowrap font-bold text-amber-700 dark:text-amber-400">
+                              In: Missing
+                            </span>
+                          )}
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full shrink-0",
+                              day.checkIn ? "bg-present" : "bg-amber-500"
                             )}
-                          </div>
-                        ) : isPresent || day.checkIn ? (
-                          <div className="rounded-lg border border-line-soft/80 bg-canvas/70 px-2 py-1 text-[10.5px] font-medium shadow-2xs space-y-0.5">
-                            <div className="flex items-center justify-between">
-                              <span className="num font-medium text-text whitespace-nowrap">
-                                In: {day.checkIn ? formatHHmm(day.checkIn) : "—"}
-                              </span>
-                              <span className={cn("size-1.5 rounded-full shrink-0", day.checkIn ? "bg-present" : "bg-muted/40")} />
-                            </div>
-                            <div className="flex items-center justify-between border-t border-line-soft/50 pt-0.5">
-                              <span className="num font-medium text-muted whitespace-nowrap">
-                                Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}
-                              </span>
-                              <span className={cn("size-1.5 rounded-full shrink-0", day.checkOut ? "bg-present" : "bg-muted/40")} />
-                            </div>
-                          </div>
-                        ) : null}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between border-t border-amber-200/50 dark:border-amber-900/40 pt-0.5">
+                          {day.checkOut ? (
+                            <span className="num font-medium text-text whitespace-nowrap">
+                              Out: {formatHHmm(day.checkOut)}
+                            </span>
+                          ) : (
+                            <span className="whitespace-nowrap font-bold text-amber-700 dark:text-amber-400">
+                              Out: Missing
+                            </span>
+                          )}
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full shrink-0",
+                              day.checkOut ? "bg-present" : "bg-amber-500"
+                            )}
+                          />
+                        </div>
+                      </div>
+                      {!hasPending && !day.isToday && (
+                        <button
+                          type="button"
+                          onClick={() => openRegularizationModal(day)}
+                          className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-amber-300/80 bg-amber-50/90 px-1.5 py-1 text-[10px] font-bold text-amber-900 shadow-2xs hover:bg-amber-100 hover:border-amber-400 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          <PlusCircle className="size-2.5 text-amber-700 dark:text-amber-400 shrink-0" />
+                          <span className="whitespace-nowrap">
+                            {day.checkIn && !day.checkOut
+                              ? "Request Out Punch"
+                              : !day.checkIn && day.checkOut
+                                ? "Request In Punch"
+                                : "Request Punch"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  ) : isPresent || day.checkIn ? (
+                    <div className="rounded-lg border border-line-soft/80 bg-canvas/70 px-2 py-1 text-[10.5px] font-medium shadow-2xs space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="num font-medium text-text whitespace-nowrap">
+                          In: {day.checkIn ? formatHHmm(day.checkIn) : "—"}
+                        </span>
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full shrink-0",
+                            day.checkIn ? "bg-present" : "bg-muted/40"
+                          )}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between border-t border-line-soft/50 pt-0.5">
+                        <span className="num font-medium text-muted whitespace-nowrap">
+                          Out: {day.checkOut ? formatHHmm(day.checkOut) : "—"}
+                        </span>
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full shrink-0",
+                            day.checkOut ? "bg-present" : "bg-muted/40"
+                          )}
+                        />
                       </div>
                     </div>
-                  );
-                })}
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
+            );
+          }}
+        />
 
         {/* Right Sidebar: Compliance Index */}
         <AttendanceIndexSidebar
