@@ -68,7 +68,7 @@ export interface PunchRequestsAdminClientProps {
   showHeader?: boolean;
 }
 
-const REASON_LABELS: Record<string, string> = {
+export const REASON_LABELS: Record<string, string> = {
   FORGOT_SWIPE: "Forgot to mark attendance / Missed terminal check",
   DUTY_OUTSIDE: "Official on-duty assignment / Off-campus school duty",
   DEVICE_OFFLINE: "Attendance terminal offline / Recognition error",
@@ -76,13 +76,13 @@ const REASON_LABELS: Record<string, string> = {
   OTHER: "Other reason (specify details below)",
 };
 
-interface BiometricPunchLog {
+export interface BiometricPunchLog {
   id: string;
   timestamp: string;
   type: "IN" | "OUT";
 }
 
-interface BiometricState {
+export interface BiometricState {
   loading: boolean;
   expanded: boolean;
   punches: BiometricPunchLog[] | null;
@@ -379,7 +379,7 @@ export function PunchRequestsAdminClient({
             pressed={statusFilter === "PENDING"}
             onClick={() => setStatusFilter("PENDING")}
             dot="late"
-            count={counters.pending}
+            count={counters.pending > 0 ? counters.pending : undefined}
           >
             Pending
           </Chip>
@@ -387,7 +387,7 @@ export function PunchRequestsAdminClient({
             pressed={statusFilter === "APPROVED"}
             onClick={() => setStatusFilter("APPROVED")}
             dot="present"
-            count={counters.approved}
+            count={counters.approved > 0 ? counters.approved : undefined}
           >
             Approved
           </Chip>
@@ -395,14 +395,13 @@ export function PunchRequestsAdminClient({
             pressed={statusFilter === "REJECTED"}
             onClick={() => setStatusFilter("REJECTED")}
             dot="absent"
-            count={counters.rejected}
+            count={counters.rejected > 0 ? counters.rejected : undefined}
           >
             Rejected
           </Chip>
           <Chip
             pressed={statusFilter === "ALL"}
             onClick={() => setStatusFilter("ALL")}
-            count={counters.all}
           >
             All
           </Chip>
@@ -458,265 +457,331 @@ export function PunchRequestsAdminClient({
         />
       ) : (
         <div className="space-y-4">
-          {filteredRequests.map((req) => {
-            const bioState = biometricLogs[req.id];
-            const isPending = req.status === "PENDING";
-            const punchTypeBadge =
-              req.punchType === "IN"
-                ? "Check-In"
-                : req.punchType === "OUT"
-                ? "Check-Out"
-                : "Both (Check-In & Check-Out)";
-
-            const formattedTime =
-              req.punchType === "IN"
-                ? formatHHmm(req.requestedTime || req.requestedInTime || "")
-                : req.punchType === "OUT"
-                ? formatHHmm(req.requestedTime || req.requestedOutTime || "")
-                : `In: ${formatHHmm(req.requestedInTime || "")} | Out: ${formatHHmm(req.requestedOutTime || "")}`;
-
-            const reasonLabel = REASON_LABELS[req.reason] || req.reason;
-
-            return (
-              <Card key={req.id} className="p-5 transition-shadow hover:shadow-sm">
-                <div className="flex flex-col gap-4">
-                  {/* Top Bar: Staff Info & Status */}
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar
-                        name={req.staff.name}
-                        src={
-                          req.staff.profilePhotoId
-                            ? `/api/photos/${req.staff.profilePhotoId}`
-                            : undefined
-                        }
-                        size={38}
-                      />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-text">{req.staff.name}</span>
-                          {req.staff.employeeCode && (
-                            <span className="rounded bg-card-hi px-1.5 py-0.5 text-[11px] font-medium text-muted">
-                              {req.staff.employeeCode}
-                            </span>
-                          )}
-                          <span className="text-xs text-muted">#{req.staff.machineId}</span>
-                        </div>
-                        <div className="text-xs text-muted">
-                          {req.staff.department?.name || "No department"}
-                          {req.staff.designation?.name ? ` · ${req.staff.designation.name}` : ""}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div>
-                      {req.status === "PENDING" && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-late/30 bg-late/10 px-2.5 py-1 text-xs font-medium text-late">
-                          <Clock size={12} aria-hidden="true" />
-                          Pending Review
-                        </span>
-                      )}
-                      {req.status === "APPROVED" && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-present/30 bg-present/10 px-2.5 py-1 text-xs font-medium text-present">
-                          <CheckCircle2 size={12} aria-hidden="true" />
-                          Approved
-                        </span>
-                      )}
-                      {req.status === "REJECTED" && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-absent/30 bg-absent/10 px-2.5 py-1 text-xs font-medium text-absent">
-                          <XCircle size={12} aria-hidden="true" />
-                          Rejected
-                        </span>
-                      )}
-                      {req.status === "CANCELLED" && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card-hi px-2.5 py-1 text-xs font-medium text-muted">
-                          <Ban size={12} aria-hidden="true" />
-                          Cancelled by Staff
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Request Specifics Grid */}
-                  <div className="grid grid-cols-1 gap-3 rounded-xl border border-line/60 bg-canvas/60 p-3.5 sm:grid-cols-2 md:grid-cols-3">
-                    <div>
-                      <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
-                        Requested Date
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-text">
-                        <CalendarIcon size={14} className="text-muted" />
-                        {formatDate(req.date)}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
-                        Punch Type & Time
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-2 text-sm text-text">
-                        <span className="font-semibold text-acc-1">{punchTypeBadge}</span>
-                        <span className="font-medium text-muted">({formattedTime})</span>
-                      </div>
-                    </div>
-
-                    <div className="sm:col-span-2 md:col-span-1">
-                      <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
-                        Reason Category
-                      </div>
-                      <div className="mt-0.5 text-sm font-medium text-text">
-                        {reasonLabel}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Narrative Explanation */}
-                  {req.explanation && (
-                    <div className="rounded-lg border-l-2 border-acc-1 bg-card-hi/50 px-3.5 py-2 text-sm text-text">
-                      <span className="font-medium text-muted">Explanation: </span>
-                      {req.explanation}
-                    </div>
-                  )}
-
-                  {/* Decision Remarks (if resolved) */}
-                  {req.decisionRemarks && (
-                    <div className="rounded-lg border border-line bg-canvas/40 px-3.5 py-2 text-xs text-muted">
-                      <span className="font-semibold text-text">Reviewer remarks: </span>
-                      {req.decisionRemarks}
-                    </div>
-                  )}
-
-                  {/* Existing Biometric Swipes Context Section */}
-                  <div className="border-t border-line/50 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleBiometricLogs(req)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-acc-2 hover:underline"
-                    >
-                      <Eye size={13} aria-hidden="true" />
-                      <span>Check Biometric Logs for {formatDate(req.date)}</span>
-                      {bioState?.expanded ? (
-                        <ChevronUp size={13} aria-hidden="true" />
-                      ) : (
-                        <ChevronDown size={13} aria-hidden="true" />
-                      )}
-                    </button>
-
-                    {bioState?.expanded && (
-                      <div className="mt-2.5 rounded-lg border border-line bg-card-hi p-3 text-xs">
-                        {bioState.loading ? (
-                          <div className="text-muted">Loading recorded biometric punches...</div>
-                        ) : bioState.error ? (
-                          <div className="text-absent">{bioState.error}</div>
-                        ) : !bioState.punches || bioState.punches.length === 0 ? (
-                          <div className="text-muted">
-                            No biometric punches recorded for this staff on {formatDate(req.date)}.
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="mb-1.5 font-medium text-text">
-                              Recorded Biometric Logs ({bioState.punches.length}):
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {bioState.punches.map((p) => (
-                                <span
-                                  key={p.id}
-                                  className="inline-flex items-center gap-1 rounded border border-line bg-canvas px-2 py-1 font-mono text-[11px]"
-                                >
-                                  <span
-                                    className={
-                                      p.type === "IN"
-                                        ? "font-bold text-present"
-                                        : "font-bold text-late"
-                                    }
-                                  >
-                                    [{p.type}]
-                                  </span>
-                                  <span>{formatTime(new Date(p.timestamp))}</span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Buttons for Pending Requests */}
-                  {isPending && (
-                    <div className="flex items-center justify-end gap-3 border-t border-line/70 pt-3">
-                      <Button
-                        variant="danger"
-                        icon={X}
-                        disabled={actionInProgressId === req.id}
-                        onClick={() => openRejectModal(req)}
-                      >
-                        Reject
-                      </Button>
-                      <Button
-                        variant="primary"
-                        icon={Check}
-                        disabled={actionInProgressId === req.id}
-                        onClick={() => handleApprove(req)}
-                      >
-                        {actionInProgressId === req.id ? "Approving..." : "Approve"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+          {filteredRequests.map((req) => (
+            <PunchRequestCard
+              key={req.id}
+              request={req}
+              userRole={userRole}
+              onApprove={handleApprove}
+              onReject={openRejectModal}
+              actionInProgressId={actionInProgressId}
+              biometricState={biometricLogs[req.id]}
+              onToggleBiometric={toggleBiometricLogs}
+            />
+          ))}
         </div>
       )}
 
       {/* Rejection Remarks Modal */}
-      {rejectModalRequest && (
-        <Modal
-          open={Boolean(rejectModalRequest)}
-          onClose={() => setRejectModalRequest(null)}
-          title="Reject Punch Request"
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-muted">
-              You are rejecting the punch regularization request for{" "}
-              <strong className="text-text">{rejectModalRequest.staff.name}</strong> on{" "}
-              <strong className="text-text">{rejectModalRequest.date}</strong>.
-            </p>
+      <PunchRejectModal
+        request={rejectModalRequest}
+        onClose={() => setRejectModalRequest(null)}
+        onConfirm={handleConfirmReject}
+        isRejecting={isRejecting}
+      />
+    </div>
+  );
+}
 
-            <Field
-              label="Rejection remarks / Reason (optional)"
-              htmlFor="rejectionRemarksInput"
-              helper="Provide feedback explaining why the regularization request is being rejected."
-            >
-              <Textarea
-                id="rejectionRemarksInput"
-                rows={3}
-                placeholder="e.g. No official duty approved; please submit leave application instead."
-                value={rejectRemarks}
-                onChange={(e) => setRejectRemarks(e.target.value)}
-              />
-            </Field>
+export interface PunchRequestCardProps {
+  request: AdminPunchRequestItem;
+  userRole: "ADMIN" | "APPROVER";
+  onApprove?: (req: AdminPunchRequestItem) => void;
+  onReject?: (req: AdminPunchRequestItem) => void;
+  actionInProgressId?: string | null;
+  biometricState?: BiometricState;
+  onToggleBiometric?: (req: AdminPunchRequestItem) => void;
+  showTypeBadge?: boolean;
+}
 
-            <div className="flex justify-end gap-2.5 pt-2">
-              <Button
-                variant="secondary"
-                onClick={() => setRejectModalRequest(null)}
-                disabled={isRejecting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleConfirmReject}
-                disabled={isRejecting}
-              >
-                {isRejecting ? "Rejecting..." : "Confirm Rejection"}
-              </Button>
+export function PunchRequestCard({
+  request: req,
+  onApprove,
+  onReject,
+  actionInProgressId,
+  biometricState: bioState,
+  onToggleBiometric,
+  showTypeBadge = false,
+}: PunchRequestCardProps) {
+  const isPending = req.status === "PENDING";
+  const punchTypeBadge =
+    req.punchType === "IN"
+      ? "Check-In"
+      : req.punchType === "OUT"
+      ? "Check-Out"
+      : "Both (Check-In & Check-Out)";
+
+  const formattedTime =
+    req.punchType === "IN"
+      ? formatHHmm(req.requestedTime || req.requestedInTime || "")
+      : req.punchType === "OUT"
+      ? formatHHmm(req.requestedTime || req.requestedOutTime || "")
+      : `In: ${formatHHmm(req.requestedInTime || "")} | Out: ${formatHHmm(req.requestedOutTime || "")}`;
+
+  const reasonLabel = REASON_LABELS[req.reason] || req.reason;
+
+  return (
+    <Card key={req.id} className="p-5 transition-shadow hover:shadow-sm">
+      <div className="flex flex-col gap-4">
+        {showTypeBadge && (
+          <div className="flex items-center gap-1.5 border-b border-line-soft pb-2">
+            <span className="inline-flex items-center gap-1 rounded border border-line bg-card-hi px-2 py-0.5 text-[11px] font-semibold text-text">
+              <Clock size={11} className="text-acc-1" /> Punch Regularization
+            </span>
+          </div>
+        )}
+
+        {/* Top Bar: Staff Info & Status */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar
+              name={req.staff.name}
+              src={
+                req.staff.profilePhotoId
+                  ? `/api/photos/${req.staff.profilePhotoId}`
+                  : undefined
+              }
+              size={38}
+            />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-text">{req.staff.name}</span>
+                {req.staff.employeeCode && (
+                  <span className="rounded bg-card-hi px-1.5 py-0.5 text-[11px] font-medium text-muted">
+                    {req.staff.employeeCode}
+                  </span>
+                )}
+                <span className="text-xs text-muted">#{req.staff.machineId}</span>
+              </div>
+              <div className="text-xs text-muted">
+                {req.staff.department?.name || "No department"}
+                {req.staff.designation?.name ? ` · ${req.staff.designation.name}` : ""}
+              </div>
             </div>
           </div>
-        </Modal>
-      )}
-    </div>
+
+          {/* Status Badge */}
+          <div>
+            {req.status === "PENDING" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-late/30 bg-late/10 px-2.5 py-1 text-xs font-medium text-late">
+                <Clock size={12} aria-hidden="true" />
+                Pending Review
+              </span>
+            )}
+            {req.status === "APPROVED" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-present/30 bg-present/10 px-2.5 py-1 text-xs font-medium text-present">
+                <CheckCircle2 size={12} aria-hidden="true" />
+                Approved
+              </span>
+            )}
+            {req.status === "REJECTED" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-absent/30 bg-absent/10 px-2.5 py-1 text-xs font-medium text-absent">
+                <XCircle size={12} aria-hidden="true" />
+                Rejected
+              </span>
+            )}
+            {req.status === "CANCELLED" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card-hi px-2.5 py-1 text-xs font-medium text-muted">
+                <Ban size={12} aria-hidden="true" />
+                Cancelled by Staff
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Request Specifics Grid */}
+        <div className="grid grid-cols-1 gap-3 rounded-xl border border-line/60 bg-canvas/60 p-3.5 sm:grid-cols-2 md:grid-cols-3">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+              Requested Date
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-text">
+              <CalendarIcon size={14} className="text-muted" />
+              {formatDate(req.date)}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+              Punch Type &amp; Time
+            </div>
+            <div className="mt-0.5 flex items-center gap-2 text-sm text-text">
+              <span className="font-semibold text-acc-1">{punchTypeBadge}</span>
+              <span className="font-medium text-muted">({formattedTime})</span>
+            </div>
+          </div>
+
+          <div className="sm:col-span-2 md:col-span-1">
+            <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+              Reason Category
+            </div>
+            <div className="mt-0.5 text-sm font-medium text-text">
+              {reasonLabel}
+            </div>
+          </div>
+        </div>
+
+        {/* Narrative Explanation */}
+        {req.explanation && (
+          <div className="rounded-lg border-l-2 border-acc-1 bg-card-hi/50 px-3.5 py-2 text-sm text-text">
+            <span className="font-medium text-muted">Explanation: </span>
+            {req.explanation}
+          </div>
+        )}
+
+        {/* Decision Remarks (if resolved) */}
+        {req.decisionRemarks && (
+          <div className="rounded-lg border border-line bg-canvas/40 px-3.5 py-2 text-xs text-muted">
+            <span className="font-semibold text-text">Reviewer remarks: </span>
+            {req.decisionRemarks}
+          </div>
+        )}
+
+        {/* Existing Biometric Swipes Context Section */}
+        {onToggleBiometric && (
+          <div className="border-t border-line/50 pt-2">
+            <button
+              type="button"
+              onClick={() => onToggleBiometric(req)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-acc-2 hover:underline"
+            >
+              <Eye size={13} aria-hidden="true" />
+              <span>Check Biometric Logs for {formatDate(req.date)}</span>
+              {bioState?.expanded ? (
+                <ChevronUp size={13} aria-hidden="true" />
+              ) : (
+                <ChevronDown size={13} aria-hidden="true" />
+              )}
+            </button>
+
+            {bioState?.expanded && (
+              <div className="mt-2.5 rounded-lg border border-line bg-card-hi p-3 text-xs">
+                {bioState.loading ? (
+                  <div className="text-muted">Loading recorded biometric punches...</div>
+                ) : bioState.error ? (
+                  <div className="text-absent">{bioState.error}</div>
+                ) : !bioState.punches || bioState.punches.length === 0 ? (
+                  <div className="text-muted">
+                    No biometric punches recorded for this staff on {formatDate(req.date)}.
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-1.5 font-medium text-text">
+                      Recorded Biometric Logs ({bioState.punches.length}):
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {bioState.punches.map((p) => (
+                        <span
+                          key={p.id}
+                          className="inline-flex items-center gap-1 rounded border border-line bg-canvas px-2 py-1 font-mono text-[11px]"
+                        >
+                          <span
+                            className={
+                              p.type === "IN"
+                                ? "font-bold text-present"
+                                : "font-bold text-late"
+                            }
+                          >
+                            [{p.type}]
+                          </span>
+                          <span>{formatTime(new Date(p.timestamp))}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action Buttons for Pending Requests */}
+        {isPending && onApprove && onReject && (
+          <div className="flex items-center justify-end gap-3 border-t border-line/70 pt-3">
+            <Button
+              variant="danger"
+              icon={X}
+              disabled={actionInProgressId === req.id}
+              onClick={() => onReject(req)}
+            >
+              Reject
+            </Button>
+            <Button
+              variant="primary"
+              icon={Check}
+              disabled={actionInProgressId === req.id}
+              onClick={() => onApprove(req)}
+            >
+              {actionInProgressId === req.id ? "Approving..." : "Approve"}
+            </Button>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+export interface PunchRejectModalProps {
+  request: AdminPunchRequestItem | null;
+  onClose: () => void;
+  onConfirm: () => Promise<void> | void;
+  isRejecting?: boolean;
+}
+
+export function PunchRejectModal({
+  request,
+  onClose,
+  onConfirm,
+  isRejecting = false,
+}: PunchRejectModalProps) {
+  const [rejectRemarks, setRejectRemarks] = useState("");
+
+  if (!request) return null;
+
+  return (
+    <Modal
+      open={Boolean(request)}
+      onClose={onClose}
+      title="Reject Punch Request"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-muted">
+          You are rejecting the punch regularization request for{" "}
+          <strong className="text-text">{request.staff.name}</strong> on{" "}
+          <strong className="text-text">{request.date}</strong>.
+        </p>
+
+        <Field
+          label="Rejection remarks / Reason (optional)"
+          htmlFor="rejectionRemarksInput"
+          helper="Provide feedback explaining why the regularization request is being rejected."
+        >
+          <Textarea
+            id="rejectionRemarksInput"
+            rows={3}
+            placeholder="e.g. No official duty approved; please submit leave application instead."
+            value={rejectRemarks}
+            onChange={(e) => setRejectRemarks(e.target.value)}
+          />
+        </Field>
+
+        <div className="flex justify-end gap-2.5 pt-2">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            disabled={isRejecting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={onConfirm}
+            disabled={isRejecting}
+          >
+            {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

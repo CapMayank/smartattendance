@@ -270,11 +270,21 @@ export function PunchRequestsClient({
 
   const monthLabel = toSchoolData?.monthLabel || `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
 
+  const pendingRequestsCount = requests.filter((r) => r.status === "PENDING").length;
+
   const tabs: TabItem[] = [
-    { id: "action-needed", label: "Action Needed", count: actionNeededDiscrepancies.length },
-    { id: "daily", label: "Daily Punch Breakdown", count: daysList.length },
-    { id: "requests", label: "My Regularization Requests", count: requests.length },
-    { id: "raw-logs", label: "Raw Device Logs", count: punches.length },
+    {
+      id: "action-needed",
+      label: "Action Needed",
+      count: actionNeededDiscrepancies.length > 0 ? actionNeededDiscrepancies.length : undefined,
+    },
+    { id: "daily", label: "Daily Punch Breakdown" },
+    {
+      id: "requests",
+      label: "My Regularization Requests",
+      count: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
+    },
+    { id: "raw-logs", label: "Raw Device Logs" },
   ];
 
   function renderStatusBadge(status: PunchRequestItem["status"]) {
