@@ -20,15 +20,14 @@ import {
   CardHeader,
   EmptyState,
   KpiTile,
-  Modal,
   PageHeader,
   SectionLabel,
 } from "@/components/ui";
 import type { EmployeePortalData } from "@/lib/employee-portal";
-import { formatDate, formatHHmm, formatTime } from "@/lib/format";
-import { amountInWords } from "@/lib/amount-in-words";
+import { formatDate, formatHHmm, formatTime, formatINR } from "@/lib/format";
 import { staffPhotoUrl } from "@/lib/photo-url";
 import { RequestProfileEditModal } from "@/components/profile/RequestProfileEditModal";
+import { SalarySlipModal } from "@/components/payroll/SalarySlipModal";
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -37,14 +36,6 @@ function formatMinutes(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-function formatInr(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount || 0);
 }
 
 export function EmployeeMyDashboard({
@@ -347,7 +338,7 @@ export function EmployeeMyDashboard({
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-right mr-1">
-                      <span className="num block font-semibold text-present">{formatInr(slip.netPayment)}</span>
+                      <span className="num block font-semibold text-present">{formatINR(slip.netPayment)}</span>
                       <span className="text-[11px] text-subtle">Net Pay</span>
                     </div>
                     <Button variant="secondary" size="sm" icon={FileText} onClick={() => setSelectedSlip(slip)}>
@@ -369,100 +360,11 @@ export function EmployeeMyDashboard({
         </Card>
       </section>
 
-      <Modal
+      <SalarySlipModal
+        slip={selectedSlip}
         open={selectedSlip !== null}
-        size="lg"
         onClose={() => setSelectedSlip(null)}
-        title={
-          selectedSlip
-            ? `Salary Slip · ${SHORT_MONTHS[(selectedSlip.month || 1) - 1]} ${selectedSlip.year}`
-            : "Salary Slip"
-        }
-        footer={
-          <>
-            {selectedSlip && (
-              <a
-                href={`/api/payroll/${selectedSlip.id}/pdf`}
-                download
-                className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-text px-3.5 text-[13px] font-medium text-ground transition-colors hover:bg-text/90"
-              >
-                <Download size={15} aria-hidden="true" />
-                Download PDF
-              </a>
-            )}
-            <Button variant="secondary" onClick={() => setSelectedSlip(null)}>
-              Close
-            </Button>
-          </>
-        }
-      >
-        {selectedSlip && (
-          <div className="space-y-4 text-[13.5px]">
-            <div className="rounded-xl border border-line bg-canvas p-3.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-text">{profile.name}</div>
-                  <div className="text-xs text-subtle">
-                    {profile.designationName || "Staff"} · {profile.departmentName || "General"}
-                  </div>
-                </div>
-                {profile.employeeCode && (
-                  <span className="num rounded border border-line bg-card-hi px-2 py-0.5 text-xs text-acc-1">
-                    {profile.employeeCode}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="rounded-xl border border-line-soft bg-canvas p-2.5">
-                <span className="text-xs text-subtle">Total Days</span>
-                <b className="num mt-0.5 block text-text">{selectedSlip.totalDays}</b>
-              </div>
-              <div className="rounded-xl border border-line-soft bg-canvas p-2.5">
-                <span className="text-xs text-subtle">Present Days</span>
-                <b className="num mt-0.5 block text-present">{selectedSlip.presentDays}</b>
-              </div>
-              <div className="rounded-xl border border-line-soft bg-canvas p-2.5">
-                <span className="text-xs text-subtle">LOP / NCP Days</span>
-                <b className="num mt-0.5 block text-absent">{selectedSlip.ncpDays}</b>
-              </div>
-            </div>
-
-            <div className="divide-y divide-line-soft rounded-xl border border-line-soft">
-              <div className="flex justify-between px-3.5 py-2.5">
-                <span className="text-muted">Gross Wage Earned</span>
-                <span className="num font-medium text-text">{formatInr(selectedSlip.grossWage)}</span>
-              </div>
-              <div className="flex justify-between px-3.5 py-2.5">
-                <span className="text-muted">Basic Wage</span>
-                <span className="num text-muted">{formatInr(selectedSlip.basicWage)}</span>
-              </div>
-              {selectedSlip.bonusAmount > 0 && (
-                <div className="flex justify-between px-3.5 py-2.5">
-                  <span className="text-muted">Bonus / Incentive</span>
-                  <span className="num text-present">+{formatInr(selectedSlip.bonusAmount)}</span>
-                </div>
-              )}
-              {selectedSlip.employeeEpf > 0 && (
-                <div className="flex justify-between px-3.5 py-2.5">
-                  <span className="text-muted">Employee EPF Contribution</span>
-                  <span className="num text-absent">-{formatInr(selectedSlip.employeeEpf)}</span>
-                </div>
-              )}
-              <div className="bg-card-hi px-3.5 py-3">
-                <div className="flex justify-between font-semibold">
-                  <span className="text-text">Net Payable Salary</span>
-                  <span className="num text-[15px] text-present">{formatInr(selectedSlip.netPayment)}</span>
-                </div>
-                <p className="mt-1 text-xs italic text-muted">
-                  {amountInWords(selectedSlip.netPayment)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+      />
 
       <RequestProfileEditModal
         open={profileEditModalOpen}

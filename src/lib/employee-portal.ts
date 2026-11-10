@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { istDateKey, istDayStart } from "@/lib/dashboard-calc";
+import type { MonthlyPayrollWithDetails } from "@/lib/payslip-pdf";
 
 export type EmployeePortalData = {
   profile: {
@@ -41,21 +42,7 @@ export type EmployeePortalData = {
     lateMinutes: number;
     workMinutes: number;
   }[];
-  payslips: {
-    id: string;
-    month: number;
-    year: number;
-    payGroup: string;
-    totalDays: number;
-    presentDays: number;
-    ncpDays: number;
-    grossWage: number;
-    basicWage: number;
-    bonusAmount: number;
-    employeeEpf: number;
-    netPayment: number;
-    isLocked: boolean;
-  }[];
+  payslips: MonthlyPayrollWithDetails[];
 };
 
 const MONTH_NAMES = [
@@ -117,6 +104,15 @@ export async function getEmployeePortalData(
     }),
     prisma.monthlyPayroll.findMany({
       where: { staffId, isLocked: true },
+      include: {
+        staff: {
+          include: {
+            department: true,
+            designation: true,
+            payrollInfo: true,
+          },
+        },
+      },
       orderBy: [{ year: "desc" }, { month: "desc" }],
       take: 12,
     }),
@@ -200,20 +196,6 @@ export async function getEmployeePortalData(
       totalWorkMinutes,
     },
     monthRecords,
-    payslips: payslips.map((p) => ({
-      id: p.id,
-      month: p.month,
-      year: p.year,
-      payGroup: p.payGroup,
-      totalDays: p.totalDays,
-      presentDays: p.presentDays,
-      ncpDays: p.ncpDays,
-      grossWage: p.grossWage,
-      basicWage: p.basicWage,
-      bonusAmount: p.bonusAmount,
-      employeeEpf: p.employeeEpf,
-      netPayment: p.netPayment,
-      isLocked: p.isLocked,
-    })),
+    payslips: payslips as unknown as MonthlyPayrollWithDetails[],
   };
 }

@@ -55,6 +55,21 @@ describe("RequestPunchModal Component", () => {
     expect(html).toContain('value="09:15"');
   });
 
+  it("accepts an optional staffId prop for admin-on-behalf-of submissions", () => {
+    const html = renderToStaticMarkup(
+      <RequestPunchModal
+        open={true}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+        staffId="staff-42"
+        prefillDate="2026-11-07"
+      />
+    );
+
+    expect(html).toContain("Request Missed Punch");
+    expect(html).toContain('value="2026-11-07"');
+  });
+
   it("exports generalized PUNCH_REASONS", () => {
     expect(PUNCH_REASONS).toEqual([
       { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },

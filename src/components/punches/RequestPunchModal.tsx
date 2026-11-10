@@ -23,6 +23,7 @@ export interface RequestPunchModalProps {
   prefillDate?: string;
   prefillPunchType?: PunchType;
   prefillTime?: string;
+  staffId?: string;
 }
 
 export function RequestPunchModal({
@@ -32,6 +33,7 @@ export function RequestPunchModal({
   prefillDate,
   prefillPunchType,
   prefillTime,
+  staffId,
 }: RequestPunchModalProps) {
   const initialType = prefillPunchType || "BOTH";
   const [date, setDate] = useState(prefillDate || "");
@@ -101,7 +103,7 @@ export function RequestPunchModal({
     setIsSubmitting(true);
 
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         date,
         punchType,
         requestedTime: punchType === "BOTH" ? undefined : requestedTime,
@@ -110,6 +112,10 @@ export function RequestPunchModal({
         reason,
         explanation: explanation.trim() || undefined,
       };
+
+      if (staffId) {
+        payload.staffId = staffId;
+      }
 
       const res = await fetch("/api/punch-requests", {
         method: "POST",

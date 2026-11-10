@@ -11,25 +11,15 @@ import {
   PlusCircle,
   Building,
   CalendarDays,
-  Loader2,
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ToSchoolData, ToSchoolDay } from "@/lib/to-school";
 import { AttendanceIndexSidebar } from "@/components/calendar/AttendanceIndexSidebar";
 import { UnifiedCalendar } from "@/components/calendar/UnifiedCalendar";
-import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
+import { RequestPunchModal, type PunchType } from "@/components/punches/RequestPunchModal";
 import { formatDate, formatHHmm } from "@/lib/format";
 import { cn } from "@/lib/cn";
-
-const REASONS = [
-  { value: "FORGOT_SWIPE", label: "Forgot to mark attendance / Missed terminal check" },
-  { value: "DUTY_OUTSIDE", label: "Official on-duty assignment / Off-campus school duty" },
-  { value: "DEVICE_OFFLINE", label: "Attendance terminal offline / Recognition error" },
-  { value: "POWER_FAILURE", label: "Campus power outage / Terminal unavailable" },
-  { value: "OTHER", label: "Other reason (specify details below)" },
-];
 
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -67,13 +57,8 @@ export function ToSchoolClient({
   // Punch Request Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDate, setModalDate] = useState<string>("");
-  const [punchType, setPunchType] = useState<"BOTH" | "IN" | "OUT">("BOTH");
+  const [punchType, setPunchType] = useState<PunchType>("BOTH");
   const [requestedTime, setRequestedTime] = useState<string>("09:00");
-  const [requestedInTime, setRequestedInTime] = useState<string>("09:00");
-  const [requestedOutTime, setRequestedOutTime] = useState<string>("16:30");
-  const [reason, setReason] = useState<string>("FORGOT_SWIPE");
-  const [explanation, setExplanation] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function fetchMonthData(year: number, month: number) {
     setIsLoading(true);
@@ -134,57 +119,9 @@ export function ToSchoolClient({
       setRequestedTime("09:00");
     } else {
       setPunchType("BOTH");
-      setRequestedInTime("09:00");
-      setRequestedOutTime("16:30");
+      setRequestedTime("09:00");
     }
-    setReason("FORGOT_SWIPE");
-    setExplanation("");
     setIsModalOpen(true);
-  }
-
-  async function handleSubmitPunchRequest(e: React.FormEvent) {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const payload: Record<string, unknown> = {
-        date: modalDate,
-        punchType,
-        reason,
-        explanation: explanation.trim() || null,
-      };
-
-      if (staffId) {
-        payload.staffId = staffId;
-      }
-
-      if (punchType === "IN" || punchType === "OUT") {
-        payload.requestedTime = requestedTime;
-      } else {
-        payload.requestedInTime = requestedInTime;
-        payload.requestedOutTime = requestedOutTime;
-      }
-
-      const res = await fetch("/api/punch-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to submit punch regularization request");
-      }
-
-      toast.success("Punch regularization request submitted successfully");
-      setIsModalOpen(false);
-      // Refresh current calendar view
-      fetchMonthData(selectedYear, selectedMonth);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error submitting request";
-      toast.error(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
   }
 
   // Calculate leading empty cells for Monday start:
@@ -556,169 +493,15 @@ export function ToSchoolClient({
       </div>
 
       {/* Missed Punch Regularization Modal */}
-      <Modal
+      <RequestPunchModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Request Punch Regularization"
-      >
-        <form onSubmit={handleSubmitPunchRequest} className="space-y-4">
-          <p className="text-xs text-muted">
-            Raise a missed punch regularization request for administrative review.
-          </p>
-
-          {/* Date */}
-          <div>
-            <label className="block text-xs font-medium text-text mb-1">
-              Date
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={formatDate(modalDate)}
-              className="w-full rounded-lg border border-line bg-card-hi px-3 py-2 text-xs text-text outline-none opacity-80"
-            />
-          </div>
-
-          {/* Punch Type Selector */}
-          <div>
-            <label className="block text-xs font-medium text-text mb-1">
-              Punch Type
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setPunchType("BOTH")}
-                className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                  punchType === "BOTH"
-                    ? "border-acc-2 bg-acc-2/15 text-acc-1"
-                    : "border-line bg-card hover:bg-card-hi text-muted"
-                }`}
-              >
-                Both (Full Day)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPunchType("IN")}
-                className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                  punchType === "IN"
-                    ? "border-acc-2 bg-acc-2/15 text-acc-1"
-                    : "border-line bg-card hover:bg-card-hi text-muted"
-                }`}
-              >
-                Check-in (IN)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPunchType("OUT")}
-                className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                  punchType === "OUT"
-                    ? "border-acc-2 bg-acc-2/15 text-acc-1"
-                    : "border-line bg-card hover:bg-card-hi text-muted"
-                }`}
-              >
-                Check-out (OUT)
-              </button>
-            </div>
-          </div>
-
-          {/* Times */}
-          {punchType === "BOTH" ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-text mb-1">
-                  Expected In Time
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={requestedInTime}
-                  onChange={(e) => setRequestedInTime(e.target.value)}
-                  className="w-full rounded-lg border border-line bg-card px-3 py-2 text-xs text-text outline-none focus:border-acc-2"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text mb-1">
-                  Expected Out Time
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={requestedOutTime}
-                  onChange={(e) => setRequestedOutTime(e.target.value)}
-                  className="w-full rounded-lg border border-line bg-card px-3 py-2 text-xs text-text outline-none focus:border-acc-2"
-                />
-              </div>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-xs font-medium text-text mb-1">
-                Requested Time
-              </label>
-              <input
-                type="time"
-                required
-                value={requestedTime}
-                onChange={(e) => setRequestedTime(e.target.value)}
-                className="w-full rounded-lg border border-line bg-card px-3 py-2 text-xs text-text outline-none focus:border-acc-2"
-              />
-            </div>
-          )}
-
-          {/* Reason */}
-          <div>
-            <label className="block text-xs font-medium text-text mb-1">
-              Reason Category
-            </label>
-            <select
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full rounded-lg border border-line bg-card px-3 py-2 text-xs text-text outline-none focus:border-acc-2"
-            >
-              {REASONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Explanation */}
-          <div>
-            <label className="block text-xs font-medium text-text mb-1">
-              Explanation (Optional)
-            </label>
-            <textarea
-              rows={3}
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Provide additional details regarding this missed punch..."
-              className="w-full rounded-lg border border-line bg-card px-3 py-2 text-xs text-text outline-none focus:border-acc-2 placeholder:text-muted/60"
-            />
-          </div>
-
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-line">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsModalOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit Request"
-              )}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSuccess={() => fetchMonthData(selectedYear, selectedMonth)}
+        prefillDate={modalDate}
+        prefillPunchType={punchType}
+        prefillTime={requestedTime}
+        staffId={staffId}
+      />
     </div>
   );
 }

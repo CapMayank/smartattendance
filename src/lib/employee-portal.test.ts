@@ -86,6 +86,16 @@ describe("getEmployeePortalData", () => {
         employeeEpf: 1800,
         netPayment: 26200,
         isLocked: true,
+        staff: {
+          id: "staff-1",
+          name: "Asha Verma",
+          employeeCode: "SAR-2026-004",
+          machineId: "104",
+          joiningDate: "2026-04-01",
+          department: { name: "Science" },
+          designation: { name: "PGT Physics" },
+          payrollInfo: { payGroup: "BANK_EPF" },
+        },
       },
     ]);
 
@@ -107,6 +117,15 @@ describe("getEmployeePortalData", () => {
     expect(res?.payslips[0].netPayment).toBe(26200);
     expect(mockPrisma.monthlyPayroll.findMany).toHaveBeenCalledWith({
       where: { staffId: "staff-1", isLocked: true },
+      include: {
+        staff: {
+          include: {
+            department: true,
+            designation: true,
+            payrollInfo: true,
+          },
+        },
+      },
       orderBy: [{ year: "desc" }, { month: "desc" }],
       take: 12,
     });
