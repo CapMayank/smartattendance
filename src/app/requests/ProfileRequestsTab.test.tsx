@@ -103,6 +103,6 @@ describe("ProfileRequestsTab - EPFO Field Labels and Diffs", () => {
       />
     );
 
-    expect(html).toContain("PARTIALLY APPROVED");
+    expect(html).toContain("Partially Approved");
   });
 });
