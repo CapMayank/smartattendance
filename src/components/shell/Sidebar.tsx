@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { ChevronDown, HelpCircle, KeyRound, LogOut, Moon, Plus, Sun } from "lucide-react";
+import { ChevronDown, HelpCircle, KeyRound, LogOut, Moon, Plus, Sun, User } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { initials } from "@/lib/initials";
 import { formatTime } from "@/lib/format";
@@ -81,6 +81,14 @@ export function Sidebar({
         </button>
         {menuOpen ? (
           <div id={menuId} className="space-y-0.5 border-t border-line-soft p-1.5">
+            <Link
+              href="/profile"
+              onClick={() => setMenuOpen(false)}
+              className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-muted transition-colors duration-150 hover:bg-card hover:text-text"
+            >
+              <User size={15} aria-hidden="true" />
+              My Profile
+            </Link>
             <Link
               href="/change-password"
               onClick={() => setMenuOpen(false)}
