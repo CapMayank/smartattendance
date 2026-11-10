@@ -75,6 +75,9 @@ describe('Prisma Schema and Client', () => {
       const fieldNames = payrollInfo!.fields.map((f) => f.name)
       expect(fieldNames).toContain('payGroup')
       expect(fieldNames).toContain('payGroupChanges')
+      expect(fieldNames).toEqual(
+        expect.arrayContaining(['epfoKycExportedAt', 'epfoKycExportedHash'])
+      )
 
       const payGroupField = payrollInfo!.fields.find((f) => f.name === 'payGroup')
       expect(payGroupField?.default).toBe('BANK_EPF')
@@ -110,6 +113,9 @@ describe('Prisma Schema and Client', () => {
           'createdAt',
           'updatedAt',
           'staff',
+          'epfoJoinExportedAt',
+          'epfoExitExportedAt',
+          'epfoExitCode',
         ])
       )
     })

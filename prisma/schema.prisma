@@ -301,6 +301,8 @@ model StaffPayrollInfo {
   nameOnPan             String?
   nameOnAadhaar         String?
   isHigherPensionOpted  Boolean   @default(false)
+  epfoKycExportedAt     DateTime?
+  epfoKycExportedHash   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -351,6 +353,9 @@ model EmploymentPeriod {
   exitReason      String?   // RESIGNED | TERMINATED | RETIRED | END_OF_CONTRACT | OTHER
   notes           String?
   createdByUserId String?
+  epfoJoinExportedAt DateTime?
+  epfoExitExportedAt DateTime?
+  epfoExitCode       String?   // C | S | R | D | A | P
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

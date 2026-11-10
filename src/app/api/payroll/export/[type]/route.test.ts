@@ -119,14 +119,10 @@ describe("GET /api/payroll/export/[type]", () => {
     expect(res.headers.get("Content-Disposition")).toContain("ECR_Final_NOVEMBER_2026.xlsx");
   });
 
-  it("bulk-reg export excludes CASH payGroup staff", async () => {
+  it("returns 400 for removed legacy bulk-reg export type", async () => {
     const req = new Request("http://localhost/api/payroll/export/bulk-reg?month=11&year=2026");
     const res = await GET(req, { params: Promise.resolve({ type: "bulk-reg" }) });
-    expect(res.status).toBe(200);
-
-    const text = await res.text();
-    expect(text).toContain("Bank Staff");
-    expect(text).not.toContain("Cash Staff");
+    expect(res.status).toBe(400);
   });
 
   it("cash-payment export generates cash sheet for CASH payGroup staff", async () => {

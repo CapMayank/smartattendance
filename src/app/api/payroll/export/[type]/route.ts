@@ -451,57 +451,6 @@ export async function GET(
         },
       });
 
-    } else if (type === "bulk-reg") {
-      const epfPayrolls = payrolls.filter((p) => !isCashRecord(p));
-      let textContent = "";
-      for (const p of epfPayrolls) {
-        const info = p.staff.payrollInfo;
-        if (!info) continue;
-
-        const line = [
-          info.uan || "",
-          info.previousMemberId || "",
-          info.nameOnUan || p.staff.name,
-          info.dob ? format(new Date(info.dob), "dd/MM/yyyy") : "",
-          info.doj ? format(new Date(info.doj), "dd/MM/yyyy") : "",
-          info.gender || "",
-          info.fatherHusbandName || "",
-          info.relationship || "",
-          info.mobileNumber || "",
-          info.email || "",
-          info.nationality || "INDIAN",
-          Math.round(p.grossWage || 0),
-          info.qualification || "",
-          info.maritalStatus || "",
-          info.isInternationalWorker || "N",
-          info.countryOfOrigin || "INDIA",
-          info.passportNumber || "",
-          info.passportValidFrom ? format(new Date(info.passportValidFrom), "dd/MM/yyyy") : "",
-          info.passportValidTill ? format(new Date(info.passportValidTill), "dd/MM/yyyy") : "",
-          info.isPhysicalHandicap || "N",
-          info.locomotive || "N",
-          info.hearing || "N",
-          info.visual || "N",
-          info.bankAccount || "",
-          info.ifsc || "",
-          info.nameAsPerBank || "",
-          info.pan || "",
-          info.nameOnPan || "",
-          info.aadhaar || "",
-          info.nameOnAadhaar || ""
-        ].join("#~#");
-
-        textContent += line + "\n";
-      }
-
-      const timestamp = format(new Date(), "yyyyMMdd_HHmmss");
-      return new NextResponse(textContent, {
-        headers: {
-          "Content-Disposition": `attachment; filename="EPFO_Bulk_Reg_${timestamp}.txt"`,
-          "Content-Type": "text/plain",
-        },
-      });
-
     } else {
       return new NextResponse("Unknown export type", { status: 400 });
     }
