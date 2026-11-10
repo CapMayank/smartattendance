@@ -276,5 +276,41 @@ describe("Employee Profile Page & Hub", () => {
       expect(html).toContain("Aadhaar must be a 12-digit number not starting with 0 or 1");
       expect(html).toContain("Complete KYC &amp; EPFO Details");
     });
+
+    it("renders PARTIALLY APPROVED badge and Fix & Re-Submit button when request has rejected fields", () => {
+      const data: any = {
+        profile: {
+          id: "staff-1",
+          name: "Sunita Patel",
+          kycDetails: {},
+          epfoReadiness: { isBankEpf: true, ready: true, missingFields: [] },
+        },
+        requests: [
+          {
+            id: "req-part",
+            staffId: "staff-1",
+            status: "PARTIALLY_APPROVED",
+            requestedData: JSON.stringify({
+              bankAccount: "987654321012",
+              pan: "ABCDE1234F",
+            }),
+            decisionRemarks: JSON.stringify({
+              note: "Bank account approved. PAN rejected due to name mismatch.",
+              approvedFields: ["bankAccount"],
+              rejectedFields: ["pan"],
+              fieldRemarks: { pan: "Name mismatch with Aadhaar" },
+            }),
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+
+      const html = renderToStaticMarkup(<EmployeeProfileClient initialData={data} />);
+
+      expect(html).toContain("PARTIALLY APPROVED");
+      expect(html).toContain("Approved");
+      expect(html).toContain("Rejected");
+      expect(html).toContain("Fix &amp; Re-Submit Rejected Details");
+    });
   });
 });
