@@ -122,17 +122,25 @@ export function EmployeeMyDashboard({
             title="My Profile & Shift"
             caption="Your school identity and assigned schedule"
             action={
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileEditInitialTab("personal");
-                  setProfileEditModalOpen(true);
-                }}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card-hi px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-acc-2 hover:text-acc-1"
-              >
-                <FileText size={13} aria-hidden="true" />
-                Request Details Edit
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/profile"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-line bg-card-hi px-2.5 py-1.5 text-xs font-medium text-text transition-colors hover:border-acc-2 hover:text-acc-1"
+                >
+                  View Full Profile →
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileEditInitialTab("personal");
+                    setProfileEditModalOpen(true);
+                  }}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-card-hi px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-acc-2 hover:text-acc-1"
+                >
+                  <FileText size={13} aria-hidden="true" />
+                  Request Details Edit
+                </button>
+              </div>
             }
           />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

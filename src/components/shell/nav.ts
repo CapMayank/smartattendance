@@ -1,7 +1,7 @@
 import {
   Home, Users, Calendar, Clock, PlusCircle, BarChart3, UserCheck, Wallet,
   IndianRupee, PieChart, Building2, IdCard, Server, Settings,
-  AlertCircle, KeyRound, ScrollText, CheckCircle2,
+  AlertCircle, KeyRound, ScrollText, CheckCircle2, User,
   type LucideIcon,
 } from "lucide-react";
 
@@ -81,6 +81,7 @@ export const EMPLOYEE_NAV: NavGroup[] = [
     group: "My Portal",
     items: [
       { label: "My Overview", href: "/", icon: Home },
+      { label: "My Profile", href: "/profile", icon: User },
       { label: "To School", href: "/to-school", icon: Calendar },
       { label: "My Punches & Requests", href: "/punch-requests", icon: Clock },
       { label: "My Payslips", href: "/payslips", icon: Wallet },

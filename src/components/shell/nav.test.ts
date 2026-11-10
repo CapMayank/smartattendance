@@ -3,15 +3,16 @@ import { getNavForRole, activeHref, EMPLOYEE_NAV, NAV } from "./nav";
 
 describe("Navigation Configuration & Role Integration", () => {
   describe("getNavForRole('EMPLOYEE')", () => {
-    it("returns exactly the 5 employee routes under 'My Portal'", () => {
+    it("returns exactly the 6 employee routes under 'My Portal' including My Profile", () => {
       const employeeNav = getNavForRole("EMPLOYEE");
       expect(employeeNav).toHaveLength(1);
       expect(employeeNav[0].group).toBe("My Portal");
 
       const items = employeeNav[0].items;
-      expect(items).toHaveLength(5);
+      expect(items).toHaveLength(6);
       expect(items.map((i) => ({ label: i.label, href: i.href }))).toEqual([
         { label: "My Overview", href: "/" },
+        { label: "My Profile", href: "/profile" },
         { label: "To School", href: "/to-school" },
         { label: "My Punches & Requests", href: "/punch-requests" },
         { label: "My Payslips", href: "/payslips" },
@@ -83,6 +84,7 @@ describe("Navigation Configuration & Role Integration", () => {
     it("resolves active route for employee portal items", () => {
       const employeeNav = getNavForRole("EMPLOYEE");
       expect(activeHref("/", employeeNav)).toBe("/");
+      expect(activeHref("/profile", employeeNav)).toBe("/profile");
       expect(activeHref("/to-school", employeeNav)).toBe("/to-school");
       expect(activeHref("/to-school/2026-11", employeeNav)).toBe("/to-school");
       expect(activeHref("/punch-requests", employeeNav)).toBe("/punch-requests");
