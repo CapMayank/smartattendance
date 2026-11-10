@@ -143,7 +143,7 @@ export function EmployeeProfileClient({ initialData }: EmployeeProfileClientProp
             <Avatar
               name={profile.name}
               src={staffPhotoUrl({ id: profile.id, profilePhotoId: profile.profilePhotoId })}
-              size={54}
+              size={38}
             />
             <div>
               <div className="flex flex-wrap items-center gap-2">
