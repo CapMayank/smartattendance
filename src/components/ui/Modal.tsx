@@ -60,6 +60,11 @@ export function Modal({
     } else if (!open && dlg.open) {
       dlg.close();
     }
+    return () => {
+      if (dlg.open) {
+        dlg.close();
+      }
+    };
   }, [open]);
 
   // Prevent background body scroll when modal is active
@@ -92,11 +97,17 @@ export function Modal({
         upOnBackdrop.current = isOwnDialogEvent(e);
       }}
       onClick={(e) => {
-        if (downOnBackdrop.current && upOnBackdrop.current && isOwnDialogEvent(e)) ref.current?.close();
+        if (downOnBackdrop.current && upOnBackdrop.current && isOwnDialogEvent(e)) {
+          if (ref.current?.open) {
+            ref.current.close();
+          } else {
+            onClose();
+          }
+        }
         downOnBackdrop.current = false;
         upOnBackdrop.current = false;
       }}
-      className={`ui-dialog m-auto flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)] ${sizeClass} rounded-2xl border border-line bg-card p-0 text-text shadow-overlay transition-all`}
+      className={`ui-dialog m-auto open:flex open:flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)] ${sizeClass} rounded-2xl border border-line bg-card p-0 text-text shadow-overlay transition-all`}
     >
       <div className="flex flex-none items-center justify-between gap-3 border-b border-line-soft px-6 py-4.5">
         <div className="min-w-0 flex-1">
@@ -109,7 +120,18 @@ export function Modal({
         </div>
         <div className="flex items-center gap-2">
           {headerAction}
-          <IconButton icon={X} label="Close" className="size-8" onClick={() => ref.current?.close()} />
+          <IconButton
+            icon={X}
+            label="Close"
+            className="size-8"
+            onClick={() => {
+              if (ref.current?.open) {
+                ref.current.close();
+              } else {
+                onClose();
+              }
+            }}
+          />
         </div>
       </div>
       <div ref={bodyRef} className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-5 ${maxHeight}`}>{children}</div>
