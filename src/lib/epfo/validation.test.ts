@@ -66,6 +66,24 @@ describe('getEpfoNextAction & action-scoped validation', () => {
       payrollInfo: { ...upToDate.payrollInfo, bankAccount: '999999999999' },
     };
     expect(getEpfoNextAction(editedBank)).toBe('NEEDS_KYC');
+
+    const clearedKyc: EpfoMemberInput = {
+      ...upToDate,
+      payrollInfo: { ...upToDate.payrollInfo, bankAccount: null, pan: null, aadhaar: null },
+    };
+    expect(getEpfoNextAction(clearedKyc)).toBe('NEEDS_KYC');
+  });
+
+  it('hides active CASH member who was never registered on EPFO even with past payGroupChanges', () => {
+    const cashUnregistered: EpfoMemberInput = {
+      ...baseReadyMember,
+      payrollInfo: {
+        ...baseReadyMember.payrollInfo,
+        payGroup: 'CASH',
+        payGroupChanges: [{ payGroup: 'BANK_EPF', effectiveFromMonth: '2025-01' }],
+      },
+    };
+    expect(getEpfoNextAction(cashUnregistered)).toBe('HIDDEN');
   });
 
   it('evaluates rejoined staff member to NEEDS_REGISTRATION for the new period (Review Focus #3)', () => {

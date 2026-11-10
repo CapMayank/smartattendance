@@ -29,6 +29,9 @@ export function getEpfoNextAction(member: EpfoMemberInput): EpfoNextAction {
 
   // 2. Active period, join not yet exported
   if (!latestPeriod?.endDate && !latestPeriod?.epfoJoinExportedAt) {
+    if (payGroup !== 'BANK_EPF') {
+      return 'HIDDEN';
+    }
     return 'NEEDS_REGISTRATION';
   }
 
@@ -45,7 +48,11 @@ export function getEpfoNextAction(member: EpfoMemberInput): EpfoNextAction {
 
   // 4. NEEDS_KYC: UAN present and (epfoKycExportedAt is null OR hash mismatch)
   const kycHash = computeKycHash(member.payrollInfo);
-  if (!member.payrollInfo?.epfoKycExportedAt || (kycHash && member.payrollInfo?.epfoKycExportedHash !== kycHash)) {
+  if (
+    !member.payrollInfo?.epfoKycExportedAt ||
+    !kycHash ||
+    member.payrollInfo?.epfoKycExportedHash !== kycHash
+  ) {
     return 'NEEDS_KYC';
   }
 

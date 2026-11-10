@@ -54,6 +54,8 @@ interface UndoState {
 
 interface EpfoMembersTabProps {
   onFixMember: (staffId: string, initialTab: 'statutory' | 'kyc', missingFields: string[]) => void;
+  refreshTrigger?: number;
+  onCountsUpdated?: (counts: Record<EpfoNextAction, number>) => void;
   initialData?: {
     members: EpfoMemberRow[];
     counts: Record<EpfoNextAction, number>;
@@ -64,6 +66,8 @@ interface EpfoMembersTabProps {
 
 export function EpfoMembersTab({
   onFixMember,
+  refreshTrigger = 0,
+  onCountsUpdated,
   initialData,
   initialQueue = 'NEEDS_REGISTRATION',
   initialUndo = null,
@@ -88,6 +92,7 @@ export function EpfoMembersTab({
   // Inline UAN edit state for AWAITING_UAN rows
   const [uanInputs, setUanInputs] = useState<Record<string, string>>({});
   const [savingUanId, setSavingUanId] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   // Dialog states
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -103,7 +108,9 @@ export function EpfoMembersTab({
       if (res.ok) {
         const data = await res.json();
         setMembers(data.members || []);
-        setCounts(data.counts || counts);
+        const nextCounts = data.counts || counts;
+        setCounts(nextCounts);
+        onCountsUpdated?.(nextCounts);
       }
     } catch (e) {
       console.error('Failed to fetch EPFO members', e);
@@ -113,10 +120,10 @@ export function EpfoMembersTab({
   };
 
   useEffect(() => {
-    if (!initialData) {
+    if (!initialData || refreshTrigger > 0) {
       fetchMembers();
     }
-  }, []);
+  }, [refreshTrigger]);
 
   const totalAllEpf = useMemo(() => {
     return (
@@ -271,10 +278,23 @@ export function EpfoMembersTab({
 
       await downloadFileFromResponse(res, `EPFO_${exportType.toUpperCase()}.txt`);
 
+      let exportedCount = staffIds.length;
+      const summaryHeader = res.headers.get('X-Epfo-Summary');
+      if (summaryHeader) {
+        try {
+          const parsed = JSON.parse(summaryHeader);
+          if (typeof parsed.exportedCount === 'number') {
+            exportedCount = parsed.exportedCount;
+          }
+        } catch {
+          // Ignore header parse error
+        }
+      }
+
       setActiveUndo({
         type: exportType === 'reg' ? 'REG' : exportType === 'exit' ? 'EXIT' : 'KYC',
         staffIds,
-        count: staffIds.length,
+        count: exportedCount,
       });
 
       setExportModalOpen(false);
@@ -286,6 +306,37 @@ export function EpfoMembersTab({
       alert('Network error during export');
     } finally {
       setExportLoading(false);
+    }
+  };
+
+  const handleResetMemberToPending = async (member: EpfoMemberRow) => {
+    const latestPeriod = member.employmentPeriods?.[0];
+    const target: 'REG' | 'EXIT' | 'KYC' = latestPeriod?.epfoExitExportedAt
+      ? 'EXIT'
+      : member.payrollInfo?.epfoKycExportedAt && member.nextAction === 'UP_TO_DATE'
+      ? 'KYC'
+      : 'REG';
+
+    setResettingId(member.id);
+    try {
+      const res = await fetch('/api/payroll/epfo/mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staffIds: [member.id],
+          mode: 'RESET_PENDING',
+          target,
+        }),
+      });
+      if (res.ok) {
+        await fetchMembers();
+      } else {
+        alert('Failed to reset member to pending');
+      }
+    } catch {
+      alert('Error resetting member');
+    } finally {
+      setResettingId(null);
     }
   };
 
@@ -482,8 +533,8 @@ export function EpfoMembersTab({
           </div>
         </div>
 
-        {/* Member Table */}
-        <div className="table-wrap">
+        {/* Member Table (Desktop) */}
+        <div className="table-wrap hidden md:block">
           <table className="data-table">
             <thead>
               <tr>
@@ -526,6 +577,12 @@ export function EpfoMembersTab({
                     uanInputs[member.id] !== undefined
                       ? uanInputs[member.id]
                       : member.payrollInfo?.uan || '';
+                  const latestPeriod = member.employmentPeriods?.[0];
+                  const canResetToPending = Boolean(
+                    latestPeriod?.epfoJoinExportedAt ||
+                      latestPeriod?.epfoExitExportedAt ||
+                      member.payrollInfo?.epfoKycExportedAt
+                  );
 
                   return (
                     <tr key={member.id} className={isSelected ? 'bg-accent/5' : ''}>
@@ -593,7 +650,9 @@ export function EpfoMembersTab({
                           }`}
                         >
                           {member.nextAction === 'NEEDS_REGISTRATION'
-                            ? 'Register'
+                            ? member.payrollInfo?.uan?.trim()
+                              ? 'Register (link)'
+                              : 'Register'
                             : member.nextAction === 'AWAITING_UAN'
                             ? 'Awaiting UAN'
                             : member.nextAction === 'NEEDS_EXIT'
@@ -605,16 +664,33 @@ export function EpfoMembersTab({
                       </td>
 
                       <td>
-                        {member.readiness.ready ? (
+                        {isAwaitingUan ? (
+                          <span className="text-xs text-subtle">—</span>
+                        ) : member.readiness.ready ? (
                           <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 size={14} />
                             Ready
                           </span>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="rounded px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                              ⚠ {member.readiness.errors.length} missing
+                          <div className="group relative flex items-center gap-2">
+                            <span
+                              tabIndex={0}
+                              title={member.readiness.errors.map((e) => e.message).join(' • ')}
+                              className="inline-flex cursor-help items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            >
+                              <AlertTriangle size={12} aria-hidden="true" />
+                              <span>{member.readiness.errors.length} missing</span>
                             </span>
+                            <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-1.5 hidden w-64 rounded-xl border border-line bg-card p-2.5 text-left text-[11px] text-text shadow-lg group-hover:block group-focus-within:block">
+                              <p className="mb-1 font-semibold text-amber-600 dark:text-amber-400">
+                                Missing required fields:
+                              </p>
+                              <ul className="list-disc space-y-0.5 pl-4 text-subtle">
+                                {member.readiness.errors.map((err, i) => (
+                                  <li key={i}>{err.message}</li>
+                                ))}
+                              </ul>
+                            </div>
                             <Button
                               size="sm"
                               variant="secondary"
@@ -634,19 +710,32 @@ export function EpfoMembersTab({
                       </td>
 
                       <td className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            onFixMember(
-                              member.id,
-                              'statutory',
-                              member.readiness.errors.map((e) => e.field)
-                            )
-                          }
-                        >
-                          Edit Profile
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {canResetToPending && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              icon={RotateCcw}
+                              loading={resettingId === member.id}
+                              onClick={() => handleResetMemberToPending(member)}
+                            >
+                              Reset to pending
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              onFixMember(
+                                member.id,
+                                'statutory',
+                                member.readiness.errors.map((e) => e.field)
+                              )
+                            }
+                          >
+                            Edit Profile
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -654,6 +743,175 @@ export function EpfoMembersTab({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="flex flex-col gap-3 p-4 md:hidden">
+          {filteredMembers.length === 0 ? (
+            loading ? (
+              <p className="py-8 text-center text-sm text-subtle">
+                Loading EPFO member compliance records...
+              </p>
+            ) : (
+              <EmptyState
+                icon={ShieldCheck}
+                title="No staff in this compliance queue"
+                hint="All members in this queue are either up to date or no matching records were found."
+              />
+            )
+          ) : (
+            filteredMembers.map((member) => {
+              const isSelected = selectedIds.includes(member.id);
+              const isAwaitingUan = member.nextAction === 'AWAITING_UAN';
+              const uanDraft =
+                uanInputs[member.id] !== undefined
+                  ? uanInputs[member.id]
+                  : member.payrollInfo?.uan || '';
+              const latestPeriod = member.employmentPeriods?.[0];
+              const canResetToPending = Boolean(
+                latestPeriod?.epfoJoinExportedAt ||
+                  latestPeriod?.epfoExitExportedAt ||
+                  member.payrollInfo?.epfoKycExportedAt
+              );
+
+              return (
+                <div
+                  key={member.id}
+                  className={`flex flex-col gap-3 rounded-xl border p-4 ${
+                    isSelected ? 'border-accent bg-accent/5' : 'border-line bg-canvas'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(member.id)}
+                        aria-label={`Select ${member.name}`}
+                        className="mt-1 rounded border-line text-accent focus:ring-accent"
+                      />
+                      <div>
+                        <span className="block font-medium text-text">{member.name}</span>
+                        <span className="text-xs text-subtle">
+                          {member.employeeCode || `Machine #${member.machineId}`}
+                          {member.department?.name ? ` · ${member.department.name}` : ''}
+                        </span>
+                      </div>
+                    </label>
+                    <span
+                      className={`rounded px-2 py-0.5 text-[11px] font-medium ${
+                        member.nextAction === 'NEEDS_REGISTRATION'
+                          ? 'tint-badge tone-accent'
+                          : member.nextAction === 'NEEDS_EXIT'
+                          ? 'tint-badge tone-absent'
+                          : member.nextAction === 'NEEDS_KYC'
+                          ? 'tint-badge tone-accent'
+                          : member.nextAction === 'UP_TO_DATE'
+                          ? 'tint-badge tone-present'
+                          : 'tint-badge'
+                      }`}
+                    >
+                      {member.nextAction === 'NEEDS_REGISTRATION'
+                        ? member.payrollInfo?.uan?.trim()
+                          ? 'Register (link)'
+                          : 'Register'
+                        : member.nextAction === 'AWAITING_UAN'
+                        ? 'Awaiting UAN'
+                        : member.nextAction === 'NEEDS_EXIT'
+                        ? 'Mark exit'
+                        : member.nextAction === 'NEEDS_KYC'
+                        ? 'Seed KYC'
+                        : 'Up to date'}
+                    </span>
+                  </div>
+
+                  {isAwaitingUan ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={uanDraft}
+                        placeholder="Enter 12-digit UAN"
+                        onChange={(e) =>
+                          setUanInputs({ ...uanInputs, [member.id]: e.target.value })
+                        }
+                        className="h-8 text-xs font-mono"
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleSaveInlineUan(member.id)}
+                        loading={savingUanId === member.id}
+                        disabled={!/^\d{12}$/.test(uanDraft.trim())}
+                      >
+                        Save UAN
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-subtle">
+                      UAN: <span className="font-mono text-text">{member.payrollInfo?.uan || '—'}</span>
+                    </div>
+                  )}
+
+                  {!isAwaitingUan && !member.readiness.ready && (
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs">
+                      <p className="font-medium text-amber-600 dark:text-amber-400">
+                        {member.readiness.errors.length} missing:
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-subtle">
+                        {member.readiness.errors.map((err, i) => (
+                          <li key={i}>{err.message}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 border-t border-line-soft pt-2.5">
+                    {canResetToPending && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={RotateCcw}
+                        loading={resettingId === member.id}
+                        onClick={() => handleResetMemberToPending(member)}
+                      >
+                        Reset to pending
+                      </Button>
+                    )}
+                    {!isAwaitingUan && !member.readiness.ready ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={Wrench}
+                        onClick={() =>
+                          onFixMember(
+                            member.id,
+                            'statutory',
+                            member.readiness.errors.map((e) => e.field)
+                          )
+                        }
+                      >
+                        Fix
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          onFixMember(
+                            member.id,
+                            'statutory',
+                            member.readiness.errors.map((e) => e.field)
+                          )
+                        }
+                      >
+                        Edit Profile
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Sticky Export Footer when rows are selected */}
@@ -732,6 +990,7 @@ export function EpfoMembersTab({
         open={exitModalOpen}
         onClose={() => setExitModalOpen(false)}
         onConfirm={(exitCodes) => executeExport(exitCodes)}
+        onOpenProfile={(staffId) => onFixMember(staffId, 'statutory', [])}
         members={readySelectedMembers.map((m) => ({
           id: m.id,
           name: m.name,

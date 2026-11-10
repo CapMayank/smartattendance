@@ -75,8 +75,13 @@ describe('EPFO bulk file builders', () => {
       id: 's-empty',
       payrollInfo: { ...sampleMember.payrollInfo, bankAccount: null, pan: null, aadhaar: '012345678901' }, // invalid aadhaar
     };
+    const invalidUanMember: EpfoMemberInput = {
+      ...sampleMember,
+      id: 's-bad-uan',
+      payrollInfo: { ...sampleMember.payrollInfo, uan: '12345' }, // malformed 5-digit UAN
+    };
 
-    const res = buildKycFile([partialMember, noValidDocsMember], ['B', 'P', 'A']);
+    const res = buildKycFile([partialMember, noValidDocsMember, invalidUanMember], ['B', 'P', 'A']);
     const lines = res.content.split('\n');
     expect(lines).toEqual([
       '100248330106#~#B#~#123456789012#~#RAMESH KUMAR#~#HDFC0001234',
@@ -85,5 +90,6 @@ describe('EPFO bulk file builders', () => {
     expect(res.exportedStaffIds).toEqual(['s-partial']);
     expect(res.skipped.some((s) => s.staffId === 's-partial' && s.docType === 'P')).toBe(true);
     expect(res.skipped.some((s) => s.staffId === 's-empty' && s.docType === 'A')).toBe(true);
+    expect(res.skipped.some((s) => s.staffId === 's-bad-uan')).toBe(true);
   });
 });

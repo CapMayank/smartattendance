@@ -120,7 +120,7 @@ export function buildKycFile(
     const info = member.payrollInfo || {};
     const uan = (info.uan || '').trim();
 
-    if (kycRes.validDocs.length > 0 && uan) {
+    if (kycRes.ready && kycRes.validDocs.length > 0) {
       exportedStaffIds.push(member.id);
 
       for (const doc of kycRes.validDocs) {
@@ -141,13 +141,24 @@ export function buildKycFile(
       }
     }
 
-    for (const s of kycRes.skippedDocs) {
-      skipped.push({
-        staffId: member.id,
-        staffName: member.name,
-        docType: s.docType,
-        reason: s.reason,
-      });
+    if (!kycRes.ready && kycRes.errors.some((e) => e.field === 'uan')) {
+      for (const doc of docTypes) {
+        skipped.push({
+          staffId: member.id,
+          staffName: member.name,
+          docType: doc,
+          reason: 'Invalid or missing 12-digit UAN',
+        });
+      }
+    } else {
+      for (const s of kycRes.skippedDocs) {
+        skipped.push({
+          staffId: member.id,
+          staffName: member.name,
+          docType: s.docType,
+          reason: s.reason,
+        });
+      }
     }
   }
 

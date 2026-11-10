@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AlertTriangle, Download, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Download, ExternalLink, Lock } from 'lucide-react';
 import { Button, Field, Modal, Select } from '@/components/ui';
 import { formatEpfoDate, parseIsoDateKey } from '@/lib/epfo/mappings';
 import type { EpfoExitReasonCode } from '@/lib/epfo/types';
@@ -19,6 +19,7 @@ interface MarkExitDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (exitCodes: Record<string, EpfoExitReasonCode>) => void;
+  onOpenProfile?: (staffId: string) => void;
   members: ExitMemberItem[];
   loading?: boolean;
 }
@@ -27,6 +28,7 @@ export function MarkExitDialog({
   open,
   onClose,
   onConfirm,
+  onOpenProfile,
   members,
   loading = false,
 }: MarkExitDialogProps) {
@@ -38,12 +40,24 @@ export function MarkExitDialog({
     return initial;
   });
 
+  useEffect(() => {
+    const next: Record<string, EpfoExitReasonCode> = {};
+    for (const m of members) {
+      next[m.id] = m.defaultExitCode || 'C';
+    }
+    setExitCodes(next);
+  }, [open, members]);
+
   const handleCodeChange = (staffId: string, code: EpfoExitReasonCode) => {
     setExitCodes((prev) => ({ ...prev, [staffId]: code }));
   };
 
   const handleConfirm = () => {
-    onConfirm(exitCodes);
+    const resolved: Record<string, EpfoExitReasonCode> = {};
+    for (const m of members) {
+      resolved[m.id] = exitCodes[m.id] || m.defaultExitCode || 'C';
+    }
+    onConfirm(resolved);
   };
 
   return (
@@ -95,9 +109,22 @@ export function MarkExitDialog({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs text-subtle">
+                  <div className="flex items-center gap-2 text-xs text-subtle">
                     <span className="font-medium text-text">Last Working Day:</span>
                     <span className="font-mono text-text">{formattedDate}</span>
+                    {onOpenProfile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenProfile(member.id);
+                        }}
+                        className="inline-flex items-center gap-1 text-accent hover:underline"
+                      >
+                        <ExternalLink size={12} />
+                        <span>Profile</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

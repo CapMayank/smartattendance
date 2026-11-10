@@ -54,8 +54,9 @@ function StaffPayrollContent() {
   const [fixInitialTab, setFixInitialTab] = useState<'statutory' | 'kyc'>('statutory')
   const [fixHighlightedFields, setFixHighlightedFields] = useState<string[]>([])
 
-  // EPFO summary counts
+  // EPFO summary counts & refresh trigger
   const [epfoPendingCount, setEpfoPendingCount] = useState(0)
+  const [epfoRefreshTrigger, setEpfoRefreshTrigger] = useState(0)
 
   useEffect(() => {
     fetchStaff()
@@ -152,6 +153,7 @@ function StaffPayrollContent() {
       })
       await fetchStaff()
       await fetchEpfoPendingCount()
+      setEpfoRefreshTrigger((k) => k + 1)
       setSaveSuccess(true)
       setTimeout(() => {
         setEditingStaff(null)
@@ -335,11 +337,24 @@ function StaffPayrollContent() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-subtle">
-                      Loading staff records...
-                    </td>
-                  </tr>
+                  <>
+                    {[...Array(5)].map((_, i) => (
+                      <tr key={i}>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="size-[38px] rounded-xl" />
+                            <Skeleton className="h-4 w-32" />
+                          </div>
+                        </td>
+                        <td><Skeleton className="h-5 w-20" /></td>
+                        <td><Skeleton className="ml-auto h-4 w-20" /></td>
+                        <td><Skeleton className="h-4 w-28" /></td>
+                        <td><Skeleton className="h-4 w-24" /></td>
+                        <td><Skeleton className="h-6 w-20 rounded-full" /></td>
+                        <td><Skeleton className="mx-auto size-8 rounded-full" /></td>
+                      </tr>
+                    ))}
+                  </>
                 ) : filteredStaff.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-subtle">
@@ -450,6 +465,74 @@ function StaffPayrollContent() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards View */}
+          <div className="flex flex-col gap-3 p-4 md:hidden">
+            {loading ? (
+              <>
+                <Skeleton className="h-36 rounded-xl" />
+                <Skeleton className="h-36 rounded-xl" />
+              </>
+            ) : filteredStaff.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No staff members found"
+                hint="Try adjusting your filters or search terms."
+              />
+            ) : (
+              filteredStaff.map((s) => (
+                <div key={s.id} className="flex flex-col gap-4 rounded-xl border border-line bg-canvas p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar name={s.name} src={staffPhotoUrl(s)} />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate font-medium leading-tight text-text">{s.name}</span>
+                        <span className="text-[13px] text-subtle">
+                          {s.employeeCode ? `${s.employeeCode} · ` : ''}{s.department?.name || 'No Dept'}
+                        </span>
+                      </div>
+                    </div>
+                    {s.payrollInfo?.isActiveForPayroll !== false ? (
+                      <span className="tone-present tint-badge inline-flex h-[26px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                        <CheckCircle2 size={13} aria-hidden="true" />
+                        Active
+                      </span>
+                    ) : (
+                      <span className="tone-absent tint-badge inline-flex h-[26px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs">
+                        <XCircle size={13} aria-hidden="true" />
+                        Excluded
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-line-soft bg-ground p-3">
+                      <span className="mb-1 block text-[11px] text-subtle">Monthly Pay / CTC</span>
+                      <span className="num font-medium text-text">{formatINR(s.payrollInfo?.monthlyCtc || 0, { exact: true })}</span>
+                      <span className="mt-0.5 block text-[11px] text-subtle">
+                        Annual: <span className="num">{formatINR((s.payrollInfo?.monthlyCtc || 0) * 12, { exact: true })}</span>
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-line-soft bg-ground p-3">
+                      <span className="mb-1 block text-[11px] text-subtle">Pay Group</span>
+                      <span className="block truncate text-sm text-muted">
+                        {s.payrollInfo?.payGroup === 'CASH' ? 'Cash (No PF)' : s.payrollInfo?.bankAccount || 'Bank / EPF'}
+                      </span>
+                      <span className="num block text-[11px] text-subtle">{s.payrollInfo?.ifsc || ''}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-line-soft pt-3">
+                    <div className="flex flex-col">
+                      <span className="mb-1 text-[11px] text-subtle">UAN</span>
+                      <span className="num text-sm text-muted">{s.payrollInfo?.uan || 'Not Set'}</span>
+                    </div>
+                    <IconButton icon={Edit2} label={`Edit salary settings for ${s.name}`} onClick={() => handleEdit(s)} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </Card>
       )}
 
@@ -457,6 +540,15 @@ function StaffPayrollContent() {
       {activeMainTab === 'epfo' && (
         <EpfoMembersTab
           onFixMember={handleOpenFixProfile}
+          refreshTrigger={epfoRefreshTrigger}
+          onCountsUpdated={(c) => {
+            const pending =
+              (c.NEEDS_REGISTRATION || 0) +
+              (c.AWAITING_UAN || 0) +
+              (c.NEEDS_EXIT || 0) +
+              (c.NEEDS_KYC || 0)
+            setEpfoPendingCount(pending)
+          }}
         />
       )}
 
@@ -473,12 +565,14 @@ function StaffPayrollContent() {
             fetchStaff()
             fetchEpfoPendingCount()
             fetchMeta()
+            setEpfoRefreshTrigger((k) => k + 1)
           }}
           onDeleted={() => {
             setFixModalOpen(false)
             setFixStaff(null)
             fetchStaff()
             fetchEpfoPendingCount()
+            setEpfoRefreshTrigger((k) => k + 1)
           }}
           depts={depts}
           desigs={desigs}
@@ -556,16 +650,62 @@ function StaffPayrollContent() {
                 </Field>
               </div>
 
+              {!isCashEdit && (
+                <Field
+                  label="EPS Contribution Scheme"
+                  htmlFor="payroll-higher-pension"
+                  helper="Standard: 8.33% capped at statutory ceiling (0% surcharge). Higher: uncapped + 1.16% surcharge on excess."
+                >
+                  <Select
+                    id="payroll-higher-pension"
+                    value={editForm.isHigherPensionOpted ? 'YES' : 'NO'}
+                    onChange={(e) => setEditForm({ ...editForm, isHigherPensionOpted: e.target.value === 'YES' })}
+                  >
+                    <option value="NO">Standard Member (Capped at statutory ceiling, 0% surcharge)</option>
+                    <option value="YES">Higher Pension Optee (POHW, 1.16% surcharge)</option>
+                  </Select>
+                </Field>
+              )}
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!editForm.isActiveForPayroll}
+                className="flex w-full items-center gap-3 rounded-xl border border-line bg-ground p-3.5 text-left transition-colors duration-150 hover:border-subtle"
+                onClick={() => setEditForm({ ...editForm, isActiveForPayroll: !editForm.isActiveForPayroll })}
+              >
+                <span
+                  className={cn(
+                    'grid size-5 flex-none place-items-center rounded transition-colors duration-150',
+                    editForm.isActiveForPayroll
+                      ? 'bg-acc-1 text-ground'
+                      : 'border border-line bg-card-hi text-transparent'
+                  )}
+                >
+                  <CheckCircle2 size={13} aria-hidden="true" />
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-xs font-medium text-text">Active for Payroll</span>
+                  <span className="text-[11px] text-subtle">Include this staff in monthly generation</span>
+                </span>
+              </button>
+
               <div className="rounded-xl border border-line-soft bg-canvas p-3.5 text-xs space-y-1.5">
                 <div className="flex justify-between text-subtle">
                   <span>Calculated Basic Wage (1.12x divisor):</span>
                   <span className="num font-medium text-text">{formatINR(estGross)}</span>
                 </div>
                 {!isCashEdit && (
-                  <div className="flex justify-between text-subtle">
-                    <span>Employee EPF (12% of Basic):</span>
-                    <span className="num font-medium text-absent">-{formatINR(empPf)}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-subtle">
+                      <span>Employee EPF (12% of Basic):</span>
+                      <span className="num font-medium text-absent">-{formatINR(empPf)}</span>
+                    </div>
+                    <div className="flex justify-between text-subtle">
+                      <span>Employer Share (12% of Basic):</span>
+                      <span className="num font-medium text-subtle">{formatINR(empPf)}</span>
+                    </div>
+                  </>
                 )}
                 <div className="flex justify-between border-t border-line-soft pt-1 font-semibold text-text">
                   <span>Estimated Net Take-home:</span>

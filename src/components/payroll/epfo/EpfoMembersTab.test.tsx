@@ -150,12 +150,32 @@ describe('EPFO Members UI Components', () => {
       expect(html).toContain('Priya Sharma');
       expect(html).toContain('SAR-2026-001');
       expect(html).toContain('2 missing');
+      expect(html).toContain('Date of birth is required');
+      expect(html).toContain('Aadhaar must be a 12-digit number');
       expect(html).toContain('Fix');
 
       expect(html).toContain('Mark as already filed');
     });
 
-    it('renders inline UAN input when viewing Awaiting UAN members', () => {
+    it('renders Register (link) when a NEEDS_REGISTRATION member already has a UAN', () => {
+      const dataWithExistingUan = {
+        ...mockInitialData,
+        members: [
+          {
+            ...mockInitialData.members[0],
+            name: 'Ramesh Kumar',
+            payrollInfo: { payGroup: 'BANK_EPF', uan: '100234567890' },
+            readiness: { ready: true, errors: [] },
+          },
+        ],
+      };
+      const html = renderToStaticMarkup(
+        <EpfoMembersTab initialData={dataWithExistingUan} onFixMember={vi.fn()} />
+      );
+      expect(html).toContain('Register (link)');
+    });
+
+    it('renders inline UAN input, em-dash readiness, and Reset to pending when viewing Awaiting UAN members', () => {
       const html = renderToStaticMarkup(
         <EpfoMembersTab
           initialData={mockInitialData}
@@ -167,6 +187,7 @@ describe('EPFO Members UI Components', () => {
       expect(html).toContain('Anil Verma');
       expect(html).toContain('placeholder="Enter 12-digit UAN"');
       expect(html).toContain('Save UAN');
+      expect(html).toContain('Reset to pending');
     });
 
     it('renders undo banner when activeUndo is set', () => {
