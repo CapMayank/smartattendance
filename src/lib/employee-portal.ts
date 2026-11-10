@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { istDateKey, istDayStart } from "@/lib/dashboard-calc";
 import type { MonthlyPayrollWithDetails } from "@/lib/payslip-pdf";
+import { validateForRegistration } from "@/lib/epfo/validation";
 
 export type EmployeePortalData = {
   profile: {
@@ -15,6 +16,12 @@ export type EmployeePortalData = {
     shift: { name: string; startTime: string; endTime: string } | null;
     payGroup: "BANK_EPF" | "CASH";
     email: string | null;
+    epfoReadiness?: {
+      isBankEpf: boolean;
+      ready: boolean;
+      missingFields: string[];
+      hasPendingRequest: boolean;
+    };
   };
   today: {
     dateKey: string;
@@ -71,7 +78,16 @@ export async function getEmployeePortalData(
       designation: true,
       shift: true,
       user: { select: { email: true } },
-      payrollInfo: { select: { payGroup: true } },
+      payrollInfo: {
+        include: {
+          payGroupChanges: true,
+        },
+      },
+      employmentPeriods: {
+        orderBy: {
+          startDate: "desc",
+        },
+      },
     },
   });
 
@@ -87,7 +103,7 @@ export async function getEmployeePortalData(
   const dayStart = istDayStart(now);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
-  const [todayPunches, monthDailyRecords, payslips] = await Promise.all([
+  const [todayPunches, monthDailyRecords, payslips, pendingRequest] = await Promise.all([
     prisma.attendanceLog.findMany({
       where: {
         staffId,
@@ -115,6 +131,13 @@ export async function getEmployeePortalData(
       },
       orderBy: [{ year: "desc" }, { month: "desc" }],
       take: 12,
+    }),
+    prisma.profileChangeRequest.findFirst({
+      where: {
+        staffId,
+        status: "PENDING",
+      },
+      select: { id: true },
     }),
   ]);
 
@@ -154,6 +177,23 @@ export async function getEmployeePortalData(
     totalWorkMinutes += r.workMinutes;
   }
 
+  const isBankEpf = (staff.payrollInfo?.payGroup ?? "BANK_EPF") === "BANK_EPF";
+  let ready = true;
+  let missingFields: string[] = [];
+
+  if (isBankEpf) {
+    const res = validateForRegistration(staff as any);
+    ready = res.ready;
+    missingFields = res.errors.map((e) => e.message);
+  }
+
+  const epfoReadiness = {
+    isBankEpf,
+    ready,
+    missingFields,
+    hasPendingRequest: Boolean(pendingRequest),
+  };
+
   return {
     profile: {
       id: staff.id,
@@ -173,6 +213,7 @@ export async function getEmployeePortalData(
         : null,
       payGroup: (staff.payrollInfo?.payGroup as "BANK_EPF" | "CASH") ?? "BANK_EPF",
       email: staff.user?.email ?? null,
+      epfoReadiness,
     },
     today: {
       dateKey: todayKey,

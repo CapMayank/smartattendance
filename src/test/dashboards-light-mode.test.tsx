@@ -107,6 +107,79 @@ describe("Dashboards in Light Theme", () => {
     expect(html).toContain("My Payslips");
   });
 
+  it("renders mandatory KYC and EPFO completion banner when employee is BANK_EPF and compliance details are incomplete", () => {
+    const dataWithMissingKyc: EmployeePortalData = {
+      ...mockPortalData,
+      profile: {
+        ...mockPortalData.profile,
+        epfoReadiness: {
+          isBankEpf: true,
+          ready: false,
+          missingFields: ["Aadhaar number is required for EPFO compliance"],
+          hasPendingRequest: false,
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="light">
+        <EmployeeMyDashboard title="Good morning, Sunita" subtitle="Monday, 9 Nov" data={dataWithMissingKyc} />
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain("Action Required: Complete Mandatory KYC &amp; EPFO Details");
+    expect(html).toContain("Complete KYC &amp; EPFO Details");
+  });
+
+  it("renders pending review banner when employee has already submitted KYC updates", () => {
+    const dataWithPendingRequest: EmployeePortalData = {
+      ...mockPortalData,
+      profile: {
+        ...mockPortalData.profile,
+        epfoReadiness: {
+          isBankEpf: true,
+          ready: false,
+          missingFields: ["Aadhaar number is required for EPFO compliance"],
+          hasPendingRequest: true,
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="light">
+        <EmployeeMyDashboard title="Good morning, Sunita" subtitle="Monday, 9 Nov" data={dataWithPendingRequest} />
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain("EPFO &amp; KYC Update Pending Admin Review");
+    expect(html).not.toContain("Complete KYC &amp; EPFO Details");
+  });
+
+  it("does not render KYC alert banner when employee is CASH pay group or ready", () => {
+    const cashData: EmployeePortalData = {
+      ...mockPortalData,
+      profile: {
+        ...mockPortalData.profile,
+        payGroup: "CASH",
+        epfoReadiness: {
+          isBankEpf: false,
+          ready: true,
+          missingFields: [],
+          hasPendingRequest: false,
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="light">
+        <EmployeeMyDashboard title="Good morning, Sunita" subtitle="Monday, 9 Nov" data={cashData} />
+      </ThemeProvider>,
+    );
+
+    expect(html).not.toContain("Action Required: Complete Mandatory KYC &amp; EPFO Details");
+    expect(html).not.toContain("EPFO &amp; KYC Update Pending Admin Review");
+  });
+
   it("renders Admin Dashboard components (StaffToday, DepartmentTurnout, AttentionList) in light mode", () => {
     const staffRows = [
       {
