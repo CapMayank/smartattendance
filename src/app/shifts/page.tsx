@@ -457,7 +457,7 @@ export default function ShiftsPage() {
         }
       >
         {review && (
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto text-[13px]">
+          <div className="space-y-3 text-[13px]">
             <p className="text-muted">
               Starts on <span className="num text-text">{formatDate(review.startDate)}</span> with{' '}
               <span className="num text-text">{formatHHmm(review.suggestion.suggestedStart)}–{formatHHmm(review.suggestion.suggestedEnd)}</span>.

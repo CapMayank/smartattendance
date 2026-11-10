@@ -256,7 +256,7 @@ export default function ManualPunchPage() {
                 />
               </div>
 
-              <div className="h-72 overflow-y-auto rounded-[10px] border border-line bg-ground p-2">
+              <div className="h-72 overflow-y-auto overscroll-contain rounded-[10px] border border-line bg-ground p-2">
                 {filteredStaff.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-sm text-subtle">
                     No staff found

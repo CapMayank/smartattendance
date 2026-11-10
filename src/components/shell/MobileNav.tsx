@@ -49,7 +49,7 @@ export function MobileNav({
           if (e.target === dialogRef.current) dialogRef.current?.close();
         }}
         onClose={() => wrapRef.current?.querySelector<HTMLButtonElement>("button[aria-haspopup]")?.focus()}
-        className="m-0 h-dvh max-h-none w-[280px] max-w-[85vw] border-r border-line bg-ground p-4 text-text backdrop:bg-ground/80 min-[981px]:hidden"
+        className="m-0 h-dvh max-h-none w-[280px] max-w-[85vw] overflow-hidden border-r border-line bg-ground p-4 text-text backdrop:bg-ground/80 min-[981px]:hidden"
       >
         <Sidebar shell={shell} pendingPunchRequestsCount={pendingPunchRequestsCount} />
       </dialog>

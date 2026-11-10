@@ -122,7 +122,7 @@ export function Sidebar({
         </Link>
       )}
 
-      <nav aria-label="Main navigation" className="flex min-h-0 flex-col gap-0.5 overflow-y-auto">
+      <nav aria-label="Main navigation" className="flex min-h-0 flex-col gap-0.5 overflow-y-auto overscroll-contain">
         {navGroups.map((g) => (
           <div key={g.group} className="flex flex-col gap-0.5">
             <div className="px-3 pt-3.5 pb-1.5 text-[11px] tracking-[0.08em] text-subtle uppercase first:pt-0.5">

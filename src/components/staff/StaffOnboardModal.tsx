@@ -345,7 +345,7 @@ export function StaffOnboardModal({
               </div>
 
               {filteredExitedList.length > 0 ? (
-                <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-xl border border-line bg-card p-1.5">
+                <div className="max-h-48 space-y-1.5 overflow-y-auto overscroll-contain rounded-xl border border-line bg-card p-1.5">
                   {filteredExitedList.map((s) => {
                     const isSelected = s.id === selectedExitedStaffId
                     return (

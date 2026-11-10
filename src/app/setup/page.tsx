@@ -543,7 +543,7 @@ export default function SetupPage() {
                 <div className="mb-2 text-xs font-medium text-text">
                   Existing Imported Staff ({existingStaff.length} found)
                 </div>
-                <div className="max-h-40 overflow-y-auto space-y-1 text-xs text-muted">
+                <div className="max-h-40 overflow-y-auto overscroll-contain space-y-1 text-xs text-muted">
                   {existingStaff.slice(0, 8).map((s) => (
                     <div key={s.id} className="flex justify-between py-1 border-b border-line-soft/40">
                       <span>Machine #{s.machineId} • {s.name}</span>
@@ -668,7 +668,7 @@ export default function SetupPage() {
                     <Download size={12} className="mr-1" /> Download CSV
                   </Button>
                 </div>
-                <div className="max-h-48 overflow-y-auto space-y-1.5 text-xs text-muted">
+                <div className="max-h-48 overflow-y-auto overscroll-contain space-y-1.5 text-xs text-muted">
                   {generatedCredentials.slice(0, 5).map((c, idx) => (
                     <div key={idx} className="flex justify-between py-1 border-b border-line-soft/40">
                       <span>{c.name} ({c.employeeCode})</span>

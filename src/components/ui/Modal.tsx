@@ -62,6 +62,16 @@ export function Modal({
     }
   }, [open]);
 
+  // Prevent background body scroll when modal is active
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
+
   const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.md;
 
   return (
@@ -86,9 +96,9 @@ export function Modal({
         downOnBackdrop.current = false;
         upOnBackdrop.current = false;
       }}
-      className={`ui-dialog m-auto ${sizeClass} rounded-2xl border border-line bg-card p-0 text-text shadow-overlay transition-all`}
+      className={`ui-dialog m-auto flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)] ${sizeClass} rounded-2xl border border-line bg-card p-0 text-text shadow-overlay transition-all`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-line-soft px-6 py-4.5">
+      <div className="flex flex-none items-center justify-between gap-3 border-b border-line-soft px-6 py-4.5">
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="text-[17px] font-semibold tracking-tight text-text">
             {title}
@@ -102,9 +112,9 @@ export function Modal({
           <IconButton icon={X} label="Close" className="size-8" onClick={() => ref.current?.close()} />
         </div>
       </div>
-      <div ref={bodyRef} className={`overflow-y-auto px-6 py-5 ${maxHeight}`}>{children}</div>
+      <div ref={bodyRef} className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-5 ${maxHeight}`}>{children}</div>
       {footer ? (
-        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-line-soft px-6 py-4">{footer}</div>
+        <div className="flex flex-none flex-wrap items-center justify-end gap-2.5 border-t border-line-soft px-6 py-4">{footer}</div>
       ) : null}
     </dialog>
   );

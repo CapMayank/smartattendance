@@ -773,7 +773,7 @@ export default function StaffPage() {
           </div>
 
           {issuedCredentials && (
-            <div className="max-h-[50vh] space-y-2.5 overflow-y-auto">
+            <div className="space-y-2.5">
               {issuedCredentials.map((cred, idx) => (
                 <div
                   key={`${cred.employeeCode}-${idx}`}

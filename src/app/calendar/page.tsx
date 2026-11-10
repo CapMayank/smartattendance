@@ -528,7 +528,7 @@ export default function CalendarPage() {
                 </button>
               </div>
             ) : (
-              <div className="divide-y divide-line-soft max-h-[380px] overflow-y-auto pr-1">
+              <div className="divide-y divide-line-soft max-h-[380px] overflow-y-auto overscroll-contain pr-1">
                 {holidaysInThisMonth.map((h) => {
                   const d = new Date(h.date)
                   return (

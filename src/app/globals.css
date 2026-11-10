@@ -318,6 +318,13 @@ input[type="number"] {
     }
   }
 
+  .ui-dialog {
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: calc(100dvh - 2.5rem) !important;
+  }
+
   html.dark .ui-dialog::backdrop {
     background: rgba(0, 0, 0, 0.75);
     backdrop-filter: blur(8px);

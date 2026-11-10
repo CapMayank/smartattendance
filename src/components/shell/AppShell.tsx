@@ -18,7 +18,7 @@ export function AppShell({ shell, children }: { shell: ShellData | null; childre
 
   return (
     <div className="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] gap-5 p-5 max-[980px]:grid-cols-1 max-[600px]:p-4 print:block print:p-0">
-      <aside className="sticky top-5 h-[calc(100vh-40px)] min-h-[640px] max-[980px]:hidden print:hidden">
+      <aside className="sticky top-5 h-[calc(100vh-40px)] min-h-0 max-[980px]:hidden print:hidden">
         <Sidebar shell={shell} />
       </aside>
       <div className="flex min-w-0 flex-col gap-4">
