@@ -8,6 +8,8 @@ import { sanitizeEpfoName } from "@/lib/epfo/mappings";
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const AADHAAR_REGEX = /^[2-9]\d{11}$/;
+const UAN_REGEX = /^\d{12}$/;
+const BANK_ACC_REGEX = /^\d{9,18}$/;
 const MOBILE_REGEX = /^\d{10}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -91,6 +93,26 @@ export async function POST(req: Request) {
       if (!AADHAAR_REGEX.test(cleanRequestedData.aadhaar)) {
         return NextResponse.json(
           { error: "Invalid Aadhaar format: Must be exactly 12 digits and cannot start with 0 or 1" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate UAN
+    if (cleanRequestedData.uan) {
+      if (!UAN_REGEX.test(cleanRequestedData.uan)) {
+        return NextResponse.json(
+          { error: "Invalid UAN format: Must be exactly 12 digits" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate Bank Account
+    if (cleanRequestedData.bankAccount) {
+      if (!BANK_ACC_REGEX.test(cleanRequestedData.bankAccount)) {
+        return NextResponse.json(
+          { error: "Invalid bank account format: Must be between 9 and 18 digits" },
           { status: 400 }
         );
       }

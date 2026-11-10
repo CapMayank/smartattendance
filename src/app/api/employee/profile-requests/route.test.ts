@@ -214,6 +214,32 @@ describe("Employee Profile & Profile Requests API", () => {
       expect(data.error).toContain("Relationship");
     });
 
+    it("returns 400 on invalid UAN or bank account format", async () => {
+      sessionMock.mockResolvedValueOnce({
+        user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },
+      } as any);
+      const req1 = new Request("http://localhost/api/employee/profile-requests", {
+        method: "POST",
+        body: JSON.stringify({ requestedData: { uan: "12345" } }),
+      });
+      const res1 = await postProfileRequest(req1);
+      expect(res1.status).toBe(400);
+      const data1 = await res1.json();
+      expect(data1.error).toContain("UAN");
+
+      sessionMock.mockResolvedValueOnce({
+        user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },
+      } as any);
+      const req2 = new Request("http://localhost/api/employee/profile-requests", {
+        method: "POST",
+        body: JSON.stringify({ requestedData: { bankAccount: "1234" } }),
+      });
+      const res2 = await postProfileRequest(req2);
+      expect(res2.status).toBe(400);
+      const data2 = await res2.json();
+      expect(data2.error).toContain("bank account");
+    });
+
     it("creates a pending ProfileChangeRequest on valid data including EPFO fields", async () => {
       sessionMock.mockResolvedValueOnce({
         user: { id: "u1", role: "EMPLOYEE", staffId: "s1" },

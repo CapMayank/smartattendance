@@ -112,6 +112,35 @@ describe("Dashboards in Light Theme", () => {
       ...mockPortalData,
       profile: {
         ...mockPortalData.profile,
+        kycDetails: {
+          mobileNumber: "9876543210",
+          dob: "1992-05-10",
+          gender: "Female",
+          maritalStatus: "Married",
+          fatherHusbandName: "Rajesh Patel",
+          relationship: "Husband",
+          nationality: "INDIAN",
+          qualification: "Post Graduate",
+          bankAccount: "1234567890",
+          ifsc: "SBIN0001234",
+          nameAsPerBank: "SUNITA PATEL",
+          pan: "ABCDE1234F",
+          nameOnPan: "SUNITA PATEL",
+          aadhaar: null,
+          nameOnAadhaar: null,
+          uan: "100123456789",
+          nameOnUan: "SUNITA PATEL",
+          previousMemberId: null,
+          isInternationalWorker: "N",
+          countryOfOrigin: "INDIA",
+          passportNumber: null,
+          passportValidFrom: null,
+          passportValidTill: null,
+          isPhysicalHandicap: "N",
+          locomotive: "N",
+          hearing: "N",
+          visual: "N",
+        },
         epfoReadiness: {
           isBankEpf: true,
           ready: false,
@@ -128,7 +157,12 @@ describe("Dashboards in Light Theme", () => {
     );
 
     expect(html).toContain("Action Required: Complete Mandatory KYC &amp; EPFO Details");
+    expect(html).toContain("Missing / Incomplete: Aadhaar number is required for EPFO compliance");
     expect(html).toContain("Complete KYC &amp; EPFO Details");
+    expect(html).toContain("My Statutory, KYC &amp; Banking Details");
+    expect(html).toContain("100123456789");
+    expect(html).toContain("ABCDE1234F");
+    expect(html).toContain("Rajesh Patel (Husband)");
   });
 
   it("renders pending review banner when employee has already submitted KYC updates", () => {

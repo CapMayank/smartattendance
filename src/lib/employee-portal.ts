@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { istDateKey, istDayStart } from "@/lib/dashboard-calc";
 import type { MonthlyPayrollWithDetails } from "@/lib/payslip-pdf";
-import { validateForRegistration } from "@/lib/epfo/validation";
+import { evaluateEmployeeKycAndEpfoReadiness } from "@/lib/epfo/validation";
 
 export type EmployeePortalData = {
   profile: {
@@ -16,6 +16,35 @@ export type EmployeePortalData = {
     shift: { name: string; startTime: string; endTime: string } | null;
     payGroup: "BANK_EPF" | "CASH";
     email: string | null;
+    kycDetails?: {
+      mobileNumber: string | null;
+      dob: string | null;
+      gender: string | null;
+      maritalStatus: string | null;
+      fatherHusbandName: string | null;
+      relationship: string | null;
+      nationality: string | null;
+      qualification: string | null;
+      bankAccount: string | null;
+      ifsc: string | null;
+      nameAsPerBank: string | null;
+      pan: string | null;
+      nameOnPan: string | null;
+      aadhaar: string | null;
+      nameOnAadhaar: string | null;
+      uan: string | null;
+      nameOnUan: string | null;
+      previousMemberId: string | null;
+      isInternationalWorker: string | null;
+      countryOfOrigin: string | null;
+      passportNumber: string | null;
+      passportValidFrom: string | null;
+      passportValidTill: string | null;
+      isPhysicalHandicap: string | null;
+      locomotive: string | null;
+      hearing: string | null;
+      visual: string | null;
+    };
     epfoReadiness?: {
       isBankEpf: boolean;
       ready: boolean;
@@ -179,12 +208,13 @@ export async function getEmployeePortalData(
     totalWorkMinutes += r.workMinutes;
   }
 
-  const isBankEpf = (staff.payrollInfo?.payGroup ?? "BANK_EPF") === "BANK_EPF";
+  const info = staff.payrollInfo as Record<string, any> | null | undefined;
+  const isBankEpf = (info?.payGroup ?? "BANK_EPF") === "BANK_EPF";
   let ready = true;
   let missingFields: string[] = [];
 
   if (isBankEpf) {
-    const res = validateForRegistration(staff as any);
+    const res = evaluateEmployeeKycAndEpfoReadiness(staff as any);
     ready = res.ready;
     missingFields = res.errors.map((e) => e.message);
   }
@@ -194,6 +224,42 @@ export async function getEmployeePortalData(
     ready,
     missingFields,
     hasPendingRequest: Boolean(pendingRequest),
+  };
+
+  const toDateStr = (val: unknown): string | null => {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val.toISOString().slice(0, 10);
+    return String(val).slice(0, 10);
+  };
+
+  const kycDetails = {
+    mobileNumber: info?.mobileNumber ?? null,
+    dob: toDateStr(info?.dob),
+    gender: info?.gender ?? null,
+    maritalStatus: info?.maritalStatus ?? null,
+    fatherHusbandName: info?.fatherHusbandName ?? null,
+    relationship: info?.relationship ?? null,
+    nationality: info?.nationality ?? "INDIAN",
+    qualification: info?.qualification ?? null,
+    bankAccount: info?.bankAccount ?? null,
+    ifsc: info?.ifsc ?? null,
+    nameAsPerBank: info?.nameAsPerBank ?? null,
+    pan: info?.pan ?? null,
+    nameOnPan: info?.nameOnPan ?? null,
+    aadhaar: info?.aadhaar ?? null,
+    nameOnAadhaar: info?.nameOnAadhaar ?? null,
+    uan: info?.uan ?? null,
+    nameOnUan: info?.nameOnUan ?? null,
+    previousMemberId: info?.previousMemberId ?? null,
+    isInternationalWorker: info?.isInternationalWorker ?? "N",
+    countryOfOrigin: info?.countryOfOrigin ?? "INDIA",
+    passportNumber: info?.passportNumber ?? null,
+    passportValidFrom: toDateStr(info?.passportValidFrom),
+    passportValidTill: toDateStr(info?.passportValidTill),
+    isPhysicalHandicap: info?.isPhysicalHandicap ?? "N",
+    locomotive: info?.locomotive ?? "N",
+    hearing: info?.hearing ?? "N",
+    visual: info?.visual ?? "N",
   };
 
   return {
@@ -213,8 +279,9 @@ export async function getEmployeePortalData(
             endTime: staff.shift.endTime,
           }
         : null,
-      payGroup: (staff.payrollInfo?.payGroup as "BANK_EPF" | "CASH") ?? "BANK_EPF",
+      payGroup: (info?.payGroup as "BANK_EPF" | "CASH") ?? "BANK_EPF",
       email: staff.user?.email ?? null,
+      kycDetails,
       epfoReadiness,
     },
     today: {

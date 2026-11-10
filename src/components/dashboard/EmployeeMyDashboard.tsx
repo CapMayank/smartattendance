@@ -92,6 +92,11 @@ export function EmployeeMyDashboard({
                 <p className="text-xs opacity-90">
                   Statutory compliance requires all employees on EPF payroll to submit complete Aadhaar, PAN, Bank account, Father/Husband details, and EPFO registration fields.
                 </p>
+                {profile.epfoReadiness.missingFields.length > 0 && (
+                  <p className="mt-1.5 text-[11.5px] font-medium">
+                    Missing / Incomplete: {profile.epfoReadiness.missingFields.join(" · ")}
+                  </p>
+                )}
               </div>
             </div>
             <Button
@@ -182,6 +187,82 @@ export function EmployeeMyDashboard({
               <p className="mt-1 truncate text-[13.5px] font-medium text-text">{profile.email || "Use Employee ID"}</p>
             </div>
           </div>
+
+          {profile.kycDetails && (
+            <details
+              className="group mt-3.5 rounded-xl border border-line-soft bg-canvas p-3.5"
+              open={Boolean(profile.epfoReadiness?.isBankEpf && !profile.epfoReadiness.ready)}
+            >
+              <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold text-text">
+                <span>My Statutory, KYC &amp; Banking Details</span>
+                <span className="text-muted transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-2.5 border-t border-line-soft pt-3 text-xs sm:grid-cols-3">
+                <div>
+                  <span className="text-[11px] text-subtle">UAN</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.uan || "Not Linked"}</p>
+                  {profile.kycDetails.nameOnUan && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameOnUan}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Aadhaar Number</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.aadhaar || "Not Provided"}</p>
+                  {profile.kycDetails.nameOnAadhaar && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameOnAadhaar}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">PAN Number</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.pan || "Not Provided"}</p>
+                  {profile.kycDetails.nameOnPan && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameOnPan}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Bank Account &amp; IFSC</span>
+                  <p className="num font-medium text-text">
+                    {profile.kycDetails.bankAccount
+                      ? `${profile.kycDetails.bankAccount} (${profile.kycDetails.ifsc || "No IFSC"})`
+                      : "Not Provided"}
+                  </p>
+                  {profile.kycDetails.nameAsPerBank && (
+                    <p className="truncate text-[10.5px] text-muted">{profile.kycDetails.nameAsPerBank}</p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Father / Husband</span>
+                  <p className="font-medium text-text">
+                    {profile.kycDetails.fatherHusbandName
+                      ? `${profile.kycDetails.fatherHusbandName}${profile.kycDetails.relationship ? ` (${profile.kycDetails.relationship})` : ""}`
+                      : "Not Provided"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Marital Status &amp; Gender</span>
+                  <p className="font-medium text-text">
+                    {[profile.kycDetails.maritalStatus, profile.kycDetails.gender].filter(Boolean).join(" · ") || "Not Provided"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Date of Birth &amp; Mobile</span>
+                  <p className="num font-medium text-text">
+                    {[profile.kycDetails.dob, profile.kycDetails.mobileNumber].filter(Boolean).join(" · ") || "Not Provided"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Qualification &amp; Nationality</span>
+                  <p className="font-medium text-text">
+                    {[profile.kycDetails.qualification, profile.kycDetails.nationality].filter(Boolean).join(" · ") || "INDIAN"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-subtle">Previous Member ID</span>
+                  <p className="num font-medium text-text">{profile.kycDetails.previousMemberId || "—"}</p>
+                </div>
+              </div>
+            </details>
+          )}
         </Card>
 
         <Card className="min-[1024px]:col-span-5">

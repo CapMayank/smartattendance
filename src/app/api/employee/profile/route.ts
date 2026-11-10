@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { validateForRegistration } from "@/lib/epfo/validation";
+import { evaluateEmployeeKycAndEpfoReadiness } from "@/lib/epfo/validation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -45,13 +45,15 @@ export async function GET() {
     );
   }
 
-  const pendingRequest = await prisma.profileChangeRequest.findFirst({
-    where: {
-      staffId,
-      status: "PENDING",
-    },
-    select: { id: true },
-  });
+  const pendingRequest = prisma.profileChangeRequest?.findFirst
+    ? await prisma.profileChangeRequest.findFirst({
+        where: {
+          staffId,
+          status: "PENDING",
+        },
+        select: { id: true },
+      })
+    : null;
 
   const info = staff.payrollInfo;
   const isBankEpf = (info?.payGroup || "BANK_EPF") === "BANK_EPF";
@@ -59,7 +61,7 @@ export async function GET() {
   let missingFields: string[] = [];
 
   if (isBankEpf) {
-    const res = validateForRegistration(staff as any);
+    const res = evaluateEmployeeKycAndEpfoReadiness(staff as any);
     ready = res.ready;
     missingFields = res.errors.map((e) => e.message);
   }

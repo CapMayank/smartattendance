@@ -222,6 +222,16 @@ export function RequestProfileEditModal({
       return;
     }
 
+    if (edits.uan && !/^\d{12}$/.test(edits.uan.trim())) {
+      toast.error("Invalid UAN format. Must be exactly 12 digits.");
+      return;
+    }
+
+    if (edits.bankAccount && !/^\d{9,18}$/.test(edits.bankAccount.trim())) {
+      toast.error("Invalid bank account number. Must be between 9 and 18 digits.");
+      return;
+    }
+
     if (edits.relationship && !["Father", "Husband", "F", "H"].includes(edits.relationship.trim())) {
       toast.error("Invalid Relationship. Must be Father or Husband.");
       return;
@@ -861,6 +871,11 @@ export function RequestProfileEditModal({
                       placeholder={currentProfile?.countryOfOrigin || "INDIA"}
                     />
                   </Field>
+                  {currentProfile?.countryOfOrigin && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="font-medium text-text">{currentProfile.countryOfOrigin}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -872,6 +887,27 @@ export function RequestProfileEditModal({
                       placeholder={currentProfile?.passportNumber || "Passport number"}
                     />
                   </Field>
+                  {currentProfile?.passportNumber && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="num font-medium text-text">{currentProfile.passportNumber}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Field label="Passport Valid From" htmlFor="req-passport-from">
+                    <Input
+                      id="req-passport-from"
+                      type="date"
+                      value={edits.passportValidFrom}
+                      onChange={(e) => setEdits({ ...edits, passportValidFrom: e.target.value })}
+                    />
+                  </Field>
+                  {currentProfile?.passportValidFrom && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="num font-medium text-text">{currentProfile.passportValidFrom}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -883,6 +919,11 @@ export function RequestProfileEditModal({
                       onChange={(e) => setEdits({ ...edits, passportValidTill: e.target.value })}
                     />
                   </Field>
+                  {currentProfile?.passportValidTill && (
+                    <p className="mt-1 text-[11px] text-muted">
+                      Current: <span className="num font-medium text-text">{currentProfile.passportValidTill}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -899,7 +940,8 @@ export function RequestProfileEditModal({
                   </Field>
                 </div>
 
-                {edits.isPhysicalHandicap === "Y" && (
+                {(edits.isPhysicalHandicap === "Y" ||
+                  (edits.isPhysicalHandicap === "" && currentProfile?.isPhysicalHandicap === "Y")) && (
                   <div className="grid grid-cols-3 gap-2 sm:col-span-2">
                     <Field label="Locomotive" htmlFor="req-locomotive">
                       <Select
@@ -907,6 +949,7 @@ export function RequestProfileEditModal({
                         value={edits.locomotive}
                         onChange={(e) => setEdits({ ...edits, locomotive: e.target.value })}
                       >
+                        <option value="">Leave unchanged ({currentProfile?.locomotive || "N"})</option>
                         <option value="N">No</option>
                         <option value="Y">Yes</option>
                       </Select>
@@ -917,6 +960,7 @@ export function RequestProfileEditModal({
                         value={edits.hearing}
                         onChange={(e) => setEdits({ ...edits, hearing: e.target.value })}
                       >
+                        <option value="">Leave unchanged ({currentProfile?.hearing || "N"})</option>
                         <option value="N">No</option>
                         <option value="Y">Yes</option>
                       </Select>
@@ -927,6 +971,7 @@ export function RequestProfileEditModal({
                         value={edits.visual}
                         onChange={(e) => setEdits({ ...edits, visual: e.target.value })}
                       >
+                        <option value="">Leave unchanged ({currentProfile?.visual || "N"})</option>
                         <option value="N">No</option>
                         <option value="Y">Yes</option>
                       </Select>

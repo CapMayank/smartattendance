@@ -46,6 +46,8 @@ describe("RequestProfileEditModal Component", () => {
     expect(html).toContain("Name on UAN");
     expect(html).toContain("Previous EPFO Member ID");
     expect(html).toContain("International Worker &amp; Disability Details");
+    expect(html).toContain("Passport Valid From");
+    expect(html).toContain("Passport Valid Till");
   });
 
   it("renders Marital Status, Relationship, and Nationality fields on personal tab", () => {
