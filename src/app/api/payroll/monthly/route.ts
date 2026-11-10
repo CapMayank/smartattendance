@@ -145,12 +145,15 @@ export async function GET(request: Request) {
 
         const monthlyCtc = staff.payrollInfo?.monthlyCtc || 0;
         const payGroup = (staff.payrollInfo?.payGroup as PayGroup) || "BANK_EPF";
+        const targetMonthYear = `${year}-${String(month).padStart(2, '0')}`;
         const calc = calculateStaffPayroll({
           payGroup,
           monthlyCtc,
           presentDays,
           totalDays,
           refundOfAdvance: 0,
+          targetMonthYear,
+          isHigherPensionOpted: !!staff.payrollInfo?.isHigherPensionOpted,
         });
         if (!calc) return null;
 
@@ -240,12 +243,17 @@ export async function POST(request: Request) {
       } = p;
 
       // Check if the payroll is locked before updating
-      const existing = await prisma.monthlyPayroll.findUnique({ where: { id } });
+      const existing = await prisma.monthlyPayroll.findUnique({
+        where: { id },
+        include: { staff: { include: { payrollInfo: true } } },
+      });
       if (existing?.isLocked) {
         return null; // Skip updating locked payrolls
       }
       
       const payGroup = (p.payGroup || existing?.payGroup || "BANK_EPF") as PayGroup;
+      const targetMonthYear = existing ? `${existing.year}-${String(existing.month).padStart(2, '0')}` : undefined;
+      const isHigherPensionOpted = !!existing?.staff?.payrollInfo?.isHigherPensionOpted;
       const calc = calculateStaffPayroll({
         payGroup,
         monthlyCtc,
@@ -256,6 +264,8 @@ export async function POST(request: Request) {
         bonusDays,
         bonusType,
         isBonusPfApplicable,
+        targetMonthYear,
+        isHigherPensionOpted,
       });
 
       if (calc) {

@@ -48,6 +48,7 @@ export default function StaffPayrollPage() {
       pan: s.payrollInfo?.pan || '',
       aadhaar: s.payrollInfo?.aadhaar || '',
       nameAsPerBank: s.payrollInfo?.nameAsPerBank || '',
+      isHigherPensionOpted: !!s.payrollInfo?.isHigherPensionOpted,
       isActiveForPayroll: s.payrollInfo?.isActiveForPayroll !== false
     })
   }
@@ -417,6 +418,23 @@ export default function StaffPayrollPage() {
                   </div>
                 </Field>
               </div>
+
+              {!isCashEdit && (
+                <Field
+                  label="EPS Contribution Scheme"
+                  htmlFor="payroll-higher-pension"
+                  helper="Standard: 8.33% capped at statutory ceiling (0% surcharge). Higher: uncapped + 1.16% surcharge on excess."
+                >
+                  <Select
+                    id="payroll-higher-pension"
+                    value={editForm.isHigherPensionOpted ? 'YES' : 'NO'}
+                    onChange={(e) => setEditForm({ ...editForm, isHigherPensionOpted: e.target.value === 'YES' })}
+                  >
+                    <option value="NO">Standard Member (Capped at statutory ceiling, 0% surcharge)</option>
+                    <option value="YES">Higher Pension Optee (POHW, 1.16% surcharge)</option>
+                  </Select>
+                </Field>
+              )}
 
               <button
                 type="button"

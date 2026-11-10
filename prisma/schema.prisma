@@ -300,6 +300,7 @@ model StaffPayrollInfo {
   visual                String?   @default("N")
   nameOnPan             String?
   nameOnAadhaar         String?
+  isHigherPensionOpted  Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

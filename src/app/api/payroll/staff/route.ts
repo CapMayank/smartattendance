@@ -90,6 +90,7 @@ export async function PUT(request: Request) {
       const monthlyCtc = updated.monthlyCtc || 0;
 
       for (const row of unlockedRows) {
+        const targetMonthYear = `${row.year}-${String(row.month).padStart(2, '0')}`;
         const calc = calculateStaffPayroll({
           payGroup,
           monthlyCtc,
@@ -100,6 +101,8 @@ export async function PUT(request: Request) {
           bonusDays: row.bonusDays ?? 0,
           bonusType: (row.bonusType as "DAYS" | "FLAT" | "CUSTOM") ?? "CUSTOM",
           isBonusPfApplicable: row.isBonusPfApplicable,
+          targetMonthYear,
+          isHigherPensionOpted: !!updated.isHigherPensionOpted,
         });
         if (calc) {
           await prisma.monthlyPayroll.update({

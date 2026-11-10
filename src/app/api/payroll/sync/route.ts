@@ -111,6 +111,7 @@ export async function POST(request: Request) {
       // If present days changed or pay group changed, update the payroll record
       if (presentDays !== payroll.presentDays || payroll.payGroup !== staffPayGroup) {
         const monthlyCtc = payroll.staff.payrollInfo?.monthlyCtc || 0;
+        const targetMonthYear = `${year}-${String(month).padStart(2, '0')}`;
         const calc = calculateStaffPayroll({
           payGroup: staffPayGroup,
           monthlyCtc,
@@ -121,6 +122,8 @@ export async function POST(request: Request) {
           bonusDays: payroll.bonusDays || 0,
           bonusType: payroll.bonusType || "CUSTOM",
           isBonusPfApplicable: payroll.isBonusPfApplicable || false,
+          targetMonthYear,
+          isHigherPensionOpted: !!payroll.staff.payrollInfo?.isHigherPensionOpted,
         });
 
         if (calc) {

@@ -1,3 +1,5 @@
+import { resolveStatutoryRule, StatutoryRule } from "./statutory-config";
+
 export type PayGroup = "BANK_EPF" | "CASH";
 
 export interface PayrollCalculationInput {
@@ -10,6 +12,9 @@ export interface PayrollCalculationInput {
   bonusDays?: number;
   bonusType?: string; // "DAYS" | "CUSTOM"
   isBonusPfApplicable?: boolean;
+  targetMonthYear?: string; // "YYYY-MM" (e.g. "2026-11", "2026-07")
+  isHigherPensionOpted?: boolean; // Defaults to false
+  statutoryRule?: StatutoryRule;
 }
 
 export interface PayrollCalculationResult {
@@ -29,12 +34,16 @@ export interface PayrollCalculationResult {
   netPayment: number;
   ncpDays: number;
   payGroup: PayGroup;
+  appliedCeiling?: number;
 }
 
 /**
  * Calculates monthly payroll for a staff member based on their pay group.
  * Supports:
  *  - "BANK_EPF": CTC divided by 1.12 with statutory EPFO ECR EPF/EPS/EDLI contributions
+ *    Statutory ceilings and rates are versioned by effective month (e.g. ₹15,000 pre-Sep 2026, ₹25,000 post-Sep 2026).
+ *    For standard members, EPS contribution is strictly 8.33% up to statutory ceiling (ZERO 1.16% surcharge).
+ *    For higher-pension optees (isHigherPensionOpted = true), POHW surcharge applies above threshold.
  *  - "CASH": Plain monthly wage without 1.12 division and zero EPF/EPS/EDLI contributions
  */
 export function calculateStaffPayroll(
@@ -49,6 +58,9 @@ export function calculateStaffPayroll(
     bonusDays = 0,
     bonusType = "CUSTOM",
     isBonusPfApplicable = false,
+    targetMonthYear,
+    isHigherPensionOpted = false,
+    statutoryRule,
   } = input;
 
   if (totalDays === 0) return null;
@@ -113,18 +125,34 @@ export function calculateStaffPayroll(
   const epfWages = Math.round(
     isBonusPfApplicable ? basicWage + finalBonus : basicWage
   );
-  const epsWages = Math.min(epfWages, 25000);
-  const edliWages = Math.min(epfWages, 25000);
+
+  // Resolve statutory rule by target month/year
+  const rule = statutoryRule || resolveStatutoryRule(targetMonthYear);
+  const epsCeiling = rule.epsWageCeiling;
+  const edliCeiling = rule.edliWageCeiling;
 
   const employeeEpf = Math.round(epfWages * 0.12);
 
-  // EPFO ECR calculation for EPS (Account 10):
-  // 8.33% on EPS wages (up to 25,000)
-  // PLUS 1.16% on wages exceeding 15,000 for POHW cases (EPFO ECR rule RFE-25)
-  const baseEps = Math.round(epsWages * 0.0833);
-  const excessEpsWage = Math.max(0, epsWages - 15000);
-  const pohwSurcharge = Math.round(excessEpsWage * 0.0116);
-  const employerEps = baseEps + pohwSurcharge;
+  let epsWages = 0;
+  let edliWages = 0;
+  let employerEps = 0;
+
+  if (isHigherPensionOpted) {
+    // For members who opted for Pension on Higher Wages (POHW):
+    // EPS wages are not capped at the statutory ceiling
+    epsWages = epfWages;
+    edliWages = Math.min(epfWages, edliCeiling);
+
+    const baseEps = Math.round(Math.min(epsWages, rule.pohwThreshold) * 0.0833);
+    const excessEpsWage = Math.max(0, epsWages - rule.pohwThreshold);
+    const surcharge = Math.round(excessEpsWage * (0.0833 + rule.pohwSurchargeRate));
+    employerEps = baseEps + surcharge;
+  } else {
+    // Standard member: Strictly 8.33% up to statutory ceiling, ZERO surcharge
+    epsWages = Math.min(epfWages, epsCeiling);
+    edliWages = Math.min(epfWages, edliCeiling);
+    employerEps = Math.round(epsWages * 0.0833);
+  }
 
   // Employer PF contribution (Account 1): strictly Due EPF - Due EPS (EPFO ECR rule RFE-37)
   const employerEpf = Math.round(epfWages * 0.12) - employerEps;
@@ -149,5 +177,6 @@ export function calculateStaffPayroll(
     netPayment,
     ncpDays,
     payGroup: "BANK_EPF",
+    appliedCeiling: epsCeiling,
   };
 }

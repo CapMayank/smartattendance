@@ -60,14 +60,11 @@ describe("calculateStaffPayroll", () => {
       // employeeEpf = round(19000 * 0.12) = 2280
       expect(result.employeeEpf).toBe(2280);
 
-      // baseEps = round(19000 * 0.0833) = 1583
-      // excessEps = 19000 - 15000 = 4000
-      // pohw = round(4000 * 0.0116) = 46
-      // employerEps = 1583 + 46 = 1629
-      expect(result.employerEps).toBe(1629);
+      // Standard member: employerEps = round(19000 * 0.0833) = 1583 (strictly 8.33% up to ceiling, ZERO 1.16% surcharge)
+      expect(result.employerEps).toBe(1583);
 
-      // employerEpf = round(19000 * 0.12) - employerEps = 2280 - 1629 = 651
-      expect(result.employerEpf).toBe(651);
+      // employerEpf = round(19000 * 0.12) - employerEps = 2280 - 1583 = 697
+      expect(result.employerEpf).toBe(697);
 
       // actualCtc = round(grossWage + employeeEpf) = 19000 + 2280 = 21280
       expect(result.actualCtc).toBe(21280);
@@ -158,6 +155,81 @@ describe("calculateStaffPayroll", () => {
       expect(result.epfWages).toBe(40000);
       expect(result.epsWages).toBe(25000);
       expect(result.edliWages).toBe(25000);
+      // Under 25k ceiling, standard member employer EPS = round(25000 * 0.0833) = 2083
+      expect(result.employerEps).toBe(2083);
+      // Employer EPF = 40000 * 0.12 - 2083 = 4800 - 2083 = 2717
+      expect(result.employerEpf).toBe(2717);
+    });
+
+    it("calculates standard member with ₹20,000 wage: employer EPS = 1666, employer EPF = 734 without 1.16% surcharge", () => {
+      // CTC = 22,400 -> baseGross = 20,000
+      const input: PayrollCalculationInput = {
+        payGroup: "BANK_EPF",
+        monthlyCtc: 22400,
+        presentDays: 30,
+        totalDays: 30,
+        targetMonthYear: "2026-11", // Post-Sep 2026 hike
+      };
+
+      const result = calculateStaffPayroll(input);
+      expect(result).not.toBeNull();
+      if (!result) return;
+
+      expect(result.epfWages).toBe(20000);
+      expect(result.epsWages).toBe(20000);
+      expect(result.employeeEpf).toBe(2400); // 12%
+      // Strictly 8.33% up to ceiling, ZERO 1.16% surcharge:
+      expect(result.employerEps).toBe(1666); // round(20000 * 0.0833) = 1666
+      expect(result.employerEpf).toBe(734);  // 2400 - 1666 = 734
+      expect(result.employerEps + result.employerEpf).toBe(2400);
+    });
+
+    it("preserves historical ₹15,000 ceiling for months prior to September 2026 (e.g. 2026-07)", () => {
+      // For July 2026, ₹20,000 wage must be capped at ₹15,000 for EPS
+      const input: PayrollCalculationInput = {
+        payGroup: "BANK_EPF",
+        monthlyCtc: 22400, // 20,000 gross
+        presentDays: 30,
+        totalDays: 30,
+        targetMonthYear: "2026-07", // Historical month before Sep 2026
+      };
+
+      const result = calculateStaffPayroll(input);
+      expect(result).not.toBeNull();
+      if (!result) return;
+
+      expect(result.epfWages).toBe(20000);
+      expect(result.epsWages).toBe(15000); // Capped at historical ₹15,000
+      expect(result.edliWages).toBe(15000);
+      expect(result.employerEps).toBe(1250); // round(15000 * 0.0833) = 1250
+      expect(result.employerEpf).toBe(1150); // 2400 - 1250 = 1150
+      expect(result.employerEps + result.employerEpf).toBe(2400);
+    });
+
+    it("applies POHW 1.16% surcharge only when isHigherPensionOpted is true", () => {
+      // CTC = 22,400 -> baseGross = 20,000, opt-in for higher pension
+      const input: PayrollCalculationInput = {
+        payGroup: "BANK_EPF",
+        monthlyCtc: 22400,
+        presentDays: 30,
+        totalDays: 30,
+        targetMonthYear: "2026-07", // Threshold = 15,000
+        isHigherPensionOpted: true,
+      };
+
+      const result = calculateStaffPayroll(input);
+      expect(result).not.toBeNull();
+      if (!result) return;
+
+      expect(result.epfWages).toBe(20000);
+      expect(result.epsWages).toBe(20000); // Uncapped because higher pension opted
+      // Base EPS = 15000 * 0.0833 = 1250
+      // Excess = 20000 - 15000 = 5000
+      // Surcharge = 5000 * (0.0833 + 0.0116) = round(5000 * 0.0949) = 475
+      // employerEps = 1250 + 475 = 1725
+      expect(result.employerEps).toBe(1725);
+      expect(result.employerEpf).toBe(2400 - 1725); // 675
+      expect(result.employerEps + result.employerEpf).toBe(2400);
     });
   });
 

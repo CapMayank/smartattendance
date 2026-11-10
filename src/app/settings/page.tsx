@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save } from 'lucide-react'
-import { Button, Card, CardHeader, Field, Input, PageHeader, Select } from '@/components/ui'
+import { Save, Plus, Trash2, ShieldCheck, Info } from 'lucide-react'
+import { Button, Card, CardHeader, Field, IconButton, Input, Modal, PageHeader, Select } from '@/components/ui'
+import { formatINR } from '@/lib/format'
+import { DEFAULT_STATUTORY_RULES, StatutoryRule } from '@/lib/statutory-config'
 
 type Policy = {
   id: string
@@ -32,6 +34,15 @@ type Policy = {
 export default function SettingsPage() {
   const [policy, setPolicy] = useState<Policy | null>(null)
   const [punchRequestMaxDays, setPunchRequestMaxDays] = useState<string>("0")
+  const [statutoryRules, setStatutoryRules] = useState<StatutoryRule[]>(DEFAULT_STATUTORY_RULES)
+  const [showAddRuleModal, setShowAddRuleModal] = useState(false)
+  const [newRuleForm, setNewRuleForm] = useState({
+    effectiveFromMonth: '',
+    epsWageCeiling: 25000,
+    edliWageCeiling: 25000,
+    pohwThreshold: 25000,
+    label: '',
+  })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -48,6 +59,20 @@ export default function SettingsPage() {
         }
       })
       .catch(() => {})
+
+    fetch('/api/settings?key=STATUTORY_RULES')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.value) {
+          try {
+            const parsed = JSON.parse(data.value)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setStatutoryRules(parsed)
+            }
+          } catch {}
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const handleChange = (field: keyof Policy, value: string | number) => {
@@ -56,12 +81,55 @@ export default function SettingsPage() {
     }
   }
 
+  const handleAddRule = () => {
+    const trimmedMonth = newRuleForm.effectiveFromMonth.trim()
+    if (!trimmedMonth || !/^\d{4}-\d{2}$/.test(trimmedMonth)) {
+      alert('Please enter a valid effective month in YYYY-MM format (e.g. 2027-04)')
+      return
+    }
+
+    const epsCeil = Number(newRuleForm.epsWageCeiling) || 25000
+    const edliCeil = Number(newRuleForm.edliWageCeiling) || epsCeil
+    const pohwThresh = Number(newRuleForm.pohwThreshold) || epsCeil
+
+    const updated = [
+      ...statutoryRules.filter(r => r.effectiveFromMonth !== trimmedMonth),
+      {
+        id: `statutory-${trimmedMonth}`,
+        effectiveFromMonth: trimmedMonth,
+        epsWageCeiling: epsCeil,
+        edliWageCeiling: edliCeil,
+        pohwThreshold: pohwThresh,
+        pohwSurchargeRate: 0.0116,
+        label: newRuleForm.label.trim() || `Statutory Ceiling ${formatINR(epsCeil, { exact: true })} from ${trimmedMonth}`,
+      }
+    ].sort((a, b) => b.effectiveFromMonth.localeCompare(a.effectiveFromMonth))
+
+    setStatutoryRules(updated)
+    setShowAddRuleModal(false)
+    setNewRuleForm({
+      effectiveFromMonth: '',
+      epsWageCeiling: 25000,
+      edliWageCeiling: 25000,
+      pohwThreshold: 25000,
+      label: '',
+    })
+  }
+
+  const handleRemoveRule = (id: string) => {
+    if (statutoryRules.length <= 1) {
+      alert('At least one statutory rule must remain.')
+      return
+    }
+    setStatutoryRules(statutoryRules.filter(r => r.id !== id))
+  }
+
   const handleSave = async () => {
     if (!policy) return
     setSaving(true)
     setMessage('')
     try {
-      const [policyRes, maxDaysRes] = await Promise.all([
+      const [policyRes, maxDaysRes, statutoryRes] = await Promise.all([
         fetch('/api/settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -75,9 +143,17 @@ export default function SettingsPage() {
             value: punchRequestMaxDays,
           }),
         }),
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'STATUTORY_RULES',
+            value: JSON.stringify(statutoryRules),
+          }),
+        }),
       ])
 
-      if (policyRes.ok && maxDaysRes.ok) {
+      if (policyRes.ok && maxDaysRes.ok && statutoryRes.ok) {
         setMessage('Settings saved successfully!')
       } else {
         setMessage('Failed to save settings.')
@@ -96,7 +172,7 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Policy settings"
-        subtitle="Configure attendance rules and tolerances."
+        subtitle="Configure attendance rules, tolerances, and statutory payroll parameters."
         actions={<Button icon={Save} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</Button>}
       />
 
@@ -108,6 +184,92 @@ export default function SettingsPage() {
           {message}
         </div>
       )}
+
+      {/* Provident Fund Statutory Ceilings Card */}
+      <Card>
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <CardHeader
+            title="Provident Fund (EPF / EPS) Statutory Ceilings"
+            caption="Date-versioned wage limits for EPFO statutory contributions"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Plus}
+            onClick={() => setShowAddRuleModal(true)}
+          >
+            Add Future Statutory Slab
+          </Button>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-line-soft bg-canvas p-3.5 text-xs text-subtle">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="mt-0.5 shrink-0 text-accent" />
+            <div>
+              <p className="font-medium text-text">Versioned Statutory Slabs</p>
+              <p className="mt-0.5">
+                Statutory limits apply based on the payroll month being calculated. Modifying or adding a future slab (e.g. from <code className="rounded bg-card-hi px-1 py-0.5 text-text">2027-04</code>) takes effect strictly for payroll runs from that month onwards, completely preserving the historical calculations of earlier months without code changes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-card">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-line bg-canvas text-subtle">
+              <tr>
+                <th className="px-4 py-3 font-medium">Effective From Month</th>
+                <th className="px-4 py-3 font-medium">EPS Wage Ceiling</th>
+                <th className="px-4 py-3 font-medium">EDLI Wage Ceiling</th>
+                <th className="px-4 py-3 font-medium">Description / Legal Reference</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {statutoryRules.map((rule) => {
+                const isCurrentActive = rule.effectiveFromMonth === '2026-09'
+                return (
+                  <tr key={rule.id} className="hover:bg-canvas/50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="num font-semibold text-text">{rule.effectiveFromMonth}</span>
+                        {isCurrentActive && (
+                          <span className="tint-badge tone-present inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium">
+                            Current Active
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="num font-medium text-text">
+                        {formatINR(rule.epsWageCeiling, { exact: true })}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="num font-medium text-text">
+                        {formatINR(rule.edliWageCeiling, { exact: true })}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted">
+                      {rule.label}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {rule.effectiveFromMonth !== '2014-09' && (
+                        <IconButton
+                          icon={Trash2}
+                          label="Delete Rule"
+                          onClick={() => handleRemoveRule(rule.id)}
+                          className="size-7 text-subtle hover:text-absent"
+                        />
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <Card>
         <CardHeader title="Device punch logic" caption="How raw biometric punches are read" />
@@ -209,6 +371,72 @@ export default function SettingsPage() {
           </Field>
         </div>
       </Card>
+
+      {/* Add Future Statutory Slab Modal */}
+      <Modal
+        open={showAddRuleModal}
+        onClose={() => setShowAddRuleModal(false)}
+        title="Add Statutory Wage Slab"
+        footer={
+          <div className="flex w-full justify-between gap-2">
+            <Button variant="secondary" onClick={() => setShowAddRuleModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleAddRule}>
+              Add Slab to Timeline
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-subtle">
+            Define a new statutory wage ceiling. It will take effect strictly for payroll runs from this effective month onwards, without affecting previous months.
+          </p>
+
+          <Field label="Effective From Month (YYYY-MM)" htmlFor="rule-effective-month">
+            <Input
+              id="rule-effective-month"
+              type="text"
+              className="num"
+              placeholder="e.g. 2027-04"
+              value={newRuleForm.effectiveFromMonth}
+              onChange={(e) => setNewRuleForm({ ...newRuleForm, effectiveFromMonth: e.target.value })}
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="EPS Wage Ceiling (₹)" htmlFor="rule-eps-ceiling">
+              <Input
+                id="rule-eps-ceiling"
+                type="number"
+                className="num"
+                value={newRuleForm.epsWageCeiling}
+                onChange={(e) => setNewRuleForm({ ...newRuleForm, epsWageCeiling: Number(e.target.value) })}
+              />
+            </Field>
+
+            <Field label="EDLI Wage Ceiling (₹)" htmlFor="rule-edli-ceiling">
+              <Input
+                id="rule-edli-ceiling"
+                type="number"
+                className="num"
+                value={newRuleForm.edliWageCeiling}
+                onChange={(e) => setNewRuleForm({ ...newRuleForm, edliWageCeiling: Number(e.target.value) })}
+              />
+            </Field>
+          </div>
+
+          <Field label="Description / Gazette Notification" htmlFor="rule-label">
+            <Input
+              id="rule-label"
+              type="text"
+              placeholder="e.g. Gazette Notification S.O. 1234(E)"
+              value={newRuleForm.label}
+              onChange={(e) => setNewRuleForm({ ...newRuleForm, label: e.target.value })}
+            />
+          </Field>
+        </div>
+      </Modal>
     </div>
   )
 }

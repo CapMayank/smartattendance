@@ -65,6 +65,7 @@ type StaffMember = {
   } | null
   payrollInfo?: {
     payGroup?: 'BANK_EPF' | 'CASH'
+    isHigherPensionOpted?: boolean | null
     mobileNumber?: string | null
     dob?: string | null
     gender?: string | null
@@ -138,6 +139,7 @@ export function StaffProfileModal({
     nationality: 'INDIAN',
     // Statutory
     payGroup: 'BANK_EPF' as 'BANK_EPF' | 'CASH',
+    isHigherPensionOpted: false,
     bankAccount: '',
     ifsc: '',
     nameAsPerBank: '',
@@ -207,6 +209,7 @@ export function StaffProfileModal({
         qualification: staff.payrollInfo?.qualification || '',
         nationality: staff.payrollInfo?.nationality || 'INDIAN',
         payGroup: staff.payrollInfo?.payGroup ?? 'BANK_EPF',
+        isHigherPensionOpted: staff.payrollInfo?.isHigherPensionOpted ?? false,
         bankAccount: staff.payrollInfo?.bankAccount || '',
         ifsc: staff.payrollInfo?.ifsc || '',
         nameAsPerBank: staff.payrollInfo?.nameAsPerBank || '',
@@ -312,6 +315,7 @@ export function StaffProfileModal({
         departmentId: formData.departmentId || null,
         designationId: formData.designationId || null,
         payGroup: formData.payGroup,
+        isHigherPensionOpted: formData.isHigherPensionOpted,
         mobileNumber: formData.mobileNumber.trim() || null,
         dob: formData.dob || null,
         gender: formData.gender || null,
@@ -941,6 +945,23 @@ export function StaffProfileModal({
                   <option value="CASH">Cash Payroll (No PF deductions)</option>
                 </Select>
               </Field>
+
+              {formData.payGroup === 'BANK_EPF' && (
+                <Field
+                  label="Pension Scheme (EPS Mode)"
+                  htmlFor="stat-higher-pension"
+                  helper="Joint option under Para 11 of EPS 1995. Applies 1.16% surcharge on wages above ceiling from employer share."
+                >
+                  <Select
+                    id="stat-higher-pension"
+                    value={formData.isHigherPensionOpted ? 'YES' : 'NO'}
+                    onChange={(e) => setFormData({ ...formData, isHigherPensionOpted: e.target.value === 'YES' })}
+                  >
+                    <option value="NO">Standard Member (Capped at statutory ceiling, 0% surcharge)</option>
+                    <option value="YES">Opted for Pension on Higher Wages (Uncapped, 1.16% surcharge)</option>
+                  </Select>
+                </Field>
+              )}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Bank Account Number" htmlFor="stat-account">

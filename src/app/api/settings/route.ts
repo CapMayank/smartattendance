@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
+import { DEFAULT_STATUTORY_RULES } from "@/lib/statutory-config"
 
 export async function GET(req?: Request) {
   const session = await getServerSession(authOptions)
@@ -17,6 +18,12 @@ export async function GET(req?: Request) {
         const setting = await prisma.systemSetting.findUnique({
           where: { key },
         })
+        if (key === 'STATUTORY_RULES' && !setting?.value) {
+          return NextResponse.json({
+            key,
+            value: JSON.stringify(DEFAULT_STATUTORY_RULES),
+          })
+        }
         return NextResponse.json(setting ?? { key, value: null })
       }
     } catch {

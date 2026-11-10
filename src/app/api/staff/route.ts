@@ -504,6 +504,7 @@ export async function PUT(request: Request) {
       if (updateData.pan !== undefined) payrollUpdateData.pan = updateData.pan ? String(updateData.pan).trim().toUpperCase() : null
       if (updateData.aadhaar !== undefined) payrollUpdateData.aadhaar = updateData.aadhaar ? String(updateData.aadhaar).trim() : null
       if (updateData.uan !== undefined) payrollUpdateData.uan = updateData.uan ? String(updateData.uan).trim() : null
+      if (updateData.isHigherPensionOpted !== undefined) payrollUpdateData.isHigherPensionOpted = Boolean(updateData.isHigherPensionOpted)
 
       const existingPayrollInfo = prisma.staffPayrollInfo.findUnique
         ? await prisma.staffPayrollInfo.findUnique({ where: { staffId: id } })
@@ -547,6 +548,7 @@ export async function PUT(request: Request) {
           const payGroup = (updatedPayrollInfo.payGroup as PayGroup) || 'BANK_EPF'
           const monthlyCtc = updatedPayrollInfo.monthlyCtc || 0
           for (const row of unlockedRows) {
+            const targetMonthYear = `${row.year}-${String(row.month).padStart(2, '0')}`
             const calc = calculateStaffPayroll({
               payGroup,
               monthlyCtc,
@@ -557,6 +559,8 @@ export async function PUT(request: Request) {
               bonusDays: row.bonusDays ?? 0,
               bonusType: (row.bonusType as 'DAYS' | 'FLAT' | 'CUSTOM') ?? 'CUSTOM',
               isBonusPfApplicable: row.isBonusPfApplicable,
+              targetMonthYear,
+              isHigherPensionOpted: !!updatedPayrollInfo.isHigherPensionOpted,
             })
             if (calc) {
               await prisma.monthlyPayroll.update({

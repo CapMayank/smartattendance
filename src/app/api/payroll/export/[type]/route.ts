@@ -363,14 +363,8 @@ export async function GET(
           const epsW = Math.round(p.epsWages);
           const edliW = Math.round(p.edliWages);
           const eeEpf = Math.round(p.employeeEpf);
-
-          // Statutory EPFO ECR calculation for EPS & EPF:
-          // 8.33% base + 1.16% on wages > 15,000 for POHW cases (EPFO ECR rule RFE-25)
-          const baseEps = Math.round(epsW * 0.0833);
-          const excessEps = Math.max(0, epsW - 15000);
-          const pohw = Math.round(excessEps * 0.0116);
-          const erEps = (p.employerEps && p.employerEps === baseEps + pohw) ? Math.round(p.employerEps) : (baseEps + pohw);
-          const erEpf = Math.round(epfW * 0.12) - erEps;
+          const erEps = Math.round(p.employerEps ?? (epsW * 0.0833));
+          const erEpf = Math.round(p.employerEpf ?? (Math.round(epfW * 0.12) - erEps));
 
           const row = sheet.getRow(o);
           row.values = [
@@ -426,14 +420,8 @@ export async function GET(
           const epsW = Math.round(p.epsWages);
           const edliW = Math.round(p.edliWages);
           const eeEpf = Math.round(p.employeeEpf);
-
-          // Statutory EPFO ECR calculation for EPS & EPF:
-          // 8.33% base + 1.16% on wages > 15,000 for POHW cases (EPFO ECR rule RFE-25)
-          const baseEps = Math.round(epsW * 0.0833);
-          const excessEps = Math.max(0, epsW - 15000);
-          const pohw = Math.round(excessEps * 0.0116);
-          const erEps = (p.employerEps && p.employerEps === baseEps + pohw) ? Math.round(p.employerEps) : (baseEps + pohw);
-          const erEpf = Math.round(epfW * 0.12) - erEps;
+          const erEps = Math.round(p.employerEps ?? (epsW * 0.0833));
+          const erEpf = Math.round(p.employerEpf ?? (Math.round(epfW * 0.12) - erEps));
 
           const line = [
             uan,
