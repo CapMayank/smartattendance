@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AlarmClock, BarChart3, CheckCircle2, DatabaseZap, Fingerprint, Sunrise, XCircle } from "lucide-react";
+import { AlarmClock, BarChart3, CheckCircle2, Clock, DatabaseZap, Fingerprint, Sunrise, XCircle } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getApproverDepartmentIds } from "@/lib/rbac";
@@ -153,6 +153,48 @@ export default async function Dashboard({
     <div className="flex flex-col gap-[22px]">
       <AutoRefresh />
       <PageHeader title={title} subtitle={subtitle} />
+
+      {(kpis.pendingRequests?.total ?? 0) > 0 && (
+        <Card className="border-late/40 bg-late/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 flex-none place-items-center rounded-xl bg-late/15 text-late">
+                <Clock size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-text">
+                  {kpis.pendingRequests.total}{" "}
+                  {kpis.pendingRequests.total === 1 ? "Request" : "Requests"} Pending Administrator Review
+                </p>
+                <p className="text-xs text-muted">
+                  {[
+                    kpis.pendingRequests.punches > 0
+                      ? `${kpis.pendingRequests.punches} punch regularization${
+                          kpis.pendingRequests.punches > 1 ? "s" : ""
+                        }`
+                      : null,
+                    kpis.pendingRequests.profile > 0
+                      ? `${kpis.pendingRequests.profile} profile & KYC update${
+                          kpis.pendingRequests.profile > 1 ? "s" : ""
+                        }`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/requests"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-3.5 py-1.5 text-xs font-semibold text-text shadow-xs transition-colors hover:bg-card-hi"
+              >
+                Review Requests Inbox →
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <SectionLabel>Today</SectionLabel>
 

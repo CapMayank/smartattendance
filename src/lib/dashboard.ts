@@ -40,6 +40,11 @@ export type DashboardData = {
     absent: number;
     devicesOnline: number;
     devicesTotal: number;
+    pendingRequests: {
+      punches: number;
+      profile: number;
+      total: number;
+    };
     deltas: { in: Delta; late: Delta; absent: Delta };
     /** 7 working days, oldest first. `devices` is empty: device ping history is not stored. */
     spark: { in: number[]; late: number[]; absent: number[]; devices: number[] };
@@ -58,7 +63,9 @@ export type DashboardData = {
       | "device-offline"
       | "missing-out"
       | "shift-suggestions"
-      | "unmatched-punches";
+      | "unmatched-punches"
+      | "pending-punch-requests"
+      | "pending-profile-requests";
     title: string;
     detail: string;
     href: string;
@@ -501,6 +508,50 @@ export async function getDashboardData(now: Date, options?: DashboardOptions): P
         ]
       : [];
 
+  // Pending Requests: Punch regularizations and Profile/KYC changes awaiting admin/approver review
+  let pendingPunches = 0;
+  let pendingProfileRequests = 0;
+  try {
+    const punchWhere: Record<string, unknown> = { status: "PENDING" };
+    const profileWhere: Record<string, unknown> = { status: "PENDING" };
+    if (options?.allowedDepartmentIds) {
+      punchWhere.staff = { departmentId: { in: options.allowedDepartmentIds } };
+      profileWhere.staff = { departmentId: { in: options.allowedDepartmentIds } };
+    }
+    const [pCount, prCount] = await Promise.all([
+      prisma.punchRequest ? prisma.punchRequest.count({ where: punchWhere as any }) : Promise.resolve(0),
+      prisma.profileChangeRequest ? prisma.profileChangeRequest.count({ where: profileWhere as any }) : Promise.resolve(0),
+    ]);
+    pendingPunches = pCount;
+    pendingProfileRequests = prCount;
+  } catch (error) {
+    console.error("[dashboard] pending requests count failed:", error);
+  }
+
+  const pendingItems: DashboardData["attention"] = [];
+  if (pendingPunches > 0) {
+    pendingItems.push({
+      kind: "pending-punch-requests",
+      title:
+        pendingPunches === 1
+          ? "1 punch request awaiting review"
+          : `${pendingPunches} punch requests awaiting review`,
+      detail: "Staff missed punch regularizations needing approval",
+      href: "/requests?tab=punches",
+    });
+  }
+  if (pendingProfileRequests > 0) {
+    pendingItems.push({
+      kind: "pending-profile-requests",
+      title:
+        pendingProfileRequests === 1
+          ? "1 profile & KYC request awaiting review"
+          : `${pendingProfileRequests} profile & KYC requests awaiting review`,
+      detail: "Staff personal, banking, or EPFO modifications",
+      href: "/requests?tab=profile",
+    });
+  }
+
   // Devices, unmatched punches, and payroll-relevant missing OUT always make the cut; then up to 2 of each
   // person-kind; then fill from what is left.
   type Ranked = DashboardData["attention"][number] & { n: number };
@@ -511,6 +562,7 @@ export async function getDashboardData(now: Date, options?: DashboardOptions): P
     href: r.href,
   });
   const primary = [
+    ...pendingItems,
     ...offline,
     ...unmatchedItems,
     ...missing,
@@ -520,12 +572,14 @@ export async function getDashboardData(now: Date, options?: DashboardOptions): P
   ];
   const extra = [...streaks.slice(2).map(strip), ...lateRepeats.slice(2).map(strip)];
   const order = {
-    "absent-streak": 0,
-    "late-repeat": 1,
-    "device-offline": 2,
-    "unmatched-punches": 3,
-    "missing-out": 4,
-    "shift-suggestions": 5,
+    "pending-punch-requests": 0,
+    "pending-profile-requests": 1,
+    "absent-streak": 2,
+    "late-repeat": 3,
+    "device-offline": 4,
+    "unmatched-punches": 5,
+    "missing-out": 6,
+    "shift-suggestions": 7,
   } as const;
   const attention = [...primary.slice(0, MAX_ATTENTION), ...extra]
     .slice(0, MAX_ATTENTION)
@@ -567,6 +621,11 @@ export async function getDashboardData(now: Date, options?: DashboardOptions): P
       absent: absentToday,
       devicesOnline,
       devicesTotal: devices.length,
+      pendingRequests: {
+        punches: pendingPunches,
+        profile: pendingProfileRequests,
+        total: pendingPunches + pendingProfileRequests,
+      },
       deltas: {
         in: weekdayDelta(inToday, lastWeek.present),
         late: weekdayDelta(lateToday, lastWeek.late),

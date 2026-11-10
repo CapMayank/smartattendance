@@ -4,6 +4,7 @@ import {
   AlertCircle,
   CalendarClock,
   ChevronRight,
+  Clock,
   LogOut,
   ShieldCheck,
   WifiOff,
@@ -23,6 +24,8 @@ const look: Record<Item["kind"], { icon: LucideIcon; tone: string }> = {
   "missing-out": { icon: LogOut, tone: "tone-muted" },
   "shift-suggestions": { icon: CalendarClock, tone: "tone-accent" },
   "unmatched-punches": { icon: AlertCircle, tone: "tone-absent" },
+  "pending-punch-requests": { icon: Clock, tone: "tone-late" },
+  "pending-profile-requests": { icon: ShieldCheck, tone: "tone-accent" },
 };
 
 export function AttentionList({ items }: { items: Item[] }) {
