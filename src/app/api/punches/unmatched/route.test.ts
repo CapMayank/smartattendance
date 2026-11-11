@@ -10,6 +10,9 @@ const mockPrisma = vi.hoisted(() => ({
   attendanceLog: {
     create: vi.fn(),
   },
+  monthlyPayroll: {
+    findUnique: vi.fn(),
+  },
   unmatchedPunch: {
     findMany: vi.fn(),
     findUnique: vi.fn(),

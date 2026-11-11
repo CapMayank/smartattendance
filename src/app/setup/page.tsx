@@ -70,6 +70,12 @@ export default function SetupPage() {
   const [adminMachineId, setAdminMachineId] = useState('')
   const [adminJoiningDate, setAdminJoiningDate] = useState('2024-01-01')
   const [adminPayGroup, setAdminPayGroup] = useState('BANK_EPF')
+  // Fresh installs have no administrator login yet, so the wizard creates one.
+  const [adminEmail, setAdminEmail] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const needsAdminAccount = adminUsers.length === 0
 
   // Step 3: Staff Batch Onboarding
   const [staffJoiningDates, setStaffJoiningDates] = useState<StaffOnboardingRecord[]>([])
@@ -92,17 +98,6 @@ export default function SetupPage() {
           router.replace('/')
           return
         }
-        setAdminUsers(data.adminUsers || [])
-        setExistingStaff(data.existingStaff || [])
-
-        // Default admin user if available
-        if (data.adminUsers && data.adminUsers.length > 0) {
-          const unlinked = data.adminUsers.find((u: AdminUser) => !u.staffId)
-          setSelectedAdminUserId(unlinked ? unlinked.id : data.adminUsers[0].id)
-          if (unlinked && unlinked.name) {
-            setAdminName(unlinked.name)
-          }
-        }
       } catch (err: any) {
         setErrorMessage(err?.message || 'Error communicating with setup server')
       } finally {
@@ -113,15 +108,41 @@ export default function SetupPage() {
     fetchSetupState()
   }, [router])
 
-  // Step 1: Verify secret is not empty
-  const handleVerifySecret = (e: React.FormEvent) => {
+  // Step 1: Verify the secret with the server, which then returns the data the wizard needs
+  const handleVerifySecret = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage('')
     if (!secret.trim()) {
       setErrorMessage('Please enter the setup secret code.')
       return
     }
-    setStep(2)
+    setVerifying(true)
+    try {
+      const res = await fetch('/api/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: secret.trim(), action: 'VERIFY' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Could not verify the setup secret code.')
+      }
+      const admins: AdminUser[] = data.adminUsers || []
+      setAdminUsers(admins)
+      setExistingStaff(data.existingStaff || [])
+      if (admins.length > 0) {
+        const unlinked = admins.find((u) => !u.staffId)
+        setSelectedAdminUserId(unlinked ? unlinked.id : admins[0].id)
+        if (unlinked?.name) setAdminName(unlinked.name)
+      } else {
+        setSelectedAdminUserId('')
+      }
+      setStep(2)
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Could not verify the setup secret code.')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   // Step 2: Advance to Step 3
@@ -129,7 +150,20 @@ export default function SetupPage() {
     e.preventDefault()
     setErrorMessage('')
 
-    if (!selectedAdminUserId) {
+    if (needsAdminAccount) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) {
+        setErrorMessage('Please enter a valid administrator email address.')
+        return
+      }
+      if (adminPassword.length < 8) {
+        setErrorMessage('The administrator password must be at least 8 characters.')
+        return
+      }
+      if (adminPassword !== adminPasswordConfirm) {
+        setErrorMessage('The administrator passwords do not match.')
+        return
+      }
+    } else if (!selectedAdminUserId) {
       setErrorMessage('Please select an Administrator user to link or configure.')
       return
     }
@@ -194,7 +228,11 @@ export default function SetupPage() {
       const payload: Record<string, unknown> = {
         secret: secret.trim(),
         adminAction,
-        adminUserId: selectedAdminUserId,
+      }
+      if (needsAdminAccount) {
+        payload.adminAccount = { email: adminEmail.trim(), password: adminPassword }
+      } else {
+        payload.adminUserId = selectedAdminUserId
       }
 
       if (adminAction === 'LINK') {
@@ -355,8 +393,8 @@ export default function SetupPage() {
             </Field>
 
             <div className="pt-2">
-              <Button type="submit" variant="primary" className="w-full">
-                Verify & Continue <ArrowRight size={16} className="ml-1.5" />
+              <Button type="submit" variant="primary" className="w-full" disabled={verifying}>
+                {verifying ? 'Verifying…' : 'Verify & Continue'} <ArrowRight size={16} className="ml-1.5" />
               </Button>
             </div>
           </form>
@@ -375,19 +413,60 @@ export default function SetupPage() {
               </p>
             </div>
 
-            <Field label="Select Administrator User" htmlFor="admin-user-select">
-              <Select
-                id="admin-user-select"
-                value={selectedAdminUserId}
-                onChange={(e) => setSelectedAdminUserId(e.target.value)}
-              >
-                {adminUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name || 'Unnamed Admin'} ({user.email || 'No email'}) {user.staffId ? '• [Already Linked]' : '• [Unlinked]'}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {needsAdminAccount ? (
+              <div className="space-y-4">
+                <p className="text-xs text-muted">
+                  No administrator account exists yet. Create the login you will use to sign in.
+                </p>
+                <Field label="Administrator Email" htmlFor="admin-email">
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    autoComplete="username"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="admin@school.org"
+                    required
+                  />
+                </Field>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Password (min 8 characters)" htmlFor="admin-password">
+                    <Input
+                      id="admin-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      required
+                    />
+                  </Field>
+                  <Field label="Confirm Password" htmlFor="admin-password-confirm">
+                    <Input
+                      id="admin-password-confirm"
+                      type="password"
+                      autoComplete="new-password"
+                      value={adminPasswordConfirm}
+                      onChange={(e) => setAdminPasswordConfirm(e.target.value)}
+                      required
+                    />
+                  </Field>
+                </div>
+              </div>
+            ) : (
+              <Field label="Select Administrator User" htmlFor="admin-user-select">
+                <Select
+                  id="admin-user-select"
+                  value={selectedAdminUserId}
+                  onChange={(e) => setSelectedAdminUserId(e.target.value)}
+                >
+                  {adminUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name || 'Unnamed Admin'} ({user.email || 'No email'}) {user.staffId ? '• [Already Linked]' : '• [Unlinked]'}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
 
             <div className="flex gap-4 border-y border-line-soft py-3">
               <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
@@ -591,7 +670,7 @@ export default function SetupPage() {
               <div className="flex justify-between py-1 border-b border-line-soft">
                 <span className="text-muted">Target Administrator:</span>
                 <span className="font-medium text-text">
-                  {adminUsers.find((u) => u.id === selectedAdminUserId)?.email || selectedAdminUserId}
+                  {needsAdminAccount ? `${adminEmail.trim()} (new account)` : adminUsers.find((u) => u.id === selectedAdminUserId)?.email || selectedAdminUserId}
                 </span>
               </div>
               {adminAction === 'CREATE' ? (

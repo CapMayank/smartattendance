@@ -32,7 +32,19 @@ describe("authOptions credentials authorize & callbacks", () => {
   })
 
   describe("empty database bootstrap", () => {
+    it("does not create a default admin unless DEFAULT_ADMIN_PASSWORD is configured", async () => {
+      delete process.env.DEFAULT_ADMIN_PASSWORD
+      mockPrisma.user.count.mockResolvedValue(0)
+      mockPrisma.user.findUnique.mockResolvedValue(null)
+
+      const user = await authorize({ identifier: "admin@example.com", password: "admin" })
+
+      expect(user).toBeNull()
+      expect(mockPrisma.user.create).not.toHaveBeenCalled()
+    })
+
     it("creates default admin and returns user object when DB has 0 users", async () => {
+      process.env.DEFAULT_ADMIN_PASSWORD = "admin"
       mockPrisma.user.count.mockResolvedValue(0)
       mockPrisma.user.create.mockResolvedValue({
         id: "admin-1",
@@ -58,6 +70,7 @@ describe("authOptions credentials authorize & callbacks", () => {
         mustChangePassword: false,
       })
       expect(mockPrisma.user.create).toHaveBeenCalled()
+      delete process.env.DEFAULT_ADMIN_PASSWORD
     })
   })
 
@@ -323,7 +336,71 @@ describe("authOptions credentials authorize & callbacks", () => {
         staffId: "s-test",
         employeeCode: "SAR-2024-050",
         mustChangePassword: true,
+        revoked: false,
       })
+    })
+
+    it("jwt callback refreshes role and password flag from the database on later calls", async () => {
+      const jwtCallback = authOptions.callbacks!.jwt!
+      mockPrisma.user.findUnique.mockResolvedValue({
+        role: "EMPLOYEE",
+        disabledAt: null,
+        mustChangePassword: false,
+        staffId: "s-test",
+        staff: { id: "s-test", employeeCode: "SAR-2024-050", employmentPeriods: [] },
+      })
+
+      const token = await jwtCallback({
+        token: { id: "u-test", role: "ADMIN", mustChangePassword: true },
+        // A browser-supplied update must never be trusted over the database
+        trigger: "update",
+        session: { mustChangePassword: false, role: "ADMIN" },
+      } as never)
+
+      expect(token.role).toBe("EMPLOYEE")
+      expect(token.mustChangePassword).toBe(false)
+      expect(token.revoked).toBe(false)
+    })
+
+    it("jwt callback revokes the token of a disabled or deleted account", async () => {
+      const jwtCallback = authOptions.callbacks!.jwt!
+
+      mockPrisma.user.findUnique.mockResolvedValue({
+        role: "ADMIN",
+        disabledAt: new Date(),
+        mustChangePassword: false,
+        staffId: null,
+        staff: null,
+      })
+      expect((await jwtCallback({ token: { id: "u-test", role: "ADMIN" } } as never)).revoked).toBe(true)
+
+      mockPrisma.user.findUnique.mockResolvedValue(null)
+      expect((await jwtCallback({ token: { id: "u-test", role: "ADMIN" } } as never)).revoked).toBe(true)
+    })
+
+    it("jwt callback revokes a non-admin whose employment has ended", async () => {
+      const jwtCallback = authOptions.callbacks!.jwt!
+      mockPrisma.user.findUnique.mockResolvedValue({
+        role: "EMPLOYEE",
+        disabledAt: null,
+        mustChangePassword: false,
+        staffId: "s-test",
+        staff: {
+          id: "s-test",
+          employeeCode: "SAR-2024-050",
+          employmentPeriods: [{ startDate: "2020-01-01", endDate: "2020-12-31" }],
+        },
+      })
+      expect((await jwtCallback({ token: { id: "u-test", role: "EMPLOYEE" } } as never)).revoked).toBe(true)
+    })
+
+    it("session callback returns no user for a revoked token", async () => {
+      const sessionCallback = authOptions.callbacks!.session!
+      const result = await sessionCallback({
+        session: { user: { name: "X" }, expires: "2099-01-01" },
+        token: { id: "u-test", revoked: true },
+      } as never)
+      expect((result as { user?: unknown }).user).toBeUndefined()
     })
 
     it("session callback attaches token claims to session.user", async () => {

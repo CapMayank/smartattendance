@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
-import { calculateStaffPayroll, PayGroup } from "@/lib/payroll-calc";
+import { calculateStaffPayroll, payrollColumns, PayGroup } from "@/lib/payroll-calc";
 import { format } from "date-fns";
 import { isEmployedOnDate } from "@/lib/employment";
+import { parseMonthYear } from "@/lib/validators";
 
 type StaffWithPayrollAndPeriods = Prisma.StaffGetPayload<{
   include: { payrollInfo: true; employmentPeriods: true };
@@ -19,12 +20,11 @@ export async function GET(request: Request) {
     if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
-    const month = parseInt(searchParams.get("month") || "");
-    const year = parseInt(searchParams.get("year") || "");
-
-    if (isNaN(month) || isNaN(year)) {
+    const period = parseMonthYear(searchParams.get("month"), searchParams.get("year"));
+    if (!period) {
       return NextResponse.json({ error: "Invalid month or year" }, { status: 400 });
     }
+    const { month, year } = period;
 
     const totalDays = new Date(year, month, 0).getDate();
 
@@ -164,7 +164,7 @@ export async function GET(request: Request) {
           totalDays,
           presentDays,
           refundOfAdvance: 0,
-          ...calc,
+          ...payrollColumns(calc),
         };
       }));
 
@@ -172,8 +172,10 @@ export async function GET(request: Request) {
       const createData: Prisma.MonthlyPayrollCreateManyInput[] = newPayrolls
         .filter((p): p is NonNullable<typeof p> => p !== null);
 
+      // Two people opening the same month at once must not fail on the unique (staff, month, year)
       await prisma.monthlyPayroll.createMany({
         data: createData,
+        skipDuplicates: true,
       });
 
       // Refetch
@@ -203,6 +205,12 @@ export async function GET(request: Request) {
   }
 }
 
+/** Coerces client input to a finite number >= 0 (anything else becomes 0). */
+function nonNegative(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 type PayrollUpdateItem = {
   id: string;
   presentDays: number;
@@ -230,27 +238,26 @@ export async function POST(request: Request) {
     }
 
     const updatedPayrolls = await Promise.all((payrolls as PayrollUpdateItem[]).map(async (p) => {
-      const {
-        id,
-        presentDays,
-        refundOfAdvance,
-        monthlyCtc,
-        totalDays,
-        bonusAmount = 0,
-        bonusDays = 0,
-        bonusType = "CUSTOM",
-        isBonusPfApplicable = false
-      } = p;
+      const { id, bonusType = "CUSTOM", isBonusPfApplicable = false } = p;
+      if (typeof id !== "string" || !id) return null;
 
-      // Check if the payroll is locked before updating
+      // Check if the payroll exists and is not locked before updating
       const existing = await prisma.monthlyPayroll.findUnique({
         where: { id },
         include: { staff: { include: { payrollInfo: true } } },
       });
-      if (existing?.isLocked) {
-        return null; // Skip updating locked payrolls
+      if (!existing || existing.isLocked) {
+        return null; // Unknown or locked payrolls are never modified
       }
-      
+
+      // The month length comes from the stored row; amounts and days can never be negative
+      const totalDays = existing.totalDays;
+      const presentDays = Math.min(nonNegative(p.presentDays), totalDays);
+      const refundOfAdvance = nonNegative(p.refundOfAdvance);
+      const monthlyCtc = nonNegative(p.monthlyCtc);
+      const bonusAmount = nonNegative(p.bonusAmount);
+      const bonusDays = nonNegative(p.bonusDays);
+
       const payGroup = (p.payGroup || existing?.payGroup || "BANK_EPF") as PayGroup;
       const targetMonthYear = existing ? `${existing.year}-${String(existing.month).padStart(2, '0')}` : undefined;
       const isHigherPensionOpted = !!existing?.staff?.payrollInfo?.isHigherPensionOpted;
@@ -274,7 +281,7 @@ export async function POST(request: Request) {
           data: {
             presentDays: Math.min(presentDays, totalDays),
             refundOfAdvance,
-            ...calc
+            ...payrollColumns(calc)
           }
         });
       }

@@ -192,7 +192,9 @@ export async function persistRangeRecords(inputs: RangeInputs, records: DailyRec
 
     const chunkSize = 100
     for (let i = 0; i < records.length; i += chunkSize) {
-      await tx.dailyRecord.createMany({ data: records.slice(i, i + chunkSize) })
+      // Two recalculations of the same day can overlap (e.g. two approvals at once);
+      // the second writer's rows are identical, so duplicates are skipped, not fatal.
+      await tx.dailyRecord.createMany({ data: records.slice(i, i + chunkSize), skipDuplicates: true })
     }
   })
 }

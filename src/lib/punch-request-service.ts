@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { isEmployedOnDate } from "@/lib/employment"
-import { istDateKey } from "@/lib/dashboard-calc"
+import { istDateKey, istMinutes, parseHHMM } from "@/lib/dashboard-calc"
 import { recalculateAttendance } from "@/lib/attendance"
 
 export class PunchRequestError extends Error {
@@ -54,6 +54,10 @@ function validateTimes(data: CreatePunchRequestInput) {
     if (!data.requestedOutTime || !TIME_REGEX.test(data.requestedOutTime)) {
       throw new PunchRequestError("Valid requestedOutTime (HH:MM) is required for BOTH punches", 400)
     }
+    // HH:MM strings are zero-padded, so plain string comparison orders them correctly
+    if (data.requestedOutTime <= data.requestedInTime) {
+      throw new PunchRequestError("OUT time must be later than IN time", 400)
+    }
   } else {
     throw new PunchRequestError("Invalid punchType: must be IN, OUT, or BOTH", 400)
   }
@@ -73,6 +77,21 @@ export async function createPunchRequest(staffId: string, data: CreatePunchReque
   }
 
   validateTimes(data)
+
+  const now = new Date()
+  const todayKey = istDateKey(now)
+  if (data.date > todayKey) {
+    throw new PunchRequestError("Cannot request a punch for a future date", 400)
+  }
+  if (data.date === todayKey) {
+    const nowMinutes = istMinutes(now)
+    const requestedTimes = [data.requestedTime, data.requestedInTime, data.requestedOutTime].filter(
+      (t): t is string => typeof t === "string" && TIME_REGEX.test(t)
+    )
+    if (requestedTimes.some((t) => parseHHMM(t) > nowMinutes)) {
+      throw new PunchRequestError("Cannot request a punch for a time that has not happened yet", 400)
+    }
+  }
 
   // 1. Check if staff exists and was employed on date
   const staff = await prisma.staff.findUnique({
@@ -123,7 +142,6 @@ export async function createPunchRequest(staffId: string, data: CreatePunchReque
   if (maxDaysSetting?.value) {
     const maxDays = parseInt(maxDaysSetting.value, 10)
     if (!isNaN(maxDays) && maxDays > 0) {
-      const todayKey = istDateKey(new Date())
       const [tY, tM, tD] = todayKey.split("-").map(Number)
       const [rY, rM, rD] = data.date.split("-").map(Number)
       const todayUtc = Date.UTC(tY, tM - 1, tD)
@@ -221,13 +239,37 @@ export async function listPunchRequests(filters: ListPunchRequestsFilters = {}) 
   })
 }
 
-export async function approvePunchRequest(params: {
+type ReviewParams = {
   requestId: string
   reviewerUserId: string
+  /** The reviewer's own staff record, if any: approvers may not decide their own requests. */
+  reviewerStaffId?: string | null
   reviewerDepartmentIds?: string[] | null
   isApproverRole?: boolean
   decisionRemarks?: string | null
-}) {
+}
+
+function assertReviewerAuthority(
+  params: ReviewParams,
+  request: { staffId: string; staff?: { departmentId: string | null } | null }
+) {
+  if (!params.isApproverRole) return
+
+  // An approver's own request must be decided by someone else
+  if (params.reviewerStaffId && request.staffId === params.reviewerStaffId) {
+    throw new PunchRequestError("You cannot approve or reject your own request", 403)
+  }
+
+  // Check department authority for scoped approvers
+  if (params.reviewerDepartmentIds) {
+    const deptId = request.staff?.departmentId
+    if (!deptId || !params.reviewerDepartmentIds.includes(deptId)) {
+      throw new PunchRequestError("Forbidden", 403)
+    }
+  }
+}
+
+export async function approvePunchRequest(params: ReviewParams) {
   const preCheck = await prisma.punchRequest.findUnique({
     where: { id: params.requestId },
     include: {
@@ -243,13 +285,7 @@ export async function approvePunchRequest(params: {
     throw new PunchRequestError("Punch request not found", 404)
   }
 
-  // Check department authority for scoped approvers
-  if (params.isApproverRole && params.reviewerDepartmentIds) {
-    const deptId = preCheck.staff?.departmentId
-    if (!deptId || !params.reviewerDepartmentIds.includes(deptId)) {
-      throw new PunchRequestError("Forbidden", 403)
-    }
-  }
+  assertReviewerAuthority(params, preCheck)
 
   // Perform transaction with concurrency protection: verify pending status and locked payroll atomically
   const { updated, targetDate } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -357,19 +393,13 @@ export async function approvePunchRequest(params: {
     }
   })
 
-  // 4. Recalculate attendance for the day outside transaction
-  await recalculateAttendance(targetDate, targetDate)
+  // 4. Recalculate that person's day outside the transaction (so the new punches are visible)
+  await recalculateAttendance(targetDate, targetDate, updated.staffId)
 
   return updated
 }
 
-export async function rejectPunchRequest(params: {
-  requestId: string
-  reviewerUserId: string
-  reviewerDepartmentIds?: string[] | null
-  isApproverRole?: boolean
-  decisionRemarks?: string | null
-}) {
+export async function rejectPunchRequest(params: ReviewParams) {
   const preCheck = await prisma.punchRequest.findUnique({
     where: { id: params.requestId },
     include: {
@@ -385,13 +415,7 @@ export async function rejectPunchRequest(params: {
     throw new PunchRequestError("Punch request not found", 404)
   }
 
-  // Check department authority for scoped approvers
-  if (params.isApproverRole && params.reviewerDepartmentIds) {
-    const deptId = preCheck.staff?.departmentId
-    if (!deptId || !params.reviewerDepartmentIds.includes(deptId)) {
-      throw new PunchRequestError("Forbidden", 403)
-    }
-  }
+  assertReviewerAuthority(params, preCheck)
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const request = await tx.punchRequest.findUnique({

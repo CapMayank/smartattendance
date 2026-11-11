@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
+import { isUniqueViolation } from "@/lib/validators"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -26,8 +27,12 @@ export async function POST(request: Request) {
     }
     const dept = await prisma.department.create({ data: { name } })
     return NextResponse.json(dept, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: 'Failed to create department (name may already exist)' }, { status: 500 })
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'A department with this name already exists' }, { status: 409 })
+    }
+    console.error('Create department error:', error)
+    return NextResponse.json({ error: 'Failed to create department' }, { status: 500 })
   }
 }
 
@@ -77,7 +82,11 @@ export async function PUT(request: Request) {
       data: { name }
     })
     return NextResponse.json(dept)
-  } catch {
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'A department with this name already exists' }, { status: 409 })
+    }
+    console.error('Update department error:', error)
     return NextResponse.json({ error: 'Failed to update department' }, { status: 500 })
   }
 }

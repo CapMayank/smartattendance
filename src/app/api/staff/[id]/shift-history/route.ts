@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
+import { requireRole, canAccessStaff } from "@/lib/rbac"
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -15,6 +15,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const staff = await prisma.staff.findUnique({ where: { id }, select: { id: true } })
     if (!staff) return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
+    if (!(await canAccessStaff(auth.user, id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const rows = await prisma.shiftAssignment.findMany({
       where: { staffId: id },

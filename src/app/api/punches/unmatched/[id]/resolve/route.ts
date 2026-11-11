@@ -73,6 +73,23 @@ export async function POST(
         return NextResponse.json({ error: 'Staff member not found' }, { status: 404 });
       }
 
+      // Same guardrail as manual punches: a finalized payroll month is never modified
+      const lockedPayroll = await prisma.monthlyPayroll.findUnique({
+        where: {
+          staffId_month_year: {
+            staffId: staff.id,
+            month: punch.timestamp.getMonth() + 1,
+            year: punch.timestamp.getFullYear(),
+          },
+        },
+      });
+      if (lockedPayroll?.isLocked) {
+        return NextResponse.json(
+          { error: 'Cannot attach a punch to a locked payroll month' },
+          { status: 400 }
+        );
+      }
+
       await prisma.$transaction(async (tx: any) => {
         await tx.attendanceLog.create({
           data: {

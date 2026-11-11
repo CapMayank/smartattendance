@@ -5,6 +5,7 @@ const mockPrisma = vi.hoisted(() => ({
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    count: vi.fn(),
   },
   staff: {
     findUnique: vi.fn(),
@@ -456,6 +457,48 @@ describe("POST /api/staff/[id]/lifecycle", () => {
           targetId: "s1",
         }),
       });
+    });
+  });
+
+  describe("EXIT lockout guards", () => {
+    const activeStaff = (user: unknown) => ({
+      id: "s1",
+      name: "Alice",
+      employmentPeriods: [{ id: "ep1", startDate: "2024-01-01", endDate: null }],
+      user,
+    });
+
+    it("refuses to exit the staff record of the signed-in admin", async () => {
+      mockPrisma.staff.findUnique.mockResolvedValue(
+        activeStaff({ id: "u-admin", role: "ADMIN", disabledAt: null })
+      );
+      const res = await createRequest("s1", { action: "EXIT", lastWorkingDay: "2026-01-01", exitReason: "RESIGNED" });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toMatch(/your own staff record/i);
+      expect(mockPrisma.employmentPeriod.update).not.toHaveBeenCalled();
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it("refuses to exit the last remaining active admin", async () => {
+      mockPrisma.staff.findUnique.mockResolvedValue(
+        activeStaff({ id: "u-other-admin", role: "ADMIN", disabledAt: null })
+      );
+      mockPrisma.user.count.mockResolvedValue(0);
+      const res = await createRequest("s1", { action: "EXIT", lastWorkingDay: "2026-01-01", exitReason: "RESIGNED" });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toMatch(/last remaining active Admin/i);
+      expect(mockPrisma.employmentPeriod.update).not.toHaveBeenCalled();
+    });
+
+    it("allows exiting another admin when an active admin remains", async () => {
+      mockPrisma.staff.findUnique.mockResolvedValue(
+        activeStaff({ id: "u-other-admin", role: "ADMIN", disabledAt: null })
+      );
+      mockPrisma.user.count.mockResolvedValue(1);
+      mockPrisma.employmentPeriod.update.mockResolvedValue({ id: "ep1", endDate: "2026-01-01" });
+      const res = await createRequest("s1", { action: "EXIT", lastWorkingDay: "2026-01-01", exitReason: "RESIGNED" });
+      expect(res.status).toBe(200);
+      expect(mockPrisma.user.update).toHaveBeenCalled();
     });
   });
 });

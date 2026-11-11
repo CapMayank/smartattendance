@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
-import { calculateStaffPayroll, PayGroup } from "@/lib/payroll-calc";
+import { calculateStaffPayroll, payrollColumns, PayGroup } from "@/lib/payroll-calc";
 import { format } from "date-fns";
 import { isEmployedOnDate } from "@/lib/employment";
+import { parseMonthYear } from "@/lib/validators";
 
 export async function POST(request: Request) {
   try {
@@ -14,11 +15,11 @@ export async function POST(request: Request) {
     if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
-    const { month, year } = body;
-
-    if (!month || !year) {
+    const period = parseMonthYear(body.month, body.year);
+    if (!period) {
       return NextResponse.json({ error: "Month and year required" }, { status: 400 });
     }
+    const { month, year } = period;
 
     const totalDays = new Date(year, month, 0).getDate();
 
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
             where: { id: payroll.id },
             data: {
               presentDays: Math.min(presentDays, totalDays),
-              ...calc
+              ...payrollColumns(calc)
             }
           });
           return true; // marked as updated

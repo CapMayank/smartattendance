@@ -46,6 +46,15 @@ const ACTION_META: Record<
   PROFILE_CHANGE_APPROVED: { label: 'Profile Change Approved', tone: 'tone-present' },
   PROFILE_CHANGE_REJECTED: { label: 'Profile Change Rejected', tone: 'tone-absent' },
   SETUP_COMPLETED: { label: 'Setup Completed', tone: 'tone-accent' },
+  // The setup wizard records its completion under this name
+  SYSTEM_SETUP_COMPLETED: { label: 'Setup Completed', tone: 'tone-accent' },
+  PAYROLL_LOCKED: { label: 'Payroll Locked', tone: 'tone-late' },
+  PAYROLL_UNLOCKED: { label: 'Payroll Unlocked', tone: 'tone-accent' },
+  EPFO_EXPORT_REG: { label: 'EPFO Registration Exported', tone: 'tone-accent' },
+  EPFO_EXPORT_EXIT: { label: 'EPFO Exit Exported', tone: 'tone-accent' },
+  EPFO_EXPORT_KYC: { label: 'EPFO KYC Exported', tone: 'tone-accent' },
+  EPFO_MARK_FILED: { label: 'EPFO Marked Filed', tone: 'tone-present' },
+  EPFO_RESET_PENDING: { label: 'EPFO Reset to Pending', tone: 'tone-muted' },
 }
 
 function summarizeDetails(row: AuditLogRow): string {

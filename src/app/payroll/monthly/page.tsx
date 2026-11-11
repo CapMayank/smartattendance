@@ -99,8 +99,8 @@ export default function MonthlyPayrollPage() {
         const wagePerDay = p.totalDays > 0 ? Math.round(baseGrossWage / p.totalDays) : 0
 
         let bDays = p.bonusDays ?? 0
-        let bAmount = p.bonusAmount ?? 0
-        let bType = p.bonusType || (bDays > 0 ? 'DAYS' : 'CUSTOM')
+        const bAmount = p.bonusAmount ?? 0
+        const bType = p.bonusType || (bDays > 0 ? 'DAYS' : 'CUSTOM')
 
         // If bonusAmount exists but bonusDays is 0, infer days if wagePerDay > 0
         if (bAmount > 0 && bDays === 0 && wagePerDay > 0) {

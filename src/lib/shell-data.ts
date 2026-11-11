@@ -26,10 +26,10 @@ function formatRoleLabel(role?: string): string {
 export async function getShellData(): Promise<ShellData | null> {
   // Not wrapped: JWT sessions need no DB, and Next's dynamic-rendering signals must propagate.
   const session = await getServerSession(authOptions);
-  if (!session) return null;
+  if (!session?.user?.id) return null;
 
   const userName = session.user?.name ?? session.user?.email ?? "Member";
-  const roleCode = (session.user?.role as "ADMIN" | "APPROVER" | "EMPLOYEE" | undefined) ?? "ADMIN";
+  const roleCode = (session.user?.role as "ADMIN" | "APPROVER" | "EMPLOYEE" | undefined) ?? "EMPLOYEE";
   const userRole = formatRoleLabel(roleCode);
   const staffId = session.user?.staffId ?? null;
 

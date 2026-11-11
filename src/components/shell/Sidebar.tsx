@@ -151,7 +151,10 @@ export function Sidebar({
                   )}
                 >
                   <Icon size={18} aria-hidden="true" className={cn("flex-none", isActive && "text-acc-2")} />
-                  {label}
+                  {/* Long labels stay on one line: a wrapped label overflows the fixed row height */}
+                  <span className="min-w-0 flex-1 truncate" title={label}>
+                    {label}
+                  </span>
                   {href === "/staff" ? (
                     <span className="num ml-auto text-[11.5px] text-subtle">{shell.staffCount}</span>
                   ) : null}

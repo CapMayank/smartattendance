@@ -1,12 +1,47 @@
 'use client'
 
-import { signIn, useSession } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle, IdCard } from "lucide-react"
 import { IntimeMark, SchoolBadge } from "@/components/brand/Brand"
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand"
 import { Button, Card, Field, Input } from "@/components/ui"
+
+/**
+ * Credentials sign-in against the NextAuth endpoints.
+ *
+ * next-auth's own `signIn(..., { redirect: false })` parses the URL in the response with
+ * `new URL(url)`, which throws for relative URLs. Our `redirect` callback returns relative
+ * URLs on purpose (so users are never sent to the server's internal address), which made
+ * every sign-in, successful or not, end in a thrown error. Posting the form ourselves lets
+ * the URL be resolved against the current origin instead.
+ */
+async function signInWithCredentials(identifier: string, password: string): Promise<"ok" | "invalid"> {
+  const csrfRes = await fetch("/api/auth/csrf")
+  if (!csrfRes.ok) throw new Error("csrf request failed")
+  const { csrfToken } = (await csrfRes.json()) as { csrfToken: string }
+
+  const res = await fetch("/api/auth/callback/credentials", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      csrfToken,
+      identifier,
+      email: identifier,
+      password,
+      callbackUrl: "/",
+      json: "true",
+    }),
+  })
+  // Wrong credentials answer 401; anything else unexpected is a server problem
+  if (res.status === 401) return "invalid"
+  if (!res.ok) throw new Error(`sign-in failed with status ${res.status}`)
+
+  const data = (await res.json().catch(() => ({}))) as { url?: string }
+  const error = data.url ? new URL(data.url, window.location.origin).searchParams.get("error") : null
+  return error ? "invalid" : "ok"
+}
 
 export default function LoginPage() {
   const { status } = useSession()
@@ -32,14 +67,9 @@ export default function LoginPage() {
     setSubmitting(true)
 
     try {
-      const res = await signIn("credentials", {
-        identifier: identifier.trim(),
-        email: identifier.trim(),
-        password,
-        redirect: false,
-      })
+      const result = await signInWithCredentials(identifier.trim(), password)
 
-      if (res?.error) {
+      if (result === "invalid") {
         setError("Invalid Employee ID / email or password.")
         setSubmitting(false)
       } else {

@@ -28,13 +28,17 @@ export const authOptions: AuthOptions = {
         // Check if there are any users in the database
         const userCount = await prisma.user.count()
         
-        // If DB is empty, use default and auto-create the admin user
-        const defaultEmail = process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com"
-        const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || "admin"
+        // Legacy bootstrap: with an empty database, the account named by DEFAULT_ADMIN_EMAIL /
+        // DEFAULT_ADMIN_PASSWORD is created on first sign-in. There is deliberately no built-in
+        // password: without DEFAULT_ADMIN_PASSWORD this path is off and the first administrator
+        // is created by the setup wizard instead.
+        const defaultEmail = (process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com").trim().toLowerCase()
+        const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD
 
         if (
           userCount === 0 &&
-          (rawIdentifier === defaultEmail || rawIdentifier.toLowerCase() === defaultEmail.toLowerCase()) &&
+          defaultPassword &&
+          rawIdentifier.trim().toLowerCase() === defaultEmail &&
           credentials.password === defaultPassword
         ) {
           const hash = await bcrypt.hash(defaultPassword, 10)
@@ -165,6 +169,11 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async session({ session, token }) {
+      if (token?.revoked) {
+        // The account was disabled, deleted, or its employment ended after sign-in:
+        // hand back a session with no user so every caller treats it as signed out.
+        return { expires: session.expires } as typeof session
+      }
       if (token && session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as "ADMIN" | "APPROVER" | "EMPLOYEE"
@@ -174,16 +183,59 @@ export const authOptions: AuthOptions = {
       }
       return session
     },
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id
         token.role = user.role
         token.staffId = user.staffId ?? null
         token.employeeCode = user.employeeCode ?? null
         token.mustChangePassword = Boolean(user.mustChangePassword)
+        token.revoked = false
+        return token
       }
-      if (trigger === "update" && session?.mustChangePassword !== undefined) {
-        token.mustChangePassword = Boolean(session.mustChangePassword)
+
+      // A JWT outlives changes made after sign-in. Re-read the account on every use so a
+      // role change, a forced password change, or a disabled/exited account takes effect
+      // immediately instead of at the next login. The database is the only source of truth:
+      // values supplied by the browser through session.update() are never trusted.
+      if (token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: {
+              role: true,
+              disabledAt: true,
+              mustChangePassword: true,
+              staffId: true,
+              staff: {
+                select: {
+                  id: true,
+                  employeeCode: true,
+                  employmentPeriods: { select: { startDate: true, endDate: true } },
+                },
+              },
+            },
+          })
+          const employmentEnded =
+            !!dbUser &&
+            dbUser.role !== "ADMIN" &&
+            !!dbUser.staff &&
+            dbUser.staff.employmentPeriods.length > 0 &&
+            !isEmployedOnDate(dbUser.staff, istDateKey(new Date()))
+
+          if (!dbUser || dbUser.disabledAt !== null || employmentEnded) {
+            token.revoked = true
+          } else {
+            token.revoked = false
+            token.role = dbUser.role as "ADMIN" | "APPROVER" | "EMPLOYEE"
+            token.staffId = dbUser.staffId ?? null
+            token.employeeCode = dbUser.staff?.employeeCode ?? null
+            token.mustChangePassword = Boolean(dbUser.mustChangePassword)
+          }
+        } catch (error) {
+          // A database hiccup must not sign everyone out: keep the last known claims.
+          console.error("[auth] could not refresh session claims:", error)
+        }
       }
       return token
     },

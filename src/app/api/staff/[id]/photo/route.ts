@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
+import { requireRole, canAccessStaff } from "@/lib/rbac"
 import { jpegResponse } from '@/lib/photo-response'
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -16,8 +16,7 @@ export async function GET(_request: Request, { params }: Ctx) {
     const { id } = await params
     if (!id || !id.trim()) return NextResponse.json({ error: 'Staff id required' }, { status: 400 })
 
-    const userStaffId = auth.user.staffId ?? auth.user.staff?.id
-    if (auth.user.role === 'EMPLOYEE' && userStaffId && userStaffId !== id) {
+    if (!(await canAccessStaff(auth.user, id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

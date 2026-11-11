@@ -1,6 +1,9 @@
 import { recalculateRange } from '@/lib/attendance-range'
 
-/** Recalculates every staff's daily records for the range; returns the number of records written. */
-export async function recalculateAttendance(startDate: Date, endDate: Date): Promise<number> {
-  return (await recalculateRange({ startDate, endDate })).records
+/**
+ * Recalculates daily records for the range and returns the number of records written.
+ * With `staffId` only that person's records are recalculated; otherwise every staff member's.
+ */
+export async function recalculateAttendance(startDate: Date, endDate: Date, staffId?: string): Promise<number> {
+  return (await recalculateRange({ startDate, endDate, ...(staffId ? { staffId } : {}) })).records
 }

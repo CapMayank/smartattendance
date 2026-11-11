@@ -58,8 +58,9 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const { name, date, startDate, endDate } = data
-    
+    const { date, startDate, endDate } = data
+    const name = typeof data?.name === 'string' ? data.name.trim() : ''
+
     if (!name) {
       return NextResponse.json({ error: 'Holiday name is required' }, { status: 400 })
     }
@@ -74,6 +75,9 @@ export async function POST(request: Request) {
 
       const start = startOfDay(new Date(startDate))
       const end = startOfDay(new Date(endDate))
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return NextResponse.json({ error: 'Start date and end date must be valid dates' }, { status: 400 })
+      }
 
       if (end < start) {
         return NextResponse.json(
@@ -116,6 +120,9 @@ export async function POST(request: Request) {
     }
 
     const targetDate = startOfDay(new Date(date))
+    if (Number.isNaN(targetDate.getTime())) {
+      return NextResponse.json({ error: 'Date must be a valid date' }, { status: 400 })
+    }
 
     const holiday = await prisma.holiday.upsert({
       where: { date: targetDate },

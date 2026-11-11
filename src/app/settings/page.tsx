@@ -156,7 +156,10 @@ export default function SettingsPage() {
       if (policyRes.ok && maxDaysRes.ok && statutoryRes.ok) {
         setMessage('Settings saved successfully!')
       } else {
-        setMessage('Failed to save settings.')
+        // Show why the server refused (e.g. a malformed HH:MM value) instead of a bare failure
+        const failed = [policyRes, maxDaysRes, statutoryRes].find((r) => !r.ok)
+        const body = failed ? await failed.json().catch(() => null) : null
+        setMessage(body?.error ? `Failed to save settings: ${body.error}` : 'Failed to save settings.')
       }
     } catch {
       setMessage('Error saving settings.')

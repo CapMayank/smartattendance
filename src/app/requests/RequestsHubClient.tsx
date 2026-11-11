@@ -37,6 +37,8 @@ import {
 
 export interface RequestsHubClientProps {
   userRole: "ADMIN" | "APPROVER";
+  /** Staff record of a signed-in approver: they cannot decide their own request. */
+  viewerStaffId?: string | null;
   initialPunchRequests: AdminPunchRequestItem[];
   initialProfileRequests: AdminProfileRequestItem[];
   departments: { id: string; name: string }[];
@@ -46,6 +48,7 @@ export interface RequestsHubClientProps {
 
 export function RequestsHubClient({
   userRole,
+  viewerStaffId = null,
   initialPunchRequests,
   initialProfileRequests,
   departments,
@@ -547,6 +550,7 @@ export function RequestsHubClient({
                       key={`punch-${item.id}`}
                       request={item}
                       userRole={userRole}
+                      viewerStaffId={viewerStaffId}
                       showTypeBadge={true}
                       onApprove={handleApprovePunch}
                       onReject={(req) => setPunchRejectModalReq(req)}
@@ -590,6 +594,7 @@ export function RequestsHubClient({
       {/* Tab 2: Punch Regularizations Only */}
       {activeTab === "punches" && (
         <PunchRequestsAdminClient
+          viewerStaffId={viewerStaffId}
           initialRequests={punchRequests}
           departments={departments}
           userRole={userRole}

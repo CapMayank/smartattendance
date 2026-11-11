@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     // If no dates provided, calculate from the earliest log up to today
     let startD = startDate ? new Date(startDate) : null;
-    let endD = endDate ? new Date(endDate) : new Date();
+    const endD = endDate ? new Date(endDate) : new Date();
 
     if (!startD) {
       const earliestLog = await prisma.attendanceLog.findFirst({
@@ -26,6 +26,13 @@ export async function POST(request: Request) {
       } else {
         startD = new Date(); // Today
       }
+    }
+
+    if (Number.isNaN(startD.getTime()) || Number.isNaN(endD.getTime())) {
+      return NextResponse.json({ error: 'startDate and endDate must be valid dates' }, { status: 400 });
+    }
+    if (startD > endD) {
+      return NextResponse.json({ error: 'startDate cannot be after endDate' }, { status: 400 });
     }
 
     const { days, records } = await recalculateRange({ startDate: startD, endDate: endD })

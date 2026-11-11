@@ -50,7 +50,7 @@ export default async function Dashboard({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user?.id) {
     redirect("/login");
   }
 

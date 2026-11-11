@@ -12,6 +12,9 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       findUnique: vi.fn(),
     },
+    staff: {
+      count: vi.fn(),
+    },
     monthlyPayroll: {
       findFirst: vi.fn(),
     },
@@ -26,10 +29,14 @@ const mockRecalculate = vi.mocked(recalculateAttendance)
 const mockUserFindUnique = vi.mocked(prisma.user.findUnique)
 const mockPayrollFindFirst = vi.mocked(prisma.monthlyPayroll.findFirst)
 const mockCreateMany = vi.mocked(prisma.attendanceLog.createMany)
+const mockStaffCount = vi.mocked(prisma.staff.count)
 
 describe("POST /api/punches/bulk", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Every staff id in a request exists unless a test says otherwise
+    mockStaffCount.mockImplementation((async (args?: { where?: { id?: { in?: string[] } } }) =>
+      new Set(args?.where?.id?.in ?? []).size) as never)
     session.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } } as never)
     mockUserFindUnique.mockResolvedValue({
       id: "u1",

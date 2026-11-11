@@ -213,7 +213,7 @@ export default function StaffReportsPage() {
   const exportCurrentTabCsv = () => {
     if (!data) return
     let csvRows: any[] = []
-    let filename = `Sarvodaya_Staff_${activeTab}_${todayKey}.csv`
+    const filename = `Sarvodaya_Staff_${activeTab}_${todayKey}.csv`
 
     if (activeTab === 'members') {
       csvRows = filteredMembers.map((m) => ({

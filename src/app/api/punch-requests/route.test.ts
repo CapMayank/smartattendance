@@ -110,6 +110,17 @@ const USERS = [
     staff: STAFF2,
     approverDepartments: [],
   },
+  {
+    // An approver who is also staff member s1 (so requests from s1 are their own)
+    id: "u-appr-self",
+    name: "Approver Asha",
+    email: "approver-asha@school.com",
+    role: "APPROVER",
+    approvesAllDepartments: true,
+    staffId: "s1",
+    staff: STAFF1,
+    approverDepartments: [],
+  },
 ]
 
 let fake: ReturnType<typeof createFakePrisma>
@@ -481,7 +492,8 @@ describe("PATCH /api/punch-requests/[id]", () => {
       // recalculateAttendance called for targetDate
       expect(recalcMock).toHaveBeenCalledWith(
         new Date("2026-11-06T00:00:00+05:30"),
-        new Date("2026-11-06T00:00:00+05:30")
+        new Date("2026-11-06T00:00:00+05:30"),
+        "s1"
       )
     })
 
@@ -600,5 +612,49 @@ describe("PATCH /api/punch-requests/[id]", () => {
       const res = await PATCH(patchReq("pr1", { action: "REJECT" }), patchContext("pr1"))
       expect(res.status).toBe(403)
     })
+  })
+})
+
+describe("punch request rules", () => {
+  it("rejects a request for a future date with 400", async () => {
+    const res = await POST(postReq({ date: "2099-01-05", punchType: "IN", requestedTime: "09:00", reason: "FORGOT_SWIPE" }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/future date/i)
+  })
+
+  it("rejects a BOTH request whose OUT time is not after its IN time", async () => {
+    for (const [requestedInTime, requestedOutTime] of [["15:00", "08:00"], ["09:00", "09:00"]]) {
+      const res = await POST(
+        postReq({ date: "2026-11-06", punchType: "BOTH", requestedInTime, requestedOutTime, reason: "FORGOT_SWIPE" })
+      )
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toMatch(/later than IN/i)
+    }
+  })
+
+  it("an approver cannot approve or reject their own request, but an admin can", async () => {
+    const ownRequest = {
+      id: "pr-own",
+      staffId: "s1",
+      date: "2026-11-06",
+      punchType: "IN",
+      requestedTime: "08:45",
+      reason: "FORGOT_SWIPE",
+      status: "PENDING",
+      staff: STAFF1,
+    }
+    setupPrisma({ punchRequests: [ownRequest] })
+
+    sessionMock.mockResolvedValue({ user: { id: "u-appr-self" } } as never)
+    for (const action of ["APPROVE", "REJECT"]) {
+      const res = await PATCH(patchReq("pr-own", { action }), patchContext("pr-own"))
+      expect(res.status).toBe(403)
+      expect((await res.json()).error).toMatch(/your own request/i)
+    }
+    expect(recalcMock).not.toHaveBeenCalled()
+
+    sessionMock.mockResolvedValue({ user: { id: "u-admin" } } as never)
+    const res = await PATCH(patchReq("pr-own", { action: "APPROVE" }), patchContext("pr-own"))
+    expect(res.status).toBe(200)
   })
 })

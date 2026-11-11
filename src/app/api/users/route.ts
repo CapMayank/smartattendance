@@ -5,6 +5,9 @@ import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
 import bcrypt from 'bcryptjs'
 
+const isAppRole = (value: unknown): value is 'ADMIN' | 'APPROVER' | 'EMPLOYEE' =>
+  value === 'ADMIN' || value === 'APPROVER' || value === 'EMPLOYEE'
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   const auth = await requireRole(session, ['ADMIN'])
@@ -30,8 +33,16 @@ export async function POST(request: Request) {
   if (auth.errorResponse) return auth.errorResponse
 
   try {
-    const { name, email, password, role, staffId, mustChangePassword } = await request.json()
+    const { name, password, role, staffId, mustChangePassword, ...rest } = await request.json()
+    // Sign-in looks emails up in lowercase, so they must be stored that way too
+    const email = typeof rest.email === 'string' ? rest.email.trim().toLowerCase() : ''
     if (!email || !password) return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
+    if (typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+    }
+    if (role !== undefined && !isAppRole(role)) {
+      return NextResponse.json({ error: 'Role must be ADMIN, APPROVER or EMPLOYEE' }, { status: 400 })
+    }
 
     const hash = await bcrypt.hash(password, 10)
     const user = await prisma.user.create({ 
@@ -104,8 +115,16 @@ export async function PUT(request: Request) {
 
   try {
     const data = await request.json()
-    const { id, name, email, password, role, disabledAt, mustChangePassword, staffId } = data
+    const { id, name, password, role, disabledAt, mustChangePassword, staffId } = data
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    const email =
+      typeof data.email === 'string' ? data.email.trim().toLowerCase() || null : data.email === null ? null : undefined
+    if (role !== undefined && !isAppRole(role)) {
+      return NextResponse.json({ error: 'Role must be ADMIN, APPROVER or EMPLOYEE' }, { status: 400 })
+    }
+    if (password !== undefined && password !== '' && (typeof password !== 'string' || password.length < 8)) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+    }
 
     const targetUser = await prisma.user.findUnique({ where: { id } })
     if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -120,6 +139,10 @@ export async function PUT(request: Request) {
       if (activeAdminCount <= 1) {
         return NextResponse.json({ error: 'Cannot demote or disable the last remaining active Admin user' }, { status: 400 })
       }
+    }
+
+    if (id === auth.user.id && disabledAt) {
+      return NextResponse.json({ error: 'You cannot disable your own account' }, { status: 400 })
     }
 
     const updateData: any = {}

@@ -3,14 +3,14 @@ import { prisma } from '@/lib/prisma'
 export const DEFAULT_SETUP_SECRET = 'intime-sarvodaya-setup-2026'
 
 /**
- * Returns the configured setup secret key from environment variables or default.
+ * Returns the configured setup secret key from environment variables.
+ * The built-in default only exists for local development: in production the
+ * secret must come from the environment, otherwise setup stays locked.
  */
 export function getSetupSecret(): string {
-  return (
-    process.env.SETUP_SECRET ||
-    process.env.INITIAL_SETUP_KEY ||
-    DEFAULT_SETUP_SECRET
-  )
+  const configured = process.env.SETUP_SECRET || process.env.INITIAL_SETUP_KEY
+  if (configured) return configured
+  return process.env.NODE_ENV === 'production' ? '' : DEFAULT_SETUP_SECRET
 }
 
 /**
@@ -18,7 +18,9 @@ export function getSetupSecret(): string {
  */
 export function verifySetupSecret(secret: string): boolean {
   if (!secret || typeof secret !== 'string') return false
-  return secret.trim() === getSetupSecret().trim()
+  const expected = getSetupSecret().trim()
+  if (!expected) return false
+  return secret.trim() === expected
 }
 
 /**

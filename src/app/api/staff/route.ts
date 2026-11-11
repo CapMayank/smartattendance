@@ -9,7 +9,8 @@ import { ALWAYS } from '@/lib/shift-lookup'
 import { applyShiftChange, isValidDayKey, START_BEFORE_ALWAYS_ERROR, syncCurrentShifts } from '@/lib/shift-change-service'
 import { formatEmployeeCode, parseEmployeeCode } from '@/lib/employee-code'
 import { generateTemporaryPassword } from '@/lib/temporary-password'
-import { calculateStaffPayroll, type PayGroup } from '@/lib/payroll-calc'
+import { calculateStaffPayroll, payrollColumns, type PayGroup } from '@/lib/payroll-calc'
+import { isUniqueViolation } from '@/lib/validators'
 import bcrypt from 'bcryptjs'
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
@@ -101,8 +102,19 @@ export async function GET() {
   // Sort numerically by machineId so they appear in logical order everywhere (e.g. dropdowns)
   staff.sort((a, b) => a.machineId.localeCompare(b.machineId, undefined, { numeric: true }))
   
+  // Bank, identity and KYC details are for administrators only. Approvers get the roster
+  // (names, department, shift, employment) without anyone's payroll or login details.
+  const isAdmin = auth.user.role === 'ADMIN'
+
   // profilePhotoId is a scalar column, so no image bytes are loaded for the list
-  return NextResponse.json(staff.map((s) => ({ ...s, hasPhoto: s.profilePhotoId != null })))
+  return NextResponse.json(
+    staff.map((s) => ({
+      ...s,
+      payrollInfo: isAdmin ? s.payrollInfo : s.payrollInfo ? { payGroup: s.payrollInfo.payGroup } : null,
+      user: isAdmin ? s.user : s.user ? { role: s.user.role, disabledAt: s.user.disabledAt } : null,
+      hasPhoto: s.profilePhotoId != null,
+    }))
+  )
 }
 
 export async function POST(request: Request) {
@@ -176,6 +188,9 @@ export async function POST(request: Request) {
     const year = parseInt(joiningDate.slice(0, 4), 10)
     const userRole = role === 'ADMIN' || role === 'APPROVER' || role === 'EMPLOYEE' ? role : 'EMPLOYEE'
     const normalizedEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : undefined
+    if (normalizedEmail && (await prisma.user.findUnique({ where: { email: normalizedEmail } }))) {
+      return NextResponse.json({ error: 'This email is already used by another login' }, { status: 409 })
+    }
     const isApproverAllDepts = userRole === 'APPROVER' ? approvesAllDepartments !== false : false
     const scopedDeptIds: string[] =
       userRole === 'APPROVER' && !isApproverAllDepts && Array.isArray(approverDepartmentIds)
@@ -319,6 +334,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ...createdStaff, temporaryPassword }, { status: 201 })
   } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json(
+        { error: 'Machine ID, employee code or email is already in use' },
+        { status: 409 }
+      )
+    }
     console.error('Failed to create staff:', error)
     return NextResponse.json({ error: 'Failed to create staff' }, { status: 500 })
   }
@@ -455,9 +476,53 @@ export async function PUT(request: Request) {
         shiftId: true,
         employeeCode: true,
         joiningDate: true,
+        machineId: true,
+        user: { select: { id: true, role: true, disabledAt: true } },
       },
     })
     if (!current) return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
+
+    // Every check that can reject the request runs before the first write, so a rejected
+    // edit never leaves the record half-updated.
+    if (updateData.name !== undefined && (typeof updateData.name !== 'string' || !updateData.name.trim())) {
+      return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 })
+    }
+    const nextMachineId =
+      updateData.machineId !== undefined && updateData.machineId !== null
+        ? String(updateData.machineId).trim()
+        : undefined
+    if (nextMachineId !== undefined) {
+      if (!nextMachineId) {
+        return NextResponse.json({ error: 'Machine ID cannot be empty' }, { status: 400 })
+      }
+      if (nextMachineId !== current.machineId) {
+        const machineIdOwner = await prisma.staff.findUnique({ where: { machineId: nextMachineId } })
+        if (machineIdOwner && machineIdOwner.id !== id) {
+          return NextResponse.json({ error: 'Machine ID already exists' }, { status: 409 })
+        }
+      }
+    }
+    if (typeof updateData.email === 'string' && updateData.email.trim()) {
+      const emailOwner = await prisma.user.findUnique({
+        where: { email: updateData.email.trim().toLowerCase() },
+      })
+      if (emailOwner && emailOwner.id !== current.user?.id) {
+        return NextResponse.json({ error: 'This email is already used by another login' }, { status: 409 })
+      }
+    }
+    if (
+      (updateData.role === 'APPROVER' || updateData.role === 'EMPLOYEE') &&
+      current.user?.role === 'ADMIN' &&
+      current.user.disabledAt === null
+    ) {
+      const activeAdminCount = await prisma.user.count({ where: { role: 'ADMIN', disabledAt: null } })
+      if (activeAdminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot demote the last remaining active Admin user' },
+          { status: 400 }
+        )
+      }
+    }
 
     const nextShiftId: string | null = updateData.shiftId || null
     const shiftChanges = updateData.shiftId !== undefined && nextShiftId !== current.shiftId
@@ -490,12 +555,11 @@ export async function PUT(request: Request) {
       }
     }
 
-    const staffUpdateFields: Record<string, unknown> = {
-      name: updateData.name,
-      machineId: updateData.machineId,
-      departmentId: updateData.departmentId || null,
-      designationId: updateData.designationId || null,
-    }
+    const staffUpdateFields: Record<string, unknown> = {}
+    if (updateData.name !== undefined) staffUpdateFields.name = String(updateData.name).trim()
+    if (nextMachineId !== undefined) staffUpdateFields.machineId = nextMachineId
+    if (updateData.departmentId !== undefined) staffUpdateFields.departmentId = updateData.departmentId || null
+    if (updateData.designationId !== undefined) staffUpdateFields.designationId = updateData.designationId || null
     if (updatedJoiningDate !== current.joiningDate) {
       staffUpdateFields.joiningDate = updatedJoiningDate
     }
@@ -634,7 +698,7 @@ export async function PUT(request: Request) {
             if (calc) {
               await prisma.monthlyPayroll.update({
                 where: { id: row.id },
-                data: { ...calc },
+                data: payrollColumns(calc),
               })
             }
           }
@@ -795,7 +859,14 @@ export async function PUT(request: Request) {
       ...staff,
       ...(issuedTemporaryPassword ? { temporaryPassword: issuedTemporaryPassword } : {}),
     })
-  } catch {
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json(
+        { error: 'Machine ID, employee code or email is already in use' },
+        { status: 409 }
+      )
+    }
+    console.error('Failed to update staff:', error)
     return NextResponse.json({ error: 'Failed to update staff' }, { status: 500 })
   }
 }

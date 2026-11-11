@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
+import { isUniqueViolation } from "@/lib/validators"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -26,8 +27,12 @@ export async function POST(request: Request) {
     }
     const desig = await prisma.designation.create({ data: { name } })
     return NextResponse.json(desig, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: 'Failed to create designation (name may already exist)' }, { status: 500 })
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'A designation with this name already exists' }, { status: 409 })
+    }
+    console.error('Create designation error:', error)
+    return NextResponse.json({ error: 'Failed to create designation' }, { status: 500 })
   }
 }
 
@@ -73,7 +78,11 @@ export async function PUT(request: Request) {
       data: { name }
     })
     return NextResponse.json(desig)
-  } catch {
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'A designation with this name already exists' }, { status: 409 })
+    }
+    console.error('Update designation error:', error)
     return NextResponse.json({ error: 'Failed to update designation' }, { status: 500 })
   }
 }

@@ -343,3 +343,18 @@ describe("calculateStaffPayroll", () => {
     });
   });
 });
+
+describe("payrollColumns", () => {
+  it("only returns fields that exist as MonthlyPayroll columns", async () => {
+    const { Prisma } = await import("@prisma/client");
+    const { payrollColumns } = await import("./payroll-calc");
+    const columns = new Set<string>(Object.values(Prisma.MonthlyPayrollScalarFieldEnum));
+    for (const payGroup of ["BANK_EPF", "CASH"] as const) {
+      const calc = calculateStaffPayroll({ payGroup, monthlyCtc: 22400, presentDays: 20, totalDays: 30 });
+      expect(calc).not.toBeNull();
+      if (!calc) continue;
+      const unknown = Object.keys(payrollColumns(calc)).filter((key) => !columns.has(key));
+      expect(unknown).toEqual([]);
+    }
+  });
+});

@@ -95,6 +95,7 @@ export async function POST(req: Request) {
 
     await tx.auditLog.create({
       data: {
+        actorUserId: auth.user.id,
         action: mode === 'MARK_FILED' ? 'EPFO_MARK_FILED' : 'EPFO_RESET_PENDING',
         targetType: 'EPFO',
         details: JSON.stringify({

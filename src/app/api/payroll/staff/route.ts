@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/rbac";
-import { calculateStaffPayroll, type PayGroup } from "@/lib/payroll-calc";
+import { calculateStaffPayroll, payrollColumns, type PayGroup } from "@/lib/payroll-calc";
 import { istDateKey } from "@/lib/dashboard-calc";
 
 export async function GET() {
@@ -108,7 +108,7 @@ export async function PUT(request: Request) {
           await prisma.monthlyPayroll.update({
             where: { id: row.id },
             data: {
-              ...calc,
+              ...payrollColumns(calc),
             },
           });
         }

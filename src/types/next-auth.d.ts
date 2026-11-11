@@ -27,5 +27,7 @@ declare module "next-auth/jwt" {
     staffId?: string | null
     employeeCode?: string | null
     mustChangePassword?: boolean
+    /** True once the account is disabled, deleted, or no longer employed. */
+    revoked?: boolean
   }
 }

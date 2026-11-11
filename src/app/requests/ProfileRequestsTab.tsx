@@ -586,26 +586,26 @@ export function ProfileDecisionModal({
     currentParsed = {};
   }
 
-  // Populate default fields if missing
+  // Every requested field has a decision: the reviewer's choice, or the default action.
+  // Derived here rather than written into the state object (state is never mutated in render).
   const fieldKeys = Object.keys(requestedParsed);
+  const decisions: Record<string, "APPROVE" | "REJECT"> = {};
   for (const k of fieldKeys) {
-    if (!fieldDecisions[k]) {
-      fieldDecisions[k] = initialAction;
-    }
+    decisions[k] = fieldDecisions[k] ?? initialAction;
   }
 
-  const approvedCount = Object.values(fieldDecisions).filter((v) => v === "APPROVE").length;
-  const rejectedCount = Object.values(fieldDecisions).filter((v) => v === "REJECT").length;
+  const approvedCount = Object.values(decisions).filter((v) => v === "APPROVE").length;
+  const rejectedCount = Object.values(decisions).filter((v) => v === "REJECT").length;
   const totalCount = fieldKeys.length;
 
   const handleSubmitDecision = async () => {
     setIsSubmitting(true);
     try {
-      const approvedFields = Object.keys(fieldDecisions).filter(
-        (k) => fieldDecisions[k] === "APPROVE"
+      const approvedFields = Object.keys(decisions).filter(
+        (k) => decisions[k] === "APPROVE"
       );
-      const rejectedFields = Object.keys(fieldDecisions).filter(
-        (k) => fieldDecisions[k] === "REJECT"
+      const rejectedFields = Object.keys(decisions).filter(
+        (k) => decisions[k] === "REJECT"
       );
 
       const res = await fetch(`/api/admin/profile-requests/${request.id}/decide`, {
@@ -674,8 +674,8 @@ export function ProfileDecisionModal({
           {fieldKeys.map((key) => {
             const requestedVal = requestedParsed[key] || "";
             const currentVal = currentParsed[key] || "";
-            const isApproved = fieldDecisions[key] === "APPROVE";
-            const isRejected = fieldDecisions[key] === "REJECT";
+            const isApproved = decisions[key] === "APPROVE";
+            const isRejected = decisions[key] === "REJECT";
 
             return (
               <div

@@ -115,3 +115,27 @@ export async function requireRole(
 
   return { user: user as DbUserWithRelations }
 }
+
+/**
+ * Whether `user` may read another staff member's records (punches, photos, shift history).
+ * - ADMIN: everyone.
+ * - APPROVER: their own record, plus staff inside their department scope.
+ * - EMPLOYEE: only their own record.
+ */
+export async function canAccessStaff(
+  user: Pick<DbUserWithRelations, "role" | "staffId" | "staff" | "approvesAllDepartments" | "approverDepartments">,
+  targetStaffId: string
+): Promise<boolean> {
+  if (user.role === "ADMIN") return true
+  const ownStaffId = user.staffId ?? user.staff?.id ?? null
+  if (ownStaffId && ownStaffId === targetStaffId) return true
+  if (user.role !== "APPROVER") return false
+
+  const allowedDepartmentIds = getApproverDepartmentIds(user)
+  if (allowedDepartmentIds === null) return true
+  const target = await prisma.staff.findUnique({
+    where: { id: targetStaffId },
+    select: { departmentId: true },
+  })
+  return !!target?.departmentId && allowedDepartmentIds.includes(target.departmentId)
+}

@@ -109,6 +109,7 @@ export default async function PunchRequestsAdminPage() {
       initialRequests={initialRequests}
       departments={departments}
       userRole={userRole}
+      viewerStaffId={userRole === "APPROVER" ? auth.user.staffId ?? auth.user.staff?.id ?? null : null}
       currentCutoffDays={cutoffDays}
     />
   );

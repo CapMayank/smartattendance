@@ -83,8 +83,17 @@ export async function proxyHandler(req: NextRequestWithAuth) {
     return res
   }
 
-  // 3. Password Change Interception (only active once setup is completed)
   const token = req.nextauth?.token
+
+  // 3. Revoked sessions (account disabled, deleted, or employment ended) go back to sign-in
+  if (token?.revoked && pathname !== "/login") {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Session is no longer valid" }, { status: 401 })
+    }
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+
+  // 4. Password Change Interception (only active once setup is completed)
   if (token?.mustChangePassword) {
     const isAllowed =
       pathname.startsWith("/change-password") ||
@@ -97,7 +106,7 @@ export async function proxyHandler(req: NextRequestWithAuth) {
     }
   }
 
-  // 4. Role-based Page Guard: Employees use the personal portal at `/` and `/change-password`
+  // 5. Role-based Page Guard: Employees use the personal portal at `/` and `/change-password`
   if (token?.role === "EMPLOYEE" && !pathname.startsWith("/api/")) {
     const isBlockedAdminPage = EMPLOYEE_BLOCKED_PAGE_PREFIXES.some(
       (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
@@ -107,7 +116,7 @@ export async function proxyHandler(req: NextRequestWithAuth) {
     }
   }
 
-  // 5. Role-based Page Guard: Approvers cannot access Admin-only configuration, mutation, or payroll pages
+  // 6. Role-based Page Guard: Approvers cannot access Admin-only configuration, mutation, or payroll pages
   if (token?.role === "APPROVER" && !pathname.startsWith("/api/")) {
     const isBlockedForApprover = APPROVER_BLOCKED_PAGE_PREFIXES.some(
       (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")

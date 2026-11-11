@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
+import { requireRole, canAccessStaff } from "@/lib/rbac"
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
@@ -24,6 +24,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const staff = await prisma.staff.findUnique({ where: { id }, select: { id: true } })
     if (!staff) return NextResponse.json({ error: 'Staff not found' }, { status: 404 })
+    if (!(await canAccessStaff(auth.user, id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const limit = parseLimit(new URL(request.url).searchParams.get('limit'))
     const rows = await prisma.punchPhoto.findMany({

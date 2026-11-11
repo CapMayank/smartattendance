@@ -37,6 +37,20 @@ export interface PayrollCalculationResult {
   appliedCeiling?: number;
 }
 
+/** The calculation fields that are stored as MonthlyPayroll columns. */
+export type PayrollColumns = Omit<PayrollCalculationResult, "appliedCeiling">;
+
+/**
+ * Strips display-only fields (e.g. `appliedCeiling`) from a calculation so the
+ * result can be written to MonthlyPayroll. Prisma rejects unknown columns, so
+ * never spread a raw calculation result into a create/update.
+ */
+export function payrollColumns(calc: PayrollCalculationResult): PayrollColumns {
+  const { appliedCeiling: _appliedCeiling, ...columns } = calc;
+  void _appliedCeiling;
+  return columns;
+}
+
 /**
  * Calculates monthly payroll for a staff member based on their pay group.
  * Supports:

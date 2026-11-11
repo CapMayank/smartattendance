@@ -91,4 +91,22 @@ describe("setup helpers (src/lib/setup.ts)", () => {
       expect(verifySetupSecret("initial-fallback-key")).toBe(true);
     });
   });
+
+  describe("production secret", () => {
+    it("has no built-in secret in production, so setup stays locked until one is configured", () => {
+      const original = process.env.NODE_ENV;
+      vi.stubEnv("NODE_ENV", "production");
+      try {
+        expect(getSetupSecret()).toBe("");
+        expect(verifySetupSecret("intime-sarvodaya-setup-2026")).toBe(false);
+        expect(verifySetupSecret("")).toBe(false);
+        process.env.SETUP_SECRET = "real-secret";
+        expect(verifySetupSecret("real-secret")).toBe(true);
+      } finally {
+        vi.unstubAllEnvs();
+        delete process.env.SETUP_SECRET;
+        expect(process.env.NODE_ENV).toBe(original);
+      }
+    });
+  });
 });

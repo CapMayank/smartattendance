@@ -22,7 +22,21 @@ const APPROVER_HIDDEN_HREFS = new Set([
   "/attendance/manual",
   "/punches/unmatched",
   "/reports/staff",
+  // Payroll reports are admin-only (the proxy sends approvers back to the dashboard)
+  "/reports/member-payroll",
+  "/reports/payroll-analytics",
 ]);
+
+/** An approver is also a staff member: their own self-service pages. */
+const APPROVER_SELF_SERVICE: NavGroup = {
+  group: "My Portal",
+  items: [
+    { label: "My Profile", href: "/profile", icon: User },
+    { label: "To School", href: "/to-school", icon: Calendar },
+    { label: "My Punches & Requests", href: "/punch-requests", icon: Clock },
+    { label: "My Payslips", href: "/payslips", icon: Wallet },
+  ],
+};
 
 export const NAV: NavGroup[] = [
   {
@@ -93,12 +107,13 @@ export const EMPLOYEE_NAV: NavGroup[] = [
 export function getNavForRole(role?: string): NavGroup[] {
   if (role === "EMPLOYEE") return EMPLOYEE_NAV;
   if (role === "APPROVER") {
-    return NAV.filter((g) => g.group === "Overview" || g.group === "Attendance" || g.group === "Reports")
+    const approverNav = NAV.filter((g) => g.group === "Overview" || g.group === "Attendance" || g.group === "Reports")
       .map((g) => ({
         ...g,
         items: g.items.filter((item) => !APPROVER_HIDDEN_HREFS.has(item.href)),
       }))
       .filter((g) => g.items.length > 0);
+    return [...approverNav, APPROVER_SELF_SERVICE];
   }
   return NAV;
 }

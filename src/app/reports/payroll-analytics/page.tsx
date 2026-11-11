@@ -9,7 +9,7 @@ import { selectSettledPayrolls } from "@/lib/payroll-analytics"
 export default async function PayrollAnalyticsPage() {
   const session = await getServerSession(authOptions)
   
-  if (!session) {
+  if (!session?.user?.id) {
     redirect("/login")
   }
   if (session.user?.role !== "ADMIN") {

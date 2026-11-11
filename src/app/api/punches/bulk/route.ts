@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
 import { startOfDay, endOfDay, parseISO, eachDayOfInterval, format } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
+import { isDayKey, isPunchType, isTimeHHMM } from '@/lib/validators'
 
 export async function POST(req: Request) {
   try {
@@ -17,6 +18,23 @@ export async function POST(req: Request) {
 
     if (!staffIds || !Array.isArray(staffIds) || staffIds.length === 0 || !startDate || !endDate || !time || !type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    if (!isDayKey(startDate) || !isDayKey(endDate)) {
+      return NextResponse.json({ error: 'startDate and endDate must be valid YYYY-MM-DD dates' }, { status: 400 })
+    }
+    if (!isTimeHHMM(time)) {
+      return NextResponse.json({ error: 'time must be HH:MM (24-hour)' }, { status: 400 })
+    }
+    if (!isPunchType(type)) {
+      return NextResponse.json({ error: 'type must be IN or OUT' }, { status: 400 })
+    }
+    if (!staffIds.every((id: unknown) => typeof id === 'string' && id.length > 0)) {
+      return NextResponse.json({ error: 'staffIds must be a list of staff ids' }, { status: 400 })
+    }
+    const knownStaff = await prisma.staff.count({ where: { id: { in: staffIds } } })
+    if (knownStaff !== new Set(staffIds).size) {
+      return NextResponse.json({ error: 'One or more selected staff members were not found' }, { status: 404 })
     }
 
     const start = parseISO(startDate)

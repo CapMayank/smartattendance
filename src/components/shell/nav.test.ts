@@ -78,6 +78,19 @@ describe("Navigation Configuration & Role Integration", () => {
       expect(allHrefs).not.toContain("/reports/staff");
       expect(allHrefs).toContain("/requests");
     });
+
+    it("never links an approver to a page the proxy blocks for approvers", () => {
+      const allHrefs = getNavForRole("APPROVER").flatMap((g) => g.items.map((i) => i.href));
+      expect(allHrefs).not.toContain("/reports/member-payroll");
+      expect(allHrefs).not.toContain("/reports/payroll-analytics");
+    });
+
+    it("gives approvers their own self-service pages", () => {
+      const allHrefs = getNavForRole("APPROVER").flatMap((g) => g.items.map((i) => i.href));
+      for (const href of ["/profile", "/to-school", "/punch-requests", "/payslips"]) {
+        expect(allHrefs).toContain(href);
+      }
+    });
   });
 
   describe("activeHref routing resolution", () => {

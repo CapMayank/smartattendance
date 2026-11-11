@@ -161,6 +161,7 @@ export default async function RequestsHubPage({ searchParams }: RequestsPageProp
   return (
     <RequestsHubClient
       userRole={userRole}
+      viewerStaffId={userRole === "APPROVER" ? auth.user.staffId ?? auth.user.staff?.id ?? null : null}
       initialPunchRequests={initialPunchRequests}
       initialProfileRequests={initialProfileRequests}
       departments={departments}

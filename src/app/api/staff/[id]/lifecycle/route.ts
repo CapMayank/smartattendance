@@ -75,6 +75,28 @@ export async function POST(
 
       const todayKey = istDateKey(new Date());
 
+      // Exiting disables the linked login once the last working day has arrived.
+      // Never let that lock the signed-in admin, or the whole system, out.
+      if (lastWorkingDay <= todayKey && staff.user && staff.user.disabledAt === null) {
+        if (staff.user.id === auth.user.id) {
+          return NextResponse.json(
+            { error: 'You cannot exit your own staff record while signed in. Ask another admin to do it.' },
+            { status: 400 }
+          );
+        }
+        if (staff.user.role === 'ADMIN') {
+          const otherActiveAdmins = await prisma.user.count({
+            where: { role: 'ADMIN', disabledAt: null, id: { not: staff.user.id } },
+          });
+          if (otherActiveAdmins < 1) {
+            return NextResponse.json(
+              { error: 'Cannot exit the last remaining active Admin user' },
+              { status: 400 }
+            );
+          }
+        }
+      }
+
       const period = await prisma.$transaction(async (tx) => {
         const updatedPeriod = await tx.employmentPeriod.update({
           where: { id: activePeriod.id },

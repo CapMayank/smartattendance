@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { requireRole } from "@/lib/rbac"
-import { startOfDay, endOfDay, parseISO } from 'date-fns'
+import { requireRole, canAccessStaff } from "@/lib/rbac"
+import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns'
 import { recalculateAttendance } from '@/lib/attendance'
+import { isEmployedOnDate } from '@/lib/employment'
+import { istDateKey } from '@/lib/dashboard-calc'
+import { isPunchType } from '@/lib/validators'
 
 export async function GET(req: Request) {
   try {
@@ -20,12 +23,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Missing staffId or date' }, { status: 400 })
     }
 
-    const userStaffId = auth.user.staffId ?? auth.user.staff?.id
-    if (auth.user.role === 'EMPLOYEE' && userStaffId && userStaffId !== staffId) {
+    if (!(await canAccessStaff(auth.user, staffId))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const date = parseISO(dateStr)
+    if (!isValid(date)) {
+      return NextResponse.json({ error: 'date must be YYYY-MM-DD' }, { status: 400 })
+    }
 
     const rows = await prisma.attendanceLog.findMany({
       where: {
@@ -72,7 +77,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    if (!isPunchType(type)) {
+      return NextResponse.json({ error: 'type must be IN or OUT' }, { status: 400 })
+    }
+
     const date = new Date(timestamp)
+    if (Number.isNaN(date.getTime())) {
+      return NextResponse.json({ error: 'timestamp is not a valid date/time' }, { status: 400 })
+    }
+
+    const staff = await prisma.staff.findUnique({
+      where: { id: String(staffId) },
+      include: { employmentPeriods: { select: { startDate: true, endDate: true } } },
+    })
+    if (!staff) {
+      return NextResponse.json({ error: 'Staff member not found' }, { status: 404 })
+    }
+    if (!isEmployedOnDate(staff, istDateKey(date))) {
+      return NextResponse.json({ error: 'Staff member was not employed on this date' }, { status: 400 })
+    }
 
     // Guardrail: Cannot punch in the future
     if (date > new Date()) {

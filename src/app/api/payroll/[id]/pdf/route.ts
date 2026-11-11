@@ -43,10 +43,10 @@ export async function GET(
     }
 
     // Role-based record ownership check:
-    // If the caller is an EMPLOYEE, they may only download their own payslip
-    if (auth.user.role === "EMPLOYEE") {
-      const callerStaffId = session?.user?.staffId || auth.user.staffId || auth.user.staff?.id
-      if (payroll.staffId !== callerStaffId) {
+    // Anyone who is not an ADMIN (employees and approvers alike) may only download their own payslip
+    if (auth.user.role !== "ADMIN") {
+      const callerStaffId = auth.user.staffId || auth.user.staff?.id
+      if (!callerStaffId || payroll.staffId !== callerStaffId) {
         return NextResponse.json(
           { error: "Forbidden" },
           { status: 403 }

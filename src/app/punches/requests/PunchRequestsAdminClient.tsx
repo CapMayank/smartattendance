@@ -66,6 +66,8 @@ export interface PunchRequestsAdminClientProps {
   userRole: "ADMIN" | "APPROVER";
   currentCutoffDays: number;
   showHeader?: boolean;
+  /** Staff record of a signed-in approver: they cannot decide their own request. */
+  viewerStaffId?: string | null;
 }
 
 export const REASON_LABELS: Record<string, string> = {
@@ -95,6 +97,7 @@ export function PunchRequestsAdminClient({
   userRole,
   currentCutoffDays,
   showHeader = true,
+  viewerStaffId = null,
 }: PunchRequestsAdminClientProps) {
   const [requests, setRequests] = useState<AdminPunchRequestItem[]>(initialRequests);
   const [statusFilter, setStatusFilter] = useState<"PENDING" | "APPROVED" | "REJECTED" | "ALL">("ALL");
@@ -462,6 +465,7 @@ export function PunchRequestsAdminClient({
               key={req.id}
               request={req}
               userRole={userRole}
+              viewerStaffId={viewerStaffId}
               onApprove={handleApprove}
               onReject={openRejectModal}
               actionInProgressId={actionInProgressId}
@@ -492,6 +496,8 @@ export interface PunchRequestCardProps {
   biometricState?: BiometricState;
   onToggleBiometric?: (req: AdminPunchRequestItem) => void;
   showTypeBadge?: boolean;
+  /** Staff record of a signed-in approver: they cannot decide their own request. */
+  viewerStaffId?: string | null;
 }
 
 export function PunchRequestCard({
@@ -502,8 +508,10 @@ export function PunchRequestCard({
   biometricState: bioState,
   onToggleBiometric,
   showTypeBadge = false,
+  viewerStaffId = null,
 }: PunchRequestCardProps) {
   const isPending = req.status === "PENDING";
+  const isOwnRequest = !!viewerStaffId && req.staffId === viewerStaffId;
   const punchTypeBadge =
     req.punchType === "IN"
       ? "Check-In"
@@ -696,7 +704,12 @@ export function PunchRequestCard({
         )}
 
         {/* Action Buttons for Pending Requests */}
-        {isPending && onApprove && onReject && (
+        {isPending && isOwnRequest && (
+          <p className="border-t border-line/70 pt-3 text-xs text-muted">
+            This is your own request. Another approver or an administrator has to review it.
+          </p>
+        )}
+        {isPending && !isOwnRequest && onApprove && onReject && (
           <div className="flex items-center justify-end gap-3 border-t border-line/70 pt-3">
             <Button
               variant="danger"

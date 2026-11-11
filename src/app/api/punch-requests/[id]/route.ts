@@ -45,6 +45,7 @@ export async function PATCH(
       const approved = await approvePunchRequest({
         requestId: id,
         reviewerUserId: auth.user.id,
+        reviewerStaffId: auth.user.staffId ?? auth.user.staff?.id ?? null,
         reviewerDepartmentIds: allowedDeptIds,
         isApproverRole: auth.user.role === "APPROVER",
         decisionRemarks,
@@ -60,6 +61,7 @@ export async function PATCH(
       const rejected = await rejectPunchRequest({
         requestId: id,
         reviewerUserId: auth.user.id,
+        reviewerStaffId: auth.user.staffId ?? auth.user.staff?.id ?? null,
         reviewerDepartmentIds: allowedDeptIds,
         isApproverRole: auth.user.role === "APPROVER",
         decisionRemarks,

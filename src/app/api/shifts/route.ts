@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireRole } from "@/lib/rbac"
+import { isTimeHHMM } from '@/lib/validators'
 import { shiftUsageCount, shiftInUseMessage } from '@/lib/shift-delete-guard'
 
 export async function GET() {
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
     if (!name || !startTime || !endTime) {
       return NextResponse.json({ error: 'name, startTime and endTime are required' }, { status: 400 })
     }
+    if (!isTimeHHMM(startTime) || !isTimeHHMM(endTime)) {
+      return NextResponse.json({ error: 'startTime and endTime must be HH:MM (24-hour)' }, { status: 400 })
+    }
     // Only these three fields: every other property in the body is ignored
     const shift = await prisma.shift.create({ data: { name, startTime, endTime } })
     return NextResponse.json(shift, { status: 201 })
@@ -78,9 +82,18 @@ export async function PUT(request: Request) {
     const data = await request.json()
     const { id, name, startTime, endTime } = data
     if (!id || !name || !startTime || !endTime) return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    if (typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'Shift name is required' }, { status: 400 })
+    }
+    if (!isTimeHHMM(startTime) || !isTimeHHMM(endTime)) {
+      return NextResponse.json({ error: 'startTime and endTime must be HH:MM (24-hour)' }, { status: 400 })
+    }
+    if (!(await prisma.shift.findUnique({ where: { id } }))) {
+      return NextResponse.json({ error: 'Shift not found' }, { status: 404 })
+    }
     const shift = await prisma.shift.update({
       where: { id },
-      data: { name, startTime, endTime }
+      data: { name: name.trim(), startTime, endTime }
     })
     return NextResponse.json(shift)
   } catch {

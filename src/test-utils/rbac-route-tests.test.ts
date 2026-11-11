@@ -9,8 +9,9 @@ type MockUser = {
   password?: string | null
   disabledAt: Date | null
   mustChangePassword: boolean
+  staffId?: string | null
   staff: unknown | null
-  approverDepartments: unknown[]
+  approverDepartments: { departmentId: string }[]
 }
 
 const usersDb: MockUser[] = []
@@ -183,6 +184,7 @@ describe("RBAC Route Gating and User Management", () => {
     mockPrisma.staff.findMany.mockResolvedValue([])
     mockPrisma.punchPhoto.findUnique.mockResolvedValue({
       id: "ph-1",
+      staffId: "s-1",
       data: Buffer.from([0xff, 0xd8, 0xff, 0xe0]),
     })
     mockPrisma.attendanceLog.findMany.mockResolvedValue([])
@@ -245,11 +247,27 @@ describe("RBAC Route Gating and User Management", () => {
       expect(res.status).toBe(401)
     })
 
-    it("Authenticated EMPLOYEE calling /api/photos/[id] is permitted (200)", async () => {
+    it("EMPLOYEE calling /api/photos/[id] for their own photo is permitted (200)", async () => {
+      usersDb.find((u) => u.id === employeeUser.id)!.staffId = "s-1"
       currentSession = { user: { id: employeeUser.id, role: "EMPLOYEE" } }
       const req = new Request("http://localhost/api/photos/ph-1")
       const res = await getPhotoById(req, { params: Promise.resolve({ id: "ph-1" }) })
       expect(res.status).toBe(200)
+    })
+
+    it("EMPLOYEE calling /api/photos/[id] for someone else's photo returns 403", async () => {
+      usersDb.find((u) => u.id === employeeUser.id)!.staffId = "s-other"
+      currentSession = { user: { id: employeeUser.id, role: "EMPLOYEE" } }
+      const req = new Request("http://localhost/api/photos/ph-1")
+      const res = await getPhotoById(req, { params: Promise.resolve({ id: "ph-1" }) })
+      expect(res.status).toBe(403)
+    })
+
+    it("EMPLOYEE with no linked staff record cannot read any photo (403)", async () => {
+      currentSession = { user: { id: employeeUser.id, role: "EMPLOYEE" } }
+      const req = new Request("http://localhost/api/photos/ph-1")
+      const res = await getPhotoById(req, { params: Promise.resolve({ id: "ph-1" }) })
+      expect(res.status).toBe(403)
     })
 
     it("EMPLOYEE calling /api/staff (GET) returns 403", async () => {
@@ -288,11 +306,37 @@ describe("RBAC Route Gating and User Management", () => {
       expect(res.status).toBe(200)
     })
 
-    it("EMPLOYEE calling /api/punches (GET) is permitted (200)", async () => {
+    it("EMPLOYEE calling /api/punches (GET) for their own record is permitted (200)", async () => {
+      usersDb.find((u) => u.id === employeeUser.id)!.staffId = "s-1"
       currentSession = { user: { id: employeeUser.id, role: "EMPLOYEE" } }
       const req = new Request("http://localhost/api/punches?staffId=s-1&date=2026-11-08")
       const res = await getPunches(req)
       expect(res.status).toBe(200)
+    })
+
+    it("EMPLOYEE calling /api/punches (GET) for another staff member returns 403", async () => {
+      usersDb.find((u) => u.id === employeeUser.id)!.staffId = "s-other"
+      currentSession = { user: { id: employeeUser.id, role: "EMPLOYEE" } }
+      const req = new Request("http://localhost/api/punches?staffId=s-1&date=2026-11-08")
+      const res = await getPunches(req)
+      expect(res.status).toBe(403)
+    })
+
+    it("EMPLOYEE with no linked staff record cannot read anyone's punches (403)", async () => {
+      currentSession = { user: { id: employeeUser.id, role: "EMPLOYEE" } }
+      const req = new Request("http://localhost/api/punches?staffId=s-1&date=2026-11-08")
+      const res = await getPunches(req)
+      expect(res.status).toBe(403)
+    })
+
+    it("department-scoped APPROVER cannot read punches outside their departments (403)", async () => {
+      const approver = usersDb.find((u) => u.id === approverUser.id)!
+      approver.approverDepartments = [{ departmentId: "d-science" }]
+      mockPrisma.staff.findUnique.mockResolvedValue({ departmentId: "d-arts" })
+      currentSession = { user: { id: approverUser.id, role: "APPROVER" } }
+      const req = new Request("http://localhost/api/punches?staffId=s-1&date=2026-11-08")
+      const res = await getPunches(req)
+      expect(res.status).toBe(403)
     })
 
     it("EMPLOYEE calling /api/punches (POST) returns 403", async () => {
