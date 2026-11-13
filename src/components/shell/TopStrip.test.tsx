@@ -31,4 +31,35 @@ describe("TopStrip", () => {
 
     expect(html).toContain('aria-label="Switch to light mode"');
   });
+
+  it("renders staff photo when profilePhotoId is present and falls back to initials when absent", () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider defaultTheme="dark">
+        <TopStrip
+          shell={{
+            ...mockShell,
+            recentPunches: [
+              {
+                staffId: "s1",
+                name: "Anita Gupta",
+                profilePhotoId: "photo-1",
+                time: "2026-11-13T04:14:00.000Z",
+                device: null,
+              },
+              {
+                staffId: "s2",
+                name: "Rohan Yadav",
+                profilePhotoId: null,
+                time: "2026-11-13T04:10:00.000Z",
+                device: null,
+              },
+            ],
+          }}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain('src="/api/staff/s1/photo?v=photo-1"');
+    expect(html).toContain("RY");
+  });
 });

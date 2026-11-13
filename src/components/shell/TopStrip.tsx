@@ -4,8 +4,9 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { formatTime } from "@/lib/format";
-import { initials } from "@/lib/initials";
+import { staffPhotoUrl } from "@/lib/photo-url";
 import type { ShellData } from "@/lib/shell-data";
+import { Avatar } from "@/components/ui/Avatar";
 import { getNavForRole } from "./nav";
 import { MobileNav } from "./MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -61,11 +62,14 @@ export function TopStrip({ shell }: { shell: ShellData }) {
         <div className="flex max-[600px]:hidden" role="group" aria-label="Most recent punches">
           {shell.recentPunches.map((p, i) => (
             <span
-              key={`${p.name}-${p.time}-${i}`}
+              key={`${p.staffId}-${p.time}-${i}`}
               title={p.name}
-              className="-ml-1.5 grid size-[38px] place-items-center rounded-[11px] border-2 border-ground bg-card-hi text-xs font-semibold text-muted first:ml-0"
+              className="-ml-1.5 inline-flex rounded-[13px] border-2 border-ground first:ml-0"
             >
-              {initials(p.name)}
+              <Avatar
+                name={p.name}
+                src={staffPhotoUrl({ id: p.staffId, profilePhotoId: p.profilePhotoId })}
+              />
             </span>
           ))}
         </div>

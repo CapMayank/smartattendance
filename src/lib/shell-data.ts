@@ -13,7 +13,7 @@ export type ShellData = {
   employeeCode: string | null;
   staffCount: number;
   devices: { id: string; name: string; online: boolean; lastPing: string }[];
-  recentPunches: { name: string; time: string; device: string | null }[];
+  recentPunches: { staffId: string; name: string; profilePhotoId: string | null; time: string; device: string | null }[];
   pendingPunchRequestsCount?: number;
 };
 
@@ -82,7 +82,7 @@ export async function getShellData(): Promise<ShellData | null> {
         where: { timestamp: { gte: istDayStart(now) } },
         orderBy: { timestamp: "desc" },
         take: 4,
-        include: { staff: { select: { name: true } } },
+        include: { staff: { select: { id: true, name: true, profilePhotoId: true } } },
       }),
       staffId
         ? prisma.staff.findUnique({
@@ -109,7 +109,13 @@ export async function getShellData(): Promise<ShellData | null> {
         lastPing: d.lastPing.toISOString(),
       })),
       // AttendanceLog has no device relation in the schema
-      recentPunches: logs.map((l) => ({ name: l.staff.name, time: l.timestamp.toISOString(), device: null })),
+      recentPunches: logs.map((l) => ({
+        staffId: l.staff.id,
+        name: l.staff.name,
+        profilePhotoId: l.staff.profilePhotoId,
+        time: l.timestamp.toISOString(),
+        device: null,
+      })),
     };
   } catch (err) {
     console.error("[shell] failed to load shell data:", err);
