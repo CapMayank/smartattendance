@@ -37,24 +37,46 @@ export async function GET(request: Request) {
       // Auto-recalculate for this specific day to ensure it's always up to date
       await recalculateAttendance(targetDate, targetDate);
 
-      const allRecords = await prisma.dailyRecord.findMany({
-        where: {
-          date: {
-            gte: startOfDay(targetDate),
-            lte: endOfDay(targetDate)
-          }
-        },
-        include: {
-          staff: {
-            include: {
-              department: true,
-              designation: true,
-              shift: true,
-              employmentPeriods: true,
+      const [allRecords, dayLogs] = await Promise.all([
+        prisma.dailyRecord.findMany({
+          where: {
+            date: {
+              gte: startOfDay(targetDate),
+              lte: endOfDay(targetDate)
+            }
+          },
+          include: {
+            staff: {
+              include: {
+                department: true,
+                designation: true,
+                shift: true,
+                employmentPeriods: true,
+              }
             }
           }
+        }),
+        prisma.attendanceLog.findMany({
+          where: {
+            timestamp: {
+              gte: startOfDay(targetDate),
+              lte: endOfDay(targetDate)
+            }
+          },
+          orderBy: { timestamp: 'asc' },
+          select: {
+            staffId: true,
+            photo: { select: { id: true } },
+          },
+        }),
+      ])
+
+      const photoByStaffId = new Map<string, string>()
+      for (const log of dayLogs) {
+        if (log.photo?.id && !photoByStaffId.has(log.staffId)) {
+          photoByStaffId.set(log.staffId, log.photo.id)
         }
-      })
+      }
 
       const records =
         allowedDepartmentIds !== null
@@ -81,9 +103,13 @@ export async function GET(request: Request) {
             checkOut: null,
             lateMinutes: 0,
             workMinutes: 0,
+            punchPhotoId: null,
           }
         }
-        return record
+        return {
+          ...record,
+          punchPhotoId: photoByStaffId.get(record.staffId) ?? null,
+        }
       })
 
       return NextResponse.json(formattedRecords)

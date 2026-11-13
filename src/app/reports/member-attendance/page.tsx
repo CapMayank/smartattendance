@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Download, Calendar as CalendarIcon, Search, UserCheck, LogIn, LogOut, AlertTriangle } from 'lucide-react'
 import Papa from 'papaparse'
-import { Avatar, Button, Card, EmptyState, Field, Input, PageHeader, Select, Skeleton } from '@/components/ui'
+import { Avatar, Button, Card, EmptyState, Field, Input, PageHeader, PhotoLightbox, Select, Skeleton } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { staffPhotoUrl } from '@/lib/photo-url'
+import { punchPhotoUrl, staffPhotoUrl } from '@/lib/photo-url'
 import { StatusPill } from '@/components/attendance/StatusPill'
 import { formatTime, formatDate } from '@/lib/format'
 
@@ -13,6 +13,7 @@ type AttendanceLog = {
   id: string
   timestamp: string
   type: string
+  photoId?: string | null
 }
 
 type DailyRecordWithLogs = {
@@ -58,18 +59,56 @@ const formatLogsWithDirection = (logs: AttendanceLog[]): AttendanceLog[] => {
   }))
 }
 
-// Punch log pill: LogIn/LogOut icon + IN/OUT word + time (present tone for IN, muted for OUT).
-function LogPill({ type, timestamp }: { type: string; timestamp: string }) {
+// Punch log pill: LogIn/LogOut icon + IN/OUT word + time + optional punch photo thumbnail.
+function LogPill({
+  type,
+  timestamp,
+  photoId,
+  staffName,
+  onOpenPhoto,
+}: {
+  type: string
+  timestamp: string
+  photoId?: string | null
+  staffName?: string
+  onOpenPhoto?: () => void
+}) {
+  const [failed, setFailed] = useState(false)
   const isIn = type === 'IN'
   const Icon = isIn ? LogIn : LogOut
+  const photoSrc = punchPhotoUrl(photoId)
+  const showThumb = Boolean(photoSrc) && !failed
+
   return (
     <span
       className={cn(
-        'inline-flex h-[24px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[11px]',
+        'inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[11px]',
+        showThumb && 'pl-1',
         isIn ? 'tone-present tint-badge' : 'tone-muted border border-line bg-card-hi text-muted',
       )}
     >
-      <Icon size={12} aria-hidden="true" />
+      {showThumb && photoSrc ? (
+        <button
+          type="button"
+          onClick={onOpenPhoto}
+          aria-label={`View punch photo${staffName ? ` of ${staffName}` : ''} at ${formatTime(new Date(timestamp))}`}
+          title="View punch photo"
+          className="size-[18px] shrink-0 cursor-zoom-in overflow-hidden rounded-full border border-line bg-card-hi focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acc-2"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photoSrc}
+            alt=""
+            width={18}
+            height={18}
+            loading="lazy"
+            onError={() => setFailed(true)}
+            className="size-full object-cover"
+          />
+        </button>
+      ) : (
+        <Icon size={12} aria-hidden="true" />
+      )}
       {type}
       <span className="num">{formatTime(new Date(timestamp))}</span>
     </span>
@@ -83,6 +122,7 @@ export default function MemberAttendancePage() {
   
   const [loading, setLoading] = useState(false)
   const [staffData, setStaffData] = useState<Staff | null>(null)
+  const [viewLog, setViewLog] = useState<AttendanceLog | null>(null)
   const [payrollData, setPayrollData] = useState<any | null>(null)
   const [dailyRecords, setDailyRecords] = useState<DailyRecordWithLogs[]>([])
   const [summary, setSummary] = useState({
@@ -395,7 +435,14 @@ export default function MemberAttendancePage() {
                           return formattedLogs.length > 0 ? (
                             <div className="flex max-w-xs flex-wrap gap-2">
                               {formattedLogs.map((log) => (
-                                <LogPill key={log.id} type={log.type} timestamp={log.timestamp} />
+                                <LogPill
+                                  key={log.id}
+                                  type={log.type}
+                                  timestamp={log.timestamp}
+                                  photoId={log.photoId}
+                                  staffName={staffData?.name}
+                                  onOpenPhoto={() => setViewLog(log)}
+                                />
                               ))}
                             </div>
                           ) : (
@@ -494,7 +541,14 @@ export default function MemberAttendancePage() {
                       {(() => {
                         const formattedLogs = formatLogsWithDirection(record.logs);
                         return formattedLogs.length > 0 ? formattedLogs.map((log) => (
-                          <LogPill key={log.id} type={log.type} timestamp={log.timestamp} />
+                          <LogPill
+                            key={log.id}
+                            type={log.type}
+                            timestamp={log.timestamp}
+                            photoId={log.photoId}
+                            staffName={staffData?.name}
+                            onOpenPhoto={() => setViewLog(log)}
+                          />
                         )) : (
                           <span className="text-[10px] text-subtle">No punches</span>
                         );
@@ -509,6 +563,14 @@ export default function MemberAttendancePage() {
           )}
         </div>
       </Card>
+      {viewLog?.photoId && punchPhotoUrl(viewLog.photoId) ? (
+        <PhotoLightbox
+          src={punchPhotoUrl(viewLog.photoId)!}
+          name={staffData?.name ?? 'Staff'}
+          takenAt={viewLog.timestamp}
+          onClose={() => setViewLog(null)}
+        />
+      ) : null}
     </div>
   )
 }

@@ -19,6 +19,7 @@ type DailyRecord = {
   checkOut: string | null
   lateMinutes: number
   workMinutes: number
+  punchPhotoId?: string | null
   staff: {
     id: string
     name: string
@@ -573,7 +574,7 @@ export default function ReportsPage() {
                     >
                       <td>
                         <div className="flex items-center gap-3">
-                          <Avatar name={record.staff.name} src={staffPhotoUrl(record.staff)} />
+                          <Avatar name={record.staff.name} src={punchPhotoUrl(record.punchPhotoId) ?? staffPhotoUrl(record.staff)} />
                           <div className="flex flex-col">
                             <span className="whitespace-nowrap font-medium text-text">{record.staff.name}</span>
                             <span className="mt-0.5 whitespace-nowrap text-xs text-subtle">
@@ -772,7 +773,7 @@ export default function ReportsPage() {
                   return (
                     <div key={record.id} className="relative overflow-hidden rounded-2xl border border-line bg-card p-4">
                       <div className="flex items-center gap-3">
-                        <Avatar name={record.staff.name} src={staffPhotoUrl(record.staff)} />
+                        <Avatar name={record.staff.name} src={punchPhotoUrl(record.punchPhotoId) ?? staffPhotoUrl(record.staff)} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium leading-tight text-text">{record.staff.name}</p>
                           <p className="mt-0.5 truncate text-xs text-subtle">

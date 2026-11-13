@@ -19,7 +19,7 @@ type MemberDayEntry = {
   overtimeMinutes: number
   payrollEligible: number
   isSandwiched: boolean
-  logs: { id: string; staffId: string; timestamp: Date; type: string }[]
+  logs: { id: string; staffId: string; timestamp: Date; type: string; photoId: string | null }[]
 }
 
 export async function GET(request: Request) {
@@ -91,17 +91,18 @@ export async function GET(request: Request) {
           lte: endOfDay(eOfMonth)
         }
       },
+      include: { photo: { select: { id: true } } },
       orderBy: { timestamp: 'asc' }
     });
 
     // Group logs by date string (yyyy-MM-dd)
-    const logsByDate: Record<string, typeof attendanceLogs> = {};
-    attendanceLogs.forEach(log => {
+    const logsByDate: Record<string, MemberDayEntry['logs']> = {};
+    attendanceLogs.forEach(({ photo, ...log }) => {
       const dateStr = format(log.timestamp, 'yyyy-MM-dd');
       if (!logsByDate[dateStr]) {
         logsByDate[dateStr] = [];
       }
-      logsByDate[dateStr].push(log);
+      logsByDate[dateStr].push({ ...log, photoId: photo?.id ?? null });
     });
 
     // Automatically infer IN/OUT for each day if logs do not differentiate (e.g. all IN from biometric machines)
