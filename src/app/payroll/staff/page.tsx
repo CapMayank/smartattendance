@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { Wallet, Search, Edit2, Save, AlertCircle, CheckCircle2, XCircle, Users, ShieldCheck } from 'lucide-react'
+import { Wallet, Search, Edit2, Save, AlertCircle, CheckCircle2, XCircle, Users } from 'lucide-react'
 import {
   Avatar,
   Button,
@@ -22,8 +22,6 @@ import {
 import { formatINR } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { staffPhotoUrl } from '@/lib/photo-url'
-import { EpfoMembersTab } from '@/components/payroll/epfo/EpfoMembersTab'
-import { StaffProfileModal } from '@/components/staff/StaffProfileModal'
 
 type PayGroupFilter = 'ALL' | 'BANK_EPF' | 'CASH'
 
@@ -31,13 +29,8 @@ function StaffPayrollContent() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const activeMainTab = searchParams.get('tab') === 'epfo' ? 'epfo' : 'salary'
 
   const [staff, setStaff] = useState<any[]>([])
-  const [fullStaffList, setFullStaffList] = useState<any[]>([])
-  const [depts, setDepts] = useState<{ id: string; name: string }[]>([])
-  const [desigs, setDesigs] = useState<{ id: string; name: string }[]>([])
-  const [shifts, setShifts] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [groupFilter, setGroupFilter] = useState<PayGroupFilter>('ALL')
@@ -48,38 +41,14 @@ function StaffPayrollContent() {
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  // Profile modal state for in-place fix
-  const [fixModalOpen, setFixModalOpen] = useState(false)
-  const [fixStaff, setFixStaff] = useState<any | null>(null)
-  const [fixInitialTab, setFixInitialTab] = useState<'statutory' | 'kyc'>('statutory')
-  const [fixHighlightedFields, setFixHighlightedFields] = useState<string[]>([])
-
-  // EPFO summary counts & refresh trigger
-  const [epfoPendingCount, setEpfoPendingCount] = useState(0)
-  const [epfoRefreshTrigger, setEpfoRefreshTrigger] = useState(0)
-
   useEffect(() => {
     fetchStaff()
-    fetchEpfoPendingCount()
-    fetchMeta()
   }, [])
 
-  const fetchMeta = async () => {
-    try {
-      const [dRes, desRes, shRes, sRes] = await Promise.all([
-        fetch('/api/departments'),
-        fetch('/api/designations'),
-        fetch('/api/shifts'),
-        fetch('/api/staff'),
-      ])
-      if (dRes.ok) setDepts(await dRes.json())
-      if (desRes.ok) setDesigs(await desRes.json())
-      if (shRes.ok) setShifts(await shRes.json())
-      if (sRes.ok) setFullStaffList(await sRes.json())
-    } catch {
-      // Ignored
-    }
-  }
+  // EPFO compliance now lives on its own page; keep old bookmarks working.
+  useEffect(() => {
+    if (searchParams.get('tab') === 'epfo') router.replace('/payroll/epfo')
+  }, [searchParams, router])
 
   const fetchStaff = async () => {
     try {
@@ -91,35 +60,6 @@ function StaffPayrollContent() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const fetchEpfoPendingCount = async () => {
-    try {
-      const res = await fetch('/api/payroll/epfo/members')
-      if (res.ok) {
-        const data = await res.json()
-        const c = data.counts || {}
-        const pending =
-          (c.NEEDS_REGISTRATION || 0) +
-          (c.AWAITING_UAN || 0) +
-          (c.NEEDS_EXIT || 0) +
-          (c.NEEDS_KYC || 0)
-        setEpfoPendingCount(pending)
-      }
-    } catch {
-      // Ignored
-    }
-  }
-
-  const handleSwitchTab = (tab: 'salary' | 'epfo') => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (tab === 'epfo') {
-      params.set('tab', 'epfo')
-    } else {
-      params.delete('tab')
-    }
-    const q = params.toString()
-    router.replace(`${pathname}${q ? `?${q}` : ''}`)
   }
 
   const handleEdit = (s: any) => {
@@ -157,8 +97,6 @@ function StaffPayrollContent() {
         }),
       })
       await fetchStaff()
-      await fetchEpfoPendingCount()
-      setEpfoRefreshTrigger((k) => k + 1)
       setSaveSuccess(true)
       setTimeout(() => {
         setEditingStaff(null)
@@ -168,45 +106,6 @@ function StaffPayrollContent() {
       alert('Failed to save')
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleOpenFixProfile = async (
-    staffId: string,
-    initialTab: 'statutory' | 'kyc',
-    missingFields: string[]
-  ) => {
-    let target = fullStaffList.find((s) => s.id === staffId)
-    if (!target) {
-      try {
-        const res = await fetch('/api/staff')
-        if (res.ok) {
-          const list = await res.json()
-          setFullStaffList(list)
-          target = list.find((s: any) => s.id === staffId)
-        }
-      } catch {
-        // Ignored
-      }
-    }
-
-    if (!target) {
-      // Fallback from staff array
-      const s = staff.find((x) => x.id === staffId)
-      if (s) {
-        target = {
-          ...s,
-          payrollInfo: s.payrollInfo || {},
-          employmentPeriods: s.employmentPeriods || [],
-        }
-      }
-    }
-
-    if (target) {
-      setFixStaff(target)
-      setFixInitialTab(initialTab)
-      setFixHighlightedFields(missingFields)
-      setFixModalOpen(true)
     }
   }
 
@@ -243,45 +142,10 @@ function StaffPayrollContent() {
       {/* Header */}
       <PageHeader
         title="Salary & Compliance Setup"
-        subtitle="Configure pay group (Bank/EPF or Cash), monthly CTC, and manage EPFO statutory compliance lifecycle"
+        subtitle="Configure each staff member's pay group (Bank/EPF or Cash), monthly CTC and payroll status"
       />
 
-      {/* Top Dual Tabs */}
-      <div className="flex items-center gap-2 border-b border-line-soft pb-2">
-        <button
-          type="button"
-          onClick={() => handleSwitchTab('salary')}
-          className={cn(
-            'px-4 py-2 text-sm font-medium rounded-xl transition-colors',
-            activeMainTab === 'salary'
-              ? 'bg-accent/15 text-accent font-semibold shadow-xs'
-              : 'text-muted hover:text-text hover:bg-canvas'
-          )}
-        >
-          Salary &amp; Pay Groups
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSwitchTab('epfo')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors',
-            activeMainTab === 'epfo'
-              ? 'bg-accent/15 text-accent font-semibold shadow-xs'
-              : 'text-muted hover:text-text hover:bg-canvas'
-          )}
-        >
-          <span>EPFO Members</span>
-          {epfoPendingCount > 0 && (
-            <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-semibold text-accent">
-              {epfoPendingCount} pending
-            </span>
-          )}
-        </button>
-      </div>
-
       {/* TAB 1: Salary & Pay Groups */}
-      {activeMainTab === 'salary' && (
         <Card className="overflow-hidden !p-0">
           <div className="flex flex-col gap-3 border-b border-line-soft px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <ChipGroup label="Filter by pay group">
@@ -539,53 +403,6 @@ function StaffPayrollContent() {
             )}
           </div>
         </Card>
-      )}
-
-      {/* TAB 2: EPFO Compliance Hub */}
-      {activeMainTab === 'epfo' && (
-        <EpfoMembersTab
-          onFixMember={handleOpenFixProfile}
-          refreshTrigger={epfoRefreshTrigger}
-          onCountsUpdated={(c) => {
-            const pending =
-              (c.NEEDS_REGISTRATION || 0) +
-              (c.AWAITING_UAN || 0) +
-              (c.NEEDS_EXIT || 0) +
-              (c.NEEDS_KYC || 0)
-            setEpfoPendingCount(pending)
-          }}
-        />
-      )}
-
-      {/* In-Place Staff Profile Modal for Missing Statutory Data */}
-      {fixStaff && (
-        <StaffProfileModal
-          staff={fixStaff}
-          open={fixModalOpen}
-          onClose={() => {
-            setFixModalOpen(false)
-            setFixStaff(null)
-          }}
-          onSaved={() => {
-            fetchStaff()
-            fetchEpfoPendingCount()
-            fetchMeta()
-            setEpfoRefreshTrigger((k) => k + 1)
-          }}
-          onDeleted={() => {
-            setFixModalOpen(false)
-            setFixStaff(null)
-            fetchStaff()
-            fetchEpfoPendingCount()
-            setEpfoRefreshTrigger((k) => k + 1)
-          }}
-          depts={depts}
-          desigs={desigs}
-          shifts={shifts}
-          initialTab={fixInitialTab}
-          highlightedFields={fixHighlightedFields}
-        />
-      )}
 
       {/* Salary Table Edit Modal */}
       <Modal

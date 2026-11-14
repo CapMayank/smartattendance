@@ -1,6 +1,6 @@
 import {
   Home, Users, Calendar, Clock, PlusCircle, BarChart3, UserCheck, Wallet,
-  IndianRupee, PieChart, Building2, IdCard, Server, Settings,
+  IndianRupee, ShieldCheck, PieChart, Building2, IdCard, Server, Settings,
   AlertCircle, KeyRound, ScrollText, CheckCircle2, User,
   type LucideIcon,
 } from "lucide-react";
@@ -68,6 +68,7 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "Monthly payroll", href: "/payroll/monthly", icon: Wallet },
       { label: "Salary setup", href: "/payroll/staff", icon: IndianRupee },
+      { label: "EPFO compliance", href: "/payroll/epfo", icon: ShieldCheck },
     ],
   },
   {

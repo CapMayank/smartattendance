@@ -33,6 +33,14 @@ describe("Navigation Configuration & Role Integration", () => {
         "System",
       ]);
 
+      const payrollGroup = adminNav.find((g) => g.group === "Payroll");
+      expect(payrollGroup?.items.map((i) => i.href)).toEqual([
+        "/payroll/monthly",
+        "/payroll/staff",
+        "/payroll/epfo",
+      ]);
+      expect(payrollGroup?.items.find((i) => i.href === "/payroll/epfo")?.label).toBe("EPFO compliance");
+
       const staffGroup = adminNav.find((g) => g.group === "Staff");
       expect(staffGroup?.items.map((i) => i.href)).toEqual([
         "/staff",
