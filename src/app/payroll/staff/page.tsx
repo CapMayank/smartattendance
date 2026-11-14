@@ -148,7 +148,12 @@ function StaffPayrollContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           staffId: editingStaff.id,
-          payrollInfo: editForm,
+          payrollInfo: {
+            payGroup: editForm.payGroup,
+            monthlyCtc: editForm.monthlyCtc,
+            isHigherPensionOpted: editForm.isHigherPensionOpted,
+            isActiveForPayroll: editForm.isActiveForPayroll,
+          },
         }),
       })
       await fetchStaff()
@@ -716,71 +721,25 @@ function StaffPayrollContent() {
 
             <section className="space-y-3">
               <SectionLabel>Bank &amp; EPFO Identifiers</SectionLabel>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Bank Account Number" htmlFor="payroll-account">
-                  <Input
-                    id="payroll-account"
-                    type="text"
-                    value={editForm.bankAccount}
-                    onChange={(e) => setEditForm({ ...editForm, bankAccount: e.target.value })}
-                    className="num"
-                  />
-                </Field>
-                <Field label="IFSC Code" htmlFor="payroll-ifsc">
-                  <Input
-                    id="payroll-ifsc"
-                    type="text"
-                    value={editForm.ifsc}
-                    onChange={(e) => setEditForm({ ...editForm, ifsc: e.target.value.toUpperCase() })}
-                    className="num uppercase"
-                  />
-                </Field>
-                <div className="sm:col-span-2">
-                  <Field label="Name as per Bank" htmlFor="payroll-name-bank">
-                    <Input
-                      id="payroll-name-bank"
-                      type="text"
-                      value={editForm.nameAsPerBank}
-                      onChange={(e) => setEditForm({ ...editForm, nameAsPerBank: e.target.value })}
-                    />
-                  </Field>
-                </div>
-                <Field label="UAN (EPFO)" htmlFor="payroll-uan">
-                  <Input
-                    id="payroll-uan"
-                    type="text"
-                    value={editForm.uan}
-                    onChange={(e) => setEditForm({ ...editForm, uan: e.target.value })}
-                    className="num"
-                  />
-                </Field>
-                <Field label="Name on UAN" htmlFor="payroll-name-uan">
-                  <Input
-                    id="payroll-name-uan"
-                    type="text"
-                    value={editForm.nameOnUan}
-                    onChange={(e) => setEditForm({ ...editForm, nameOnUan: e.target.value })}
-                  />
-                </Field>
-                <Field label="PAN Number" htmlFor="payroll-pan">
-                  <Input
-                    id="payroll-pan"
-                    type="text"
-                    value={editForm.pan}
-                    onChange={(e) => setEditForm({ ...editForm, pan: e.target.value.toUpperCase() })}
-                    className="num uppercase"
-                  />
-                </Field>
-                <Field label="Aadhaar" htmlFor="payroll-aadhaar">
-                  <Input
-                    id="payroll-aadhaar"
-                    type="text"
-                    value={editForm.aadhaar}
-                    onChange={(e) => setEditForm({ ...editForm, aadhaar: e.target.value })}
-                    className="num"
-                  />
-                </Field>
-              </div>
+              <dl className="grid grid-cols-1 gap-3 rounded-xl border border-line-soft bg-canvas p-3.5 text-sm sm:grid-cols-2">
+                {[
+                  ['Bank Account Number', editForm.bankAccount],
+                  ['IFSC Code', editForm.ifsc],
+                  ['Name as per Bank', editForm.nameAsPerBank],
+                  ['UAN (EPFO)', editForm.uan],
+                  ['Name on UAN', editForm.nameOnUan],
+                  ['PAN Number', editForm.pan],
+                  ['Aadhaar', editForm.aadhaar],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-[11px] text-subtle">{label}</dt>
+                    <dd className="num font-medium text-text">{value || '—'}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="text-[11px] text-subtle">
+                To change these, edit the staff member in Staff Directory.
+              </p>
             </section>
           </div>
         )}
