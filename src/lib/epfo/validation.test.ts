@@ -21,6 +21,7 @@ const baseReadyMember: EpfoMemberInput = {
     relationship: 'Father',
     mobileNumber: '9876543210',
     maritalStatus: 'Married',
+    qualification: 'GRADUATE',
     bankAccount: '123456789012',
     ifsc: 'SBIN0001234',
     nameAsPerBank: 'RAMESH KUMAR',

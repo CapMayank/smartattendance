@@ -93,6 +93,59 @@ export function mapMaritalStatus(ms: string | null | undefined): 'M' | 'U' | 'W'
   return '';
 }
 
+export const EPFO_QUALIFICATION_OPTIONS = [
+  { code: 'I', label: 'ILLITERATE' },
+  { code: 'L', label: 'LITERATE' },
+  { code: 'N', label: 'NON-MATRIC' },
+  { code: 'M', label: 'MATRIC' },
+  { code: 'S', label: 'SENIOR-SECONDARY' },
+  { code: 'G', label: 'GRADUATE' },
+  { code: 'P', label: 'POST-GRADUATE' },
+  { code: 'D', label: 'DOCTORATE' },
+  { code: 'T', label: 'TECHNICAL (PROFESSIONAL)' },
+] as const;
+
+export type EpfoQualificationCode = (typeof EPFO_QUALIFICATION_OPTIONS)[number]['code'];
+
+/**
+ * Maps stored qualification text (an EPFO code, an EPFO label, or legacy
+ * free text such as "BSC") to the single-letter code EPFO requires.
+ * Returns '' when it cannot be recognised.
+ */
+export function mapQualification(q: string | null | undefined): EpfoQualificationCode | '' {
+  if (!q) return '';
+  const raw = q.trim().toUpperCase();
+  if (!raw) return '';
+  const byCode = EPFO_QUALIFICATION_OPTIONS.find((o) => o.code === raw);
+  if (byCode) return byCode.code;
+  const norm = raw.replace(/[^A-Z0-9]/g, '');
+  const byLabel = EPFO_QUALIFICATION_OPTIONS.find((o) => o.label.replace(/[^A-Z0-9]/g, '') === norm);
+  if (byLabel) return byLabel.code;
+  if (norm === 'POSTGRADUATION' || norm === 'GRADUATION') return norm === 'GRADUATION' ? 'G' : 'P';
+
+  // Order matters: check the more specific/higher levels first.
+  if (/^(PHD|DPHIL|DOCTORATE)/.test(norm)) return 'D';
+  if (/^(MSC|MA|MCOM|MBA|MCA|MTECH|ME|MED|MPHIL|MPED|MSW|LLM|PG)/.test(norm)) return 'P';
+  if (/^(DELED|BTC|NTT|ITI|DIPLOMA|POLYTECHNIC|CERTIFICATE)/.test(norm)) return 'T';
+  if (/^(BSC|BA|BCOM|BBA|BCA|BTECH|BE|BED|BPED|BSW|LLB|UG)/.test(norm)) return 'G';
+  if (/^(12TH|HSC|INTERMEDIATE|SENIORSECONDARY|PLUSTWO)/.test(norm)) return 'S';
+  if (/^(10TH|SSC|HIGHSCHOOL|MATRICULATION)/.test(norm)) return 'M';
+  return '';
+}
+
+/** Dropdown value for stored qualification text ('' if unrecognised, forcing re-selection). */
+export function qualificationLabel(q: string | null | undefined): string {
+  const code = mapQualification(q);
+  return EPFO_QUALIFICATION_OPTIONS.find((o) => o.code === code)?.label ?? '';
+}
+
+/** EPFO rejects file names with special characters, so keep it alphanumeric. */
+export function epfoFileName(kind: 'REG' | 'EXIT' | 'KYC', now: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}${p(now.getHours())}${p(now.getMinutes())}`;
+  return `EPFO${kind}${stamp}.txt`;
+}
+
 export function computeEpfJoiningDate(member: EpfoMemberInput): string | null {
   const periods = (member.employmentPeriods || []).slice().sort((a, b) => b.startDate.localeCompare(a.startDate));
   const latestPeriod = periods[0];

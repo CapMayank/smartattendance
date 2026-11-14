@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { EPFO_QUALIFICATION_OPTIONS, qualificationLabel } from '@/lib/epfo/mappings'
 import {
   Modal,
   Button,
@@ -249,7 +250,7 @@ export function StaffProfileModal({
         gender: staff.payrollInfo?.gender || '',
         fatherHusbandName: staff.payrollInfo?.fatherHusbandName || '',
         relationship: staff.payrollInfo?.relationship || 'Father',
-        qualification: staff.payrollInfo?.qualification || '',
+        qualification: qualificationLabel(staff.payrollInfo?.qualification),
         nationality: staff.payrollInfo?.nationality || 'INDIAN',
         payGroup: staff.payrollInfo?.payGroup ?? 'BANK_EPF',
         isHigherPensionOpted: staff.payrollInfo?.isHigherPensionOpted ?? false,
@@ -888,13 +889,16 @@ export function StaffProfileModal({
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Highest Educational Qualification" htmlFor="kyc-qualification">
-                  <Input
+                  <Select
                     id="kyc-qualification"
-                    type="text"
                     value={formData.qualification}
                     onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
-                    placeholder="e.g. M.Sc, B.Ed, D.El.Ed"
-                  />
+                  >
+                    <option value="">Select Qualification...</option>
+                    {EPFO_QUALIFICATION_OPTIONS.map((o) => (
+                      <option key={o.code} value={o.label}>{o.label}</option>
+                    ))}
+                  </Select>
                 </Field>
                 <Field
                   label="Marital Status"

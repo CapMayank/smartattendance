@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { EPFO_QUALIFICATION_OPTIONS, qualificationLabel } from "@/lib/epfo/mappings";
 import {
   Modal,
   Button,
@@ -209,7 +210,7 @@ export function RequestProfileEditModal({
       relationship: p.relationship || "",
       maritalStatus: p.maritalStatus || "",
       nationality: p.nationality || "INDIAN",
-      qualification: p.qualification || "",
+      qualification: qualificationLabel(p.qualification),
       bankAccount: p.bankAccount || "",
       confirmBankAccount: p.bankAccount || "",
       ifsc: p.ifsc || "",
@@ -691,13 +692,17 @@ export function RequestProfileEditModal({
 
               <div>
                 {renderFieldHeader("qualification", "Educational Qualification")}
-                <Input
+                <Select
                   id="req-qualification"
                   value={formValues.qualification}
                   onChange={(e) => setFormValues({ ...formValues, qualification: e.target.value })}
-                  placeholder="e.g. Graduate, Post Graduate"
                   className={isFieldModified("qualification") ? "border-acc-1 ring-1 ring-acc-1/20" : ""}
-                />
+                >
+                  <option value="">Select Qualification</option>
+                  {EPFO_QUALIFICATION_OPTIONS.map((o) => (
+                    <option key={o.code} value={o.label}>{o.label}</option>
+                  ))}
+                </Select>
               </div>
             </div>
           </div>

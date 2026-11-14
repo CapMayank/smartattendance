@@ -5,6 +5,7 @@ import {
   formatEpfoDate,
   mapGender,
   mapMaritalStatus,
+  mapQualification,
   mapRelationship,
   sanitizeEpfoName,
   sanitizeEpfoText,
@@ -53,7 +54,7 @@ export function buildRegistrationLine(member: EpfoMemberInput): string {
     sanitizeEpfoText(info.email || ''),                                      // 10. Email
     (info.nationality || 'INDIAN').trim().toUpperCase(),                     // 11. Nationality
     String(wages),                                                           // 12. Monthly Wages
-    sanitizeEpfoText(info.qualification || ''),                              // 13. Qualification
+    mapQualification(info.qualification),                                    // 13. Qualification (EPFO code)
     mapMaritalStatus(info.maritalStatus),                                    // 14. Marital Status
     info.isInternationalWorker === 'Y' ? 'Y' : 'N',                          // 15. International Worker
     info.isInternationalWorker === 'Y'

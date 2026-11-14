@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { format } from 'date-fns';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/rbac';
@@ -10,7 +9,7 @@ import {
   buildRegistrationFile,
 } from '@/lib/epfo/formats';
 import { computeKycHash } from '@/lib/epfo/kyc-hash';
-import { defaultExitReasonCode } from '@/lib/epfo/mappings';
+import { defaultExitReasonCode, epfoFileName } from '@/lib/epfo/mappings';
 import { getLatestEmploymentPeriod } from '@/lib/epfo/next-action';
 import type { EpfoDocType, EpfoExitReasonCode, EpfoMemberInput } from '@/lib/epfo/types';
 import { validateForExit, validateForRegistration } from '@/lib/epfo/validation';
@@ -67,7 +66,6 @@ export async function POST(
   })) as unknown as EpfoMemberInput[];
 
   const now = new Date();
-  const timestamp = format(now, 'yyyyMMdd_HHmm');
 
   if (type === 'reg') {
     const validMembers: EpfoMemberInput[] = [];
@@ -123,7 +121,7 @@ export async function POST(
     return new NextResponse(content, {
       status: 200,
       headers: {
-        'Content-Disposition': `attachment; filename="EPFO_REG_${timestamp}.txt"`,
+        'Content-Disposition': `attachment; filename="${epfoFileName('REG', now)}"`,
         'Content-Type': 'text/plain',
         'X-Epfo-Summary': JSON.stringify({
           exportedCount: validMembers.length,
@@ -200,7 +198,7 @@ export async function POST(
     return new NextResponse(content, {
       status: 200,
       headers: {
-        'Content-Disposition': `attachment; filename="EPFO_EXIT_${timestamp}.txt"`,
+        'Content-Disposition': `attachment; filename="${epfoFileName('EXIT', now)}"`,
         'Content-Type': 'text/plain',
         'X-Epfo-Summary': JSON.stringify({
           exportedCount: validItems.length,
@@ -252,7 +250,7 @@ export async function POST(
     return new NextResponse(kycResult.content, {
       status: 200,
       headers: {
-        'Content-Disposition': `attachment; filename="EPFO_KYC_${timestamp}.txt"`,
+        'Content-Disposition': `attachment; filename="${epfoFileName('KYC', now)}"`,
         'Content-Type': 'text/plain',
         'X-Epfo-Summary': JSON.stringify({
           exportedCount: kycResult.exportedStaffIds.length,

@@ -94,6 +94,7 @@ const sampleMemberDb = {
     relationship: 'Father',
     mobileNumber: '9876543210',
     maritalStatus: 'Married',
+    qualification: 'GRADUATE',
     bankAccount: '123456789012',
     ifsc: 'SBIN0001234',
     nameAsPerBank: 'RAMESH KUMAR',
@@ -154,7 +155,7 @@ describe('EPFO API Routes', () => {
 
       const res = await exportFile(req, { params: Promise.resolve({ type: 'reg' }) });
       expect(res.status).toBe(200);
-      expect(res.headers.get('Content-Disposition')).toContain('EPFO_REG_');
+      expect(res.headers.get('Content-Disposition')).toMatch(/^attachment; filename="EPFOREG[0-9]+.txt"$/);
 
       const text = await res.text();
       expect(text).toContain('100234567890#~#');

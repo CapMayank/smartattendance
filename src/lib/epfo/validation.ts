@@ -2,6 +2,7 @@ import {
   computeEpfJoiningDate,
   mapGender,
   mapMaritalStatus,
+  mapQualification,
   mapRelationship,
   parseIsoDateKey,
   sanitizeEpfoName,
@@ -69,6 +70,10 @@ export function validateForRegistration(member: EpfoMemberInput): EpfoValidation
 
   if (!mapMaritalStatus(info?.maritalStatus)) {
     errors.push({ field: 'maritalStatus', message: 'Marital status is required' });
+  }
+
+  if (!mapQualification(info?.qualification)) {
+    errors.push({ field: 'qualification', message: 'Qualification must be one of the EPFO options (e.g. Graduate)' });
   }
 
   const ctc = typeof info?.monthlyCtc === 'number' ? info.monthlyCtc : 0;
