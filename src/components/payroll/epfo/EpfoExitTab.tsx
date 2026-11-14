@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Download, Lock, ShieldCheck } from 'lucide-react';
 import { Button, EmptyState } from '@/components/ui';
 import { MarkExitDialog } from './MarkExitDialog';
-import { MemberIdentity, Note, ReadyBadge, SelectionBar, useSelection, type EpfoTabProps } from './epfo-shared';
+import { MarkFiledControl, MemberIdentity, Note, ReadyBadge, SelectionBar, useSelection, type EpfoTabProps } from './epfo-shared';
 import { splitReadiness } from './use-epfo-members';
 import { formatEpfoDate } from '@/lib/epfo/mappings';
 
@@ -19,6 +19,9 @@ export function EpfoExitTab({ epfo, onFixMember, initialSelectedIds = [] }: Epfo
 
   return (
     <div>
+      <div className="flex justify-end border-b border-line-soft px-4 py-3">
+        <MarkFiledControl epfo={epfo} selectedIds={sel.ids} target="EXIT" onDone={sel.clear} />
+      </div>
       <Note>
         <b>Exit (bulk).</b> Confirm the exit reason for each leaver, then upload the file on the EPFO exit page. The
         exit date cannot be earlier than the EPF joining date, and a 12-digit UAN is required.

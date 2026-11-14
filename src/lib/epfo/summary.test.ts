@@ -104,3 +104,14 @@ describe('describeEpfoAction', () => {
     expect(describeEpfoAction('EPFO_SOMETHING_NEW', null)).toBe('EPFO: something new');
   });
 });
+
+import { computeKycHash } from './kyc-hash';
+
+describe('computeKycHash stability', () => {
+  it('still distinguishes punctuation in names so previously stored hashes keep matching', () => {
+    const base = { bankAccount: '123456789012', ifsc: 'HDFC0001234', pan: 'ABCDE1234F', aadhaar: '234567890123' };
+    const a = computeKycHash({ ...base, nameOnPan: 'A. KUMAR', nameAsPerBank: 'A. KUMAR', nameOnAadhaar: 'A. KUMAR' });
+    const b = computeKycHash({ ...base, nameOnPan: 'A KUMAR', nameAsPerBank: 'A KUMAR', nameOnAadhaar: 'A KUMAR' });
+    expect(a).not.toBe(b);
+  });
+});

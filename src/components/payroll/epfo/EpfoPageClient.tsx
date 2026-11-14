@@ -14,6 +14,7 @@ import { EpfoAllMembersTab } from './EpfoAllMembersTab';
 import { EpfoFeedback } from './epfo-shared';
 import { parseTab, tabCounts, type EpfoPageTab } from './epfo-tabs';
 import { useEpfoMembers } from './use-epfo-members';
+import { resolveFixStaff } from './fix-staff';
 
 export function EpfoPageClient() {
   const router = useRouter();
@@ -67,12 +68,21 @@ export function EpfoPageClient() {
     router.replace(`${pathname}${q ? `?${q}` : ''}`);
   };
 
-  const onFixMember = (staffId: string, initialTab: 'statutory' | 'kyc', fields: string[]) => {
-    const row = epfo.members.find((m) => m.id === staffId);
-    const target =
-      fullStaff.find((s) => s.id === staffId) ||
-      (row ? { ...row, payrollInfo: row.payrollInfo || {}, employmentPeriods: row.employmentPeriods || [] } : null);
-    if (!target) return;
+  const [fixError, setFixError] = useState<string | null>(null);
+
+  const onFixMember = async (staffId: string, initialTab: 'statutory' | 'kyc', fields: string[]) => {
+    const { staff, list } = await resolveFixStaff(staffId, fullStaff, async () => {
+      const res = await fetch('/api/staff');
+      if (!res.ok) throw new Error('staff list unavailable');
+      return res.json();
+    });
+    if (list !== fullStaff) setFullStaff(list);
+    if (!staff) {
+      setFixError('Could not load this staff profile. Please try again.');
+      return;
+    }
+    setFixError(null);
+    const target = staff;
     setFixStaff(target);
     setFixTab(initialTab);
     setFixFields(fields);
@@ -104,6 +114,11 @@ export function EpfoPageClient() {
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
 
       <EpfoFeedback epfo={epfo} />
+      {fixError && (
+        <div role="alert" className="rounded-xl border border-absent/30 bg-absent/10 px-3.5 py-2.5 text-[13px] text-absent">
+          {fixError}
+        </div>
+      )}
 
       {tab === 'overview' && (
         <EpfoOverviewTab

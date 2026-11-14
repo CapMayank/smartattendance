@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Check, Download, ShieldCheck, Wrench, X } from 'lucide-react';
 import { Button, EmptyState } from '@/components/ui';
 import { ExportSummaryDialog } from './ExportSummaryDialog';
-import { MemberIdentity, Note, SelectionBar, useSelection, type EpfoTabProps } from './epfo-shared';
+import { MarkFiledControl, MemberIdentity, Note, SelectionBar, useSelection, type EpfoTabProps } from './epfo-shared';
 import { splitReadiness } from './use-epfo-members';
 import { validateForKyc } from '@/lib/epfo/validation';
 
@@ -22,6 +22,9 @@ export function EpfoKycTab({ epfo, onFixMember, initialSelectedIds = [] }: EpfoT
 
   return (
     <div>
+      <div className="flex justify-end border-b border-line-soft px-4 py-3">
+        <MarkFiledControl epfo={epfo} selectedIds={sel.ids} target="KYC" onDone={sel.clear} />
+      </div>
       <Note>
         <b>KYC seeding.</b> Aadhaar and PAN only. Bank KYC is not accepted from employers; ask the member to seed it on
         the EPFO member portal. Each person needs a UAN first.

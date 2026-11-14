@@ -2,10 +2,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { Download, RotateCcw, Search, ShieldCheck, Wrench } from 'lucide-react';
-import { Button, Chip, ChipGroup, EmptyState, Input, Modal } from '@/components/ui';
+import { Button, Chip, ChipGroup, EmptyState, Input } from '@/components/ui';
 import { ExportSummaryDialog } from './ExportSummaryDialog';
 import { MemberChecklist } from './MemberChecklist';
-import { MemberIdentity, Note, ReadyBadge, SelectionBar, useSelection, type EpfoTabProps } from './epfo-shared';
+import { MarkFiledControl, MemberIdentity, Note, ReadyBadge, SelectionBar, useSelection, type EpfoTabProps } from './epfo-shared';
 import { isValidUan, splitReadiness } from './use-epfo-members';
 
 type Filter = 'NEEDS_REGISTRATION' | 'AWAITING_UAN';
@@ -20,7 +20,6 @@ export function EpfoRegistrationTab({
   const [search, setSearch] = useState('');
   const [uanDrafts, setUanDrafts] = useState<Record<string, string>>({});
   const [exportOpen, setExportOpen] = useState(false);
-  const [filedOpen, setFiledOpen] = useState(false);
   const sel = useSelection(initialSelectedIds);
 
   const toRegister = epfo.members.filter((m) => m.nextAction === 'NEEDS_REGISTRATION');
@@ -62,9 +61,7 @@ export function EpfoRegistrationTab({
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" aria-hidden="true" />
             <Input aria-label="Search joinees" placeholder="Search name, code, UAN" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <Button size="sm" variant="secondary" disabled={sel.ids.length === 0} onClick={() => setFiledOpen(true)}>
-            Mark as already filed
-          </Button>
+          <MarkFiledControl epfo={epfo} selectedIds={sel.ids} target="REG" onDone={sel.clear} />
         </div>
       </div>
 
@@ -172,33 +169,6 @@ export function EpfoRegistrationTab({
         skippedMembers={skipped}
         loading={epfo.busy}
       />
-
-      <Modal
-        open={filedOpen}
-        onClose={() => setFiledOpen(false)}
-        title="Mark selected as already filed on EPFO"
-        footer={
-          <div className="flex w-full items-center justify-between gap-3">
-            <Button variant="secondary" onClick={() => setFiledOpen(false)} disabled={epfo.busy}>Cancel</Button>
-            <Button
-              loading={epfo.busy}
-              onClick={async () => {
-                if (await epfo.markFiled(sel.ids, 'REG')) {
-                  setFiledOpen(false);
-                  sel.clear();
-                }
-              }}
-            >
-              Confirm
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-xs text-text">
-          Records that the selected {sel.ids.length} people were already submitted on the EPFO portal outside this app.
-          They leave the pending list without a file being generated.
-        </p>
-      </Modal>
     </div>
   );
 }

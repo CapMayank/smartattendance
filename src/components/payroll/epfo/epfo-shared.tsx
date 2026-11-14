@@ -2,13 +2,61 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, RotateCcw, X } from 'lucide-react';
-import { Avatar, Button } from '@/components/ui';
+import { Avatar, Button, Modal } from '@/components/ui';
 import type { EpfoMemberRow, EpfoMembersApi } from './use-epfo-members';
 
 export interface EpfoTabProps {
   epfo: EpfoMembersApi;
   onFixMember: (staffId: string, tab: 'statutory' | 'kyc', fields: string[]) => void;
   initialSelectedIds?: string[];
+}
+
+/** "Mark as already filed" button + confirmation, shared by the registration, KYC and exit tabs. */
+export function MarkFiledControl({
+  epfo,
+  selectedIds,
+  target,
+  onDone,
+}: {
+  epfo: EpfoMembersApi;
+  selectedIds: string[];
+  target: 'REG' | 'EXIT' | 'KYC';
+  onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="secondary" disabled={selectedIds.length === 0} onClick={() => setOpen(true)}>
+        Mark as already filed
+      </Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Mark selected as already filed on EPFO"
+        footer={
+          <div className="flex w-full items-center justify-between gap-3">
+            <Button variant="secondary" onClick={() => setOpen(false)} disabled={epfo.busy}>Cancel</Button>
+            <Button
+              loading={epfo.busy}
+              onClick={async () => {
+                if (await epfo.markFiled(selectedIds, target)) {
+                  setOpen(false);
+                  onDone();
+                }
+              }}
+            >
+              Confirm
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-xs text-text">
+          Records that the selected {selectedIds.length} people were already submitted on the EPFO portal outside this
+          app. They leave the pending list without a file being generated.
+        </p>
+      </Modal>
+    </>
+  );
 }
 
 export const STATUS_LABEL: Record<string, string> = {

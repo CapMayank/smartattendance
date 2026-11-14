@@ -95,3 +95,18 @@ describe('EpfoAllMembersTab', () => {
     expect(html).toContain('Up to date');
   });
 });
+
+describe('Mark as already filed on KYC and Exit tabs', () => {
+  it('is offered on the KYC tab', () => {
+    const html = renderToStaticMarkup(
+      <EpfoKycTab epfo={api([row({ id: 'k', nextAction: 'NEEDS_KYC' })])} onFixMember={noop} />
+    );
+    expect(html).toContain('Mark as already filed');
+  });
+  it('is offered on the Exit tab', () => {
+    const html = renderToStaticMarkup(
+      <EpfoExitTab epfo={api([row({ id: 'e', nextAction: 'NEEDS_EXIT' })])} onFixMember={noop} />
+    );
+    expect(html).toContain('Mark as already filed');
+  });
+});
