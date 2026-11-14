@@ -82,6 +82,22 @@ export async function GET(
       return new NextResponse("No payroll records found for this month", { status: 404 });
     }
 
+    // Best-effort: a failed audit write must never block the filing download.
+    const logEcrDownload = async (fmt: 'text' | 'excel') => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            actorUserId: auth.user.id,
+            action: 'EPFO_ECR_DOWNLOAD',
+            targetType: 'EPFO',
+            details: JSON.stringify({ month, year, format: fmt }),
+          },
+        });
+      } catch (e) {
+        console.error('ECR download audit failed:', e);
+      }
+    };
+
     const monthDate = new Date(year, month - 1, 1);
     const monthLabel = format(monthDate, "MMMM_yyyy");
     const lastDay = new Date(year, month, 0).getDate();
@@ -316,6 +332,7 @@ export async function GET(
       });
 
     } else if (type === "ecr-final") {
+      await logEcrDownload('excel');
       const epfPayrolls = payrolls.filter((p) => !isCashRecord(p));
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("ECR Format");
@@ -410,6 +427,7 @@ export async function GET(
       });
 
     } else if (type === "ecr-text") {
+      await logEcrDownload('text');
       const epfPayrolls = payrolls.filter((p) => !isCashRecord(p));
       let textContent = "";
       for (const p of epfPayrolls) {
