@@ -15,12 +15,14 @@ export function sanitizeEpfoText(val: string | null | undefined, maxLen?: number
   return typeof maxLen === 'number' && maxLen > 0 ? cleaned.slice(0, maxLen) : cleaned;
 }
 
-export function sanitizeEpfoName(val: string | null | undefined, maxLen = 100): string {
+export function sanitizeEpfoName(val: string | null | undefined, maxLen = 85): string {
   if (!val) return '';
+  // EPFO: "No special characters allowed" - keep only letters, digits and spaces.
   const cleaned = val
-    .replace(/#~#/g, '')
-    .replace(/[#~]/g, ' ')
-    .replace(/[\r\n]+/g, ' ')
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/['’`]/g, '')
+    .replace(/[^A-Za-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   const withoutTitles = cleaned.replace(/^(?:(?:MR|MRS|MS|MISS|DR|SHRI|SMT|KUMARI)\.?\s+)+/i, '');
@@ -131,6 +133,11 @@ export function mapQualification(q: string | null | undefined): EpfoQualificatio
   if (/^(12TH|HSC|INTERMEDIATE|SENIORSECONDARY|PLUSTWO)/.test(norm)) return 'S';
   if (/^(10TH|SSC|HIGHSCHOOL|MATRICULATION)/.test(norm)) return 'M';
   return '';
+}
+
+/** Document numbers (bank account, PAN, Aadhaar): alphanumeric only, max 20. */
+export function sanitizeEpfoDocNumber(val: string | null | undefined): string {
+  return (val || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 20);
 }
 
 /** Dropdown value for stored qualification text ('' if unrecognised, forcing re-selection). */

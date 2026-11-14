@@ -151,7 +151,7 @@ export function validateForExit(member: EpfoMemberInput): EpfoValidationResult {
 
 export function validateForKyc(
   member: EpfoMemberInput,
-  docTypes: EpfoDocType[] = ['B', 'P', 'A']
+  docTypes: EpfoDocType[] = ['P', 'A']
 ): EpfoValidationResult & {
   validDocs: EpfoDocType[];
   skippedDocs: Array<{ docType: EpfoDocType; reason: string }>;

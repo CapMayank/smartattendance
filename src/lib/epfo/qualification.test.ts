@@ -77,3 +77,28 @@ describe('epfoFileName', () => {
     expect(n.replace(/\.txt$/, '')).toMatch(/^[A-Za-z0-9]+$/);
   });
 });
+
+describe('EPFO name and KYC format rules', () => {
+  it('strips special characters from names and limits to 85 chars', async () => {
+    const { sanitizeEpfoName } = await import('./mappings');
+    expect(sanitizeEpfoName("Mr. A.K. O'Brien-Singh")).toBe('A K OBRIEN SINGH');
+    expect(sanitizeEpfoName('x'.repeat(120))).toHaveLength(85);
+  });
+  it('KYC lines have 6 columns, alphanumeric numbers, and exclude bank by default', async () => {
+    const { buildKycFile } = await import('./formats');
+    const m = member('GRADUATE');
+    m.payrollInfo = { ...m.payrollInfo, uan: '100248330106', pan: 'abcde1234f', bankAccount: '1234567890', ifsc: 'HDFC0001234' } as typeof m.payrollInfo;
+    const lines = buildKycFile([m]).content.split('\n');
+    expect(lines).toHaveLength(2);
+    for (const l of lines) expect(l.split('#~#')).toHaveLength(6);
+    expect(lines[0]).toBe('100248330106#~#P#~#ABCDE1234F#~#DAYAWATI GOLHANI#~##~#');
+    expect(lines.some((l) => l.split('#~#')[1] === 'B')).toBe(false);
+  });
+  it('exit line is UAN, dd/mm/yyyy and a valid single-letter code', async () => {
+    const { buildExitLine } = await import('./formats');
+    const m = member('GRADUATE');
+    m.payrollInfo = { ...m.payrollInfo, uan: '100248330106' } as typeof m.payrollInfo;
+    m.employmentPeriods = [{ ...m.employmentPeriods![0], endDate: '2026-12-31', exitReason: 'RESIGNATION' }];
+    expect(buildExitLine(m)).toMatch(/^\d{12}#~#\d{2}\/\d{2}\/\d{4}#~#[A-Z]$/);
+  });
+});

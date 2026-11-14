@@ -7,6 +7,7 @@ import {
   mapMaritalStatus,
   mapQualification,
   mapRelationship,
+  sanitizeEpfoDocNumber,
   sanitizeEpfoName,
   sanitizeEpfoText,
 } from './mappings';
@@ -106,7 +107,7 @@ export function buildExitFile(
 
 export function buildKycFile(
   members: EpfoMemberInput[],
-  docTypes: EpfoDocType[] = ['B', 'P', 'A']
+  docTypes: EpfoDocType[] = ['P', 'A']
 ): {
   content: string;
   exportedStaffIds: string[];
@@ -126,18 +127,18 @@ export function buildKycFile(
 
       for (const doc of kycRes.validDocs) {
         if (doc === 'B') {
-          const bankAccount = (info.bankAccount || '').trim();
+          const bankAccount = sanitizeEpfoDocNumber(info.bankAccount);
           const ifsc = (info.ifsc || '').trim().toUpperCase();
           const nameAsPerBank = sanitizeEpfoName(info.nameAsPerBank || member.name);
-          lines.push([uan, 'B', bankAccount, nameAsPerBank, ifsc].join(EPFO_DELIMITER));
+          lines.push([uan, 'B', bankAccount, nameAsPerBank, ifsc, ''].join(EPFO_DELIMITER));
         } else if (doc === 'P') {
-          const pan = (info.pan || '').trim().toUpperCase();
+          const pan = sanitizeEpfoDocNumber(info.pan);
           const nameOnPan = sanitizeEpfoName(info.nameOnPan || member.name);
-          lines.push([uan, 'P', pan, nameOnPan, ''].join(EPFO_DELIMITER));
+          lines.push([uan, 'P', pan, nameOnPan, '', ''].join(EPFO_DELIMITER));
         } else if (doc === 'A') {
-          const aadhaar = (info.aadhaar || '').trim();
+          const aadhaar = sanitizeEpfoDocNumber(info.aadhaar);
           const nameOnAadhaar = sanitizeEpfoName(info.nameOnAadhaar || member.name);
-          lines.push([uan, 'A', aadhaar, nameOnAadhaar, ''].join(EPFO_DELIMITER));
+          lines.push([uan, 'A', aadhaar, nameOnAadhaar, '', ''].join(EPFO_DELIMITER));
         }
       }
     }

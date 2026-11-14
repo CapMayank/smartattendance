@@ -84,8 +84,8 @@ describe('EPFO bulk file builders', () => {
     const res = buildKycFile([partialMember, noValidDocsMember, invalidUanMember], ['B', 'P', 'A']);
     const lines = res.content.split('\n');
     expect(lines).toEqual([
-      '100248330106#~#B#~#123456789012#~#RAMESH KUMAR#~#HDFC0001234',
-      '100248330106#~#A#~#234567890123#~#RAMESH KUMAR#~#',
+      '100248330106#~#B#~#123456789012#~#RAMESH KUMAR#~#HDFC0001234#~#',
+      '100248330106#~#A#~#234567890123#~#RAMESH KUMAR#~##~#',
     ]);
     expect(res.exportedStaffIds).toEqual(['s-partial']);
     expect(res.skipped.some((s) => s.staffId === 's-partial' && s.docType === 'P')).toBe(true);

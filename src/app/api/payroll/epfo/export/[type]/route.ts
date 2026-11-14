@@ -209,7 +209,7 @@ export async function POST(
   }
 
   if (type === 'kyc') {
-    const docTypes = body.docTypes || ['B', 'P', 'A'];
+    const docTypes = body.docTypes || ['P', 'A'];
     const kycResult = buildKycFile(staffList, docTypes);
 
     if (kycResult.exportedStaffIds.length === 0) {

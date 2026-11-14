@@ -266,7 +266,7 @@ export function EpfoMembersTab({
         body: JSON.stringify({
           staffIds,
           exitCodes,
-          docTypes: ['B', 'P', 'A'],
+          docTypes: ['P', 'A'],
         }),
       });
 
