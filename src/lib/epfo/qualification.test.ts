@@ -58,6 +58,11 @@ describe('registration export qualification', () => {
     const cols = buildRegistrationLine(member('BSC')).split('#~#');
     expect(cols[12]).toBe('G');
   });
+  it('leaves country of origin and passport columns empty for non-international workers', () => {
+    const cols = buildRegistrationLine(member('BSC')).split('#~#');
+    expect(cols[14]).toBe('N');
+    expect(cols.slice(15, 19)).toEqual(['', '', '', '']);
+  });
   it('requires a recognised qualification', () => {
     const res = validateForRegistration(member('xyz'));
     expect(res.errors.map((e) => e.field)).toContain('qualification');

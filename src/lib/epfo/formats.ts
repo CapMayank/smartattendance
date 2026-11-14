@@ -59,7 +59,7 @@ export function buildRegistrationLine(member: EpfoMemberInput): string {
     info.isInternationalWorker === 'Y' ? 'Y' : 'N',                          // 15. International Worker
     info.isInternationalWorker === 'Y'
       ? sanitizeEpfoText(info.countryOfOrigin || '')
-      : 'INDIA',                                                             // 16. Country of Origin
+      : '',                                                                  // 16. Country of Origin (only for international workers)
     sanitizeEpfoText(info.passportNumber || ''),                             // 17. Passport Number
     formatEpfoDate(info.passportValidFrom),                                  // 18. Passport Valid From
     formatEpfoDate(info.passportValidTill),                                  // 19. Passport Valid Till
